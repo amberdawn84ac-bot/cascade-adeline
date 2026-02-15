@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
-import pdfParse from 'pdf-parse';
+import { randomUUID } from 'node:crypto';
+import { PDFParse } from 'pdf-parse';
 import { embedMany } from 'ai';
-import { google } from '@ai-sdk/google';
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';
 import redis from '@/lib/redis';
 import { getSessionUser } from '@/lib/auth';
+import { getEmbeddingModel } from '@/lib/ai-models';
 
 function chunkText(text: string, chunkSize = 500, overlap = 100): string[] {
   const words = text.split(/\s+/);
@@ -59,8 +60,13 @@ export async function POST(req: NextRequest) {
   let text = '';
   if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const parsed = await pdfParse(buffer);
-    text = parsed.text || '';
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const parsed = await parser.getText();
+      text = parsed.text || '';
+    } finally {
+      await parser.destroy();
+    }
   } else {
     text = await file.text();
   }
@@ -68,7 +74,7 @@ export async function POST(req: NextRequest) {
   if (!text.trim()) return new Response('Empty content', { status: 400 });
 
   const config = loadConfig();
-  const embeddingModelId = config.models.embeddings || 'text-embedding-004';
+  const embeddingModelId = config.models.embeddings || 'text-embedding-3-small';
   const chunks = chunkText(text);
 
   const MAX_CHUNKS = 500;
@@ -77,23 +83,30 @@ export async function POST(req: NextRequest) {
   }
 
   const embeddingResult = await embedMany({
-    model: google.textEmbeddingModel(embeddingModelId),
+    model: getEmbeddingModel(embeddingModelId),
     values: chunks,
   });
 
   await Promise.all(
     chunks.map((chunk, i) => {
       const subtitle = chunk.split(/\s+/).slice(0, 8).join(' ');
-      return prisma.hippocampusDocument.create({
-        data: {
-          title: `${title} — ${subtitle}...`,
-          content: chunk,
-          metadata: { sourceUrl },
-          sourceType: sourceType as any,
-          embedding: embeddingResult.embeddings[i] as any,
-          chunkIndex: i,
-        },
-      });
+      const vectorLiteral = `[${embeddingResult.embeddings[i].join(',')}]`;
+      return prisma.$executeRaw`
+        INSERT INTO "HippocampusDocument"
+          ("id", "title", "content", "metadata", "source_type", "embedding", "chunk_index", "created_at", "updated_at")
+        VALUES
+          (
+            ${randomUUID()}::uuid,
+            ${`${title} — ${subtitle}...`},
+            ${chunk},
+            ${JSON.stringify({ sourceUrl })}::jsonb,
+            ${sourceType}::"SourceType",
+            ${vectorLiteral}::vector,
+            ${i},
+            NOW(),
+            NOW()
+          )
+      `;
     }),
   );
 

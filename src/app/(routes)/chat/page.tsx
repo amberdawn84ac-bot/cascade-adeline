@@ -25,11 +25,62 @@ function ActiveDot() {
   );
 }
 
+function getMessageText(message: { content?: string; parts?: Array<{ type?: string; text?: string }> }): string {
+  if (typeof message.content === 'string' && message.content.length > 0) {
+    return message.content;
+  }
+
+  const parts = Array.isArray(message.parts) ? message.parts : [];
+  return parts
+    .filter((part) => part?.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text)
+    .join('');
+}
+
 export default function ChatPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, data, setInput, append } = useChat({ api: '/api/chat' });
+  const { messages, input, handleInputChange, handleSubmit, isLoading, data, setInput, append } = useChat({
+    api: '/api/chat',
+    streamProtocol: 'text',
+    body: {},
+  });
   const [gapNudge, setGapNudge] = useState<string | null>(null);
   const [genUIPayload, setGenUIPayload] = useState<any | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be under 10MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUri = reader.result as string;
+      setImagePreview(dataUri);
+      setPendingImageUrl(dataUri);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setImagePreview(null);
+    setPendingImageUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() && !pendingImageUrl) return;
+    handleSubmit(e, {
+      body: pendingImageUrl ? { imageUrl: pendingImageUrl } : {},
+    });
+    clearImage();
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,9 +88,15 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!data) return;
-    const payload = data as any;
-    if (payload.gapNudge) setGapNudge(payload.gapNudge as string);
-    if (payload.genUIPayload) setGenUIPayload(payload.genUIPayload);
+    const payloads = Array.isArray(data) ? data : [];
+    for (const payload of payloads) {
+      if (payload && typeof payload === 'object' && 'gapNudge' in payload) {
+        setGapNudge(String((payload as { gapNudge?: unknown }).gapNudge || ''));
+      }
+      if (payload && typeof payload === 'object' && 'genUIPayload' in payload) {
+        setGenUIPayload((payload as { genUIPayload?: unknown }).genUIPayload ?? null);
+      }
+    }
   }, [data]);
 
   const renderedMessages = useMemo(
@@ -60,9 +117,9 @@ export default function ChatPage() {
               }}
             >
               {isUser ? (
-                <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Kalam, "Comic Sans MS", system-ui' }}>{m.content}</div>
+                <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Kalam, "Comic Sans MS", system-ui' }}>{getMessageText(m)}</div>
               ) : (
-                <SketchnoteRenderer content={m.content} mode={gapNudge ? 'SKETCHNOTE' : 'CHAT'} genUIPayload={genUIPayload || undefined} />
+                <SketchnoteRenderer content={getMessageText(m)} mode={gapNudge ? 'SKETCHNOTE' : 'CHAT'} genUIPayload={genUIPayload || undefined} />
               )}
             </div>
           </div>
@@ -124,7 +181,7 @@ export default function ChatPage() {
       </main>
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleFormSubmit}
         style={{
           position: 'sticky',
           bottom: 0,
@@ -132,53 +189,110 @@ export default function ChatPage() {
           padding: '10px 14px',
           borderTop: '1px solid #E7DAC3',
           display: 'flex',
-          gap: 10,
+          flexDirection: 'column',
+          gap: 8,
         }}
       >
-        <input
-          value={input}
-          onChange={handleInputChange}
-          placeholder="Share what you explored today..."
-          style={{
-            flex: 1,
-            padding: '12px 14px',
-            borderRadius: 14,
-            border: '1px solid #E7DAC3',
-            background: '#FFFDF5',
-            fontFamily: 'Kalam, "Comic Sans MS", system-ui',
-            outline: 'none',
-          }}
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          style={{
-            padding: '12px 18px',
-            borderRadius: 14,
-            border: 'none',
-            background: PAPAYA,
-            color: '#FFFFFF',
-            fontWeight: 700,
-            cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
-            opacity: isLoading || !input.trim() ? 0.7 : 1,
-            boxShadow: '0 6px 12px rgba(189,104,9,0.3)',
-          }}
-        >
-          Send
-        </button>
-        <button
-          type="button"
-          onClick={() => setInput('')}
-          style={{
-            padding: '12px 14px',
-            borderRadius: 14,
-            border: '1px solid #E7DAC3',
-            background: '#FFFFFF',
-            color: '#4B3424',
-          }}
-        >
-          Clear
-        </button>
+        {imagePreview && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img
+              src={imagePreview}
+              alt="Upload preview"
+              style={{
+                width: 60,
+                height: 60,
+                objectFit: 'cover',
+                borderRadius: 10,
+                border: '2px solid #E7DAC3',
+              }}
+            />
+            <span style={{ fontSize: 13, color: '#4B3424' }}>📸 Image attached</span>
+            <button
+              type="button"
+              onClick={clearImage}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 8,
+                border: '1px solid #E7DAC3',
+                background: '#FFF',
+                color: '#4B3424',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Snap to Log — upload a photo of your work"
+            style={{
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: '1px solid #E7DAC3',
+              background: imagePreview ? '#FFF3E7' : '#FFFFFF',
+              color: '#4B3424',
+              cursor: 'pointer',
+              fontSize: 18,
+            }}
+          >
+            📷
+          </button>
+          <input
+            value={input}
+            onChange={handleInputChange}
+            placeholder={imagePreview ? 'Describe what you made (optional)...' : 'Share what you explored today...'}
+            style={{
+              flex: 1,
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: '1px solid #E7DAC3',
+              background: '#FFFDF5',
+              fontFamily: 'Kalam, "Comic Sans MS", system-ui',
+              outline: 'none',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || (!input.trim() && !pendingImageUrl)}
+            style={{
+              padding: '12px 18px',
+              borderRadius: 14,
+              border: 'none',
+              background: PAPAYA,
+              color: '#FFFFFF',
+              fontWeight: 700,
+              cursor: isLoading || (!input.trim() && !pendingImageUrl) ? 'not-allowed' : 'pointer',
+              opacity: isLoading || (!input.trim() && !pendingImageUrl) ? 0.7 : 1,
+              boxShadow: '0 6px 12px rgba(189,104,9,0.3)',
+            }}
+          >
+            Send
+          </button>
+          <button
+            type="button"
+            onClick={() => { setInput(''); clearImage(); }}
+            style={{
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: '1px solid #E7DAC3',
+              background: '#FFFFFF',
+              color: '#4B3424',
+            }}
+          >
+            Clear
+          </button>
+        </div>
       </form>
     </div>
   );

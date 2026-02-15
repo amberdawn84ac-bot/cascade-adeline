@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { embed } from 'ai';
-import { google } from '@ai-sdk/google';
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';
+import { getEmbeddingModel } from '@/lib/ai-models';
 
 type SourceType = 'PRIMARY' | 'CURATED' | 'SECONDARY' | 'MAINSTREAM';
 
@@ -11,9 +11,10 @@ export async function POST(req: NextRequest) {
   if (!query || typeof query !== 'string' || !query.trim()) return new Response('Missing query', { status: 400 });
 
   const config = loadConfig();
-  const embeddingModelId = config.models.embeddings || 'text-embedding-004';
+  const embeddingModelId = config.models.embeddings || 'text-embedding-3-small';
+
   const embeddingResult = await embed({
-    model: google.textEmbeddingModel(embeddingModelId),
+    model: getEmbeddingModel(embeddingModelId),
     value: query,
   });
   const embeddingLiteral = `[${embeddingResult.embedding.join(',')}]`;

@@ -1,9 +1,8 @@
 import { embed, generateText } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
 import prisma from '../db';
 import { loadConfig } from '../config';
 import { AdelineGraphState } from './types';
+import { getModel, getEmbeddingModel } from '../ai-models';
 
 type SourceType = 'PRIMARY' | 'CURATED' | 'SECONDARY' | 'MAINSTREAM';
 
@@ -23,20 +22,22 @@ export async function discernmentEngine(state: AdelineGraphState): Promise<Adeli
   const modelId = config.models.investigation || config.models.default;
 
   // Build embedding for similarity search (pgvector)
-  const embeddingModelId = config.models.embeddings || 'text-embedding-004';
-  const embeddingResult = await embed({
-    model: google.textEmbeddingModel(embeddingModelId),
+  const embeddingModelId = config.models.embeddings || 'text-embedding-3-small';
+  
+  const embeddingModel = getEmbeddingModel(embeddingModelId);
+
+  const { embedding } = await embed({
+    model: embeddingModel,
     value: state.prompt,
   });
-  const embedding = embeddingResult.embedding;
   const embeddingLiteral = `[${embedding.join(',')}]`;
-
+  
   const docs = await prisma.$queryRawUnsafe<
     Array<{ id: string; title: string; content: string; source_type: SourceType; source_url: string | null; similarity: number }>
   >(
     `SELECT id, title, content, source_type, source_url,
             1 - (embedding <=> $1::vector) AS similarity
-     FROM hippocampus_documents
+     FROM "HippocampusDocument"
      WHERE 1 - (embedding <=> $1::vector) > 0.5
      ORDER BY similarity DESC
      LIMIT 8`,
@@ -64,7 +65,7 @@ Rules:
 - If the retrieved context is insufficient, say so honestly rather than filling gaps with generic information.`;
 
   const { text } = await generateText({
-    model: anthropic(modelId),
+    model: getModel(modelId),
     system,
     maxOutputTokens: 800,
     prompt: `User question: ${state.prompt}

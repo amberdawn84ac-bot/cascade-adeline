@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '../generated/prisma';
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -7,8 +7,7 @@ declare global {
 const prisma =
   globalThis.prisma ??
   new PrismaClient({
-    // Prisma 7 type requires accelerateUrl; provide env or blank.
-    accelerateUrl: process.env.PRISMA_ACCELERATE_URL || '',
+    accelerateUrl: process.env.PRISMA_ACCELERATE_URL || process.env.DATABASE_URL || 'http://localhost',
   });
 
 if (process.env.NODE_ENV !== 'production') {

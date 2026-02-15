@@ -1,13 +1,13 @@
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
 import prisma from '../db';
 import { loadConfig } from '../config';
 import { AdelineGraphState } from './types';
+import { getModel } from '../ai-models';
 
 async function inferInterests(prompt: string, history: AdelineGraphState['conversationHistory'], modelId: string) {
   const convo = history?.map((h) => `${h.role}: ${h.content}`).join('\n') || '';
   const { text } = await generateText({
-    model: google(modelId),
+    model: getModel(modelId),
     temperature: 0,
     maxOutputTokens: 120,
     prompt: `Extract up to 4 student interests as short keywords.
@@ -65,7 +65,7 @@ ${opportunities
 Return a short list in Adeline's warm voice, one bullet per opportunity. Mention who it helps and why it fits.`;
 
   const { text } = await generateText({
-    model: google(modelId),
+    model: getModel(modelId),
     maxOutputTokens: 300,
     prompt: summaryPrompt,
   });

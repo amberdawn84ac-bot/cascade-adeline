@@ -1,9 +1,5 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
-import { StreamData } from 'ai/server';
-import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
-import { openai } from '@ai-sdk/openai';
 import prisma from '@/lib/db';
 import redis from '@/lib/redis';
 import { loadConfig } from '@/lib/config';
@@ -14,15 +10,15 @@ import { projectBrainstormer } from '@/lib/langgraph/projectBrainstormer';
 import { genUIPlanner } from '@/lib/langgraph/genUIPlanner';
 import { opportunityScout } from '@/lib/langgraph/opportunityScout';
 import { gapDetector } from '@/lib/langgraph/gapDetector';
+import { reflectionCoach } from '@/lib/langgraph/reflectionCoach';
+import { visionAnalyzer } from '@/lib/langgraph/visionAnalyzer';
 import { AdelineGraphState } from '@/lib/langgraph/types';
 import { getSessionUser } from '@/lib/auth';
-
-function pickModelProvider(modelId: string) {
-  const id = modelId.toLowerCase();
-  if (id.includes('claude')) return anthropic(modelId);
-  if (id.includes('gpt')) return openai(modelId);
-  return google(modelId);
-}
+import { getModel } from '@/lib/ai-models';
+import { maskPII } from '@/lib/safety/pii-masker';
+import { moderateContent } from '@/lib/safety/content-moderator';
+import { createTraceContext, recordTrace, forceFlush, type TraceContext } from '@/lib/observability/tracer';
+import { getCachedResponse, cacheResponse } from '@/lib/semantic-cache';
 
 function buildSystemPrompt() {
   const config = loadConfig();
@@ -98,44 +94,82 @@ async function safeNode(
   name: string,
   node: (state: AdelineGraphState) => Promise<AdelineGraphState>,
   state: AdelineGraphState,
+  traceCtx?: TraceContext,
 ): Promise<AdelineGraphState> {
+  const start = performance.now();
   try {
-    return await node(state);
+    const result = await node(state);
+    if (traceCtx) {
+      recordTrace(traceCtx, {
+        agentNode: name,
+        modelId: state.selectedModel || 'unknown',
+        promptTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        latencyMs: Math.round(performance.now() - start),
+        success: true,
+      });
+    }
+    return result;
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(`[LangGraph:${name}]`, err);
+    if (traceCtx) {
+      recordTrace(traceCtx, {
+        agentNode: name,
+        modelId: state.selectedModel || 'unknown',
+        promptTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        latencyMs: Math.round(performance.now() - start),
+        success: false,
+        errorMessage: err instanceof Error ? err.message : String(err),
+      });
+    }
     const metadata = { ...(state.metadata || {}), errors: [...(((state.metadata as any)?.errors as string[]) || []), `${name} failed`] };
     return { ...state, metadata };
   }
 }
 
-async function runWorkflow(prompt: string, baseState: Partial<AdelineGraphState>): Promise<AdelineGraphState> {
+async function runWorkflow(prompt: string, baseState: Partial<AdelineGraphState>, traceCtx?: TraceContext): Promise<AdelineGraphState> {
   let state: AdelineGraphState = {
     prompt,
     ...baseState,
   } as AdelineGraphState;
 
-  state = await safeNode('router', router, state);
+  state = await safeNode('router', router, state, traceCtx);
+  console.log('[Workflow] Router returned intent:', state.intent, 'model:', state.selectedModel);
 
   switch (state.intent) {
     case 'LIFE_LOG':
-      state = await safeNode('lifeCreditLogger', lifeCreditLogger, state);
+      state = await safeNode('lifeCreditLogger', lifeCreditLogger, state, traceCtx);
+      state = { ...state, metadata: { ...state.metadata, reflectionMode: 'post_activity' } };
+      state = await safeNode('reflectionCoach', reflectionCoach, state, traceCtx);
       break;
     case 'INVESTIGATE':
-      state = await safeNode('discernmentEngine', discernmentEngine, state);
+      state = await safeNode('discernmentEngine', discernmentEngine, state, traceCtx);
       break;
     case 'BRAINSTORM':
-      state = await safeNode('projectBrainstormer', projectBrainstormer, state);
+      state = await safeNode('projectBrainstormer', projectBrainstormer, state, traceCtx);
       break;
     case 'OPPORTUNITY':
-      state = await safeNode('opportunityScout', opportunityScout, state);
+      state = await safeNode('opportunityScout', opportunityScout, state, traceCtx);
+      break;
+    case 'REFLECT':
+      state = await safeNode('reflectionCoach', reflectionCoach, state, traceCtx);
+      break;
+    case 'IMAGE_LOG':
+      state = await safeNode('visionAnalyzer', visionAnalyzer, state, traceCtx);
+      state = await safeNode('lifeCreditLogger', lifeCreditLogger, state, traceCtx);
+      state = { ...state, metadata: { ...state.metadata, reflectionMode: 'post_activity' } };
+      state = await safeNode('reflectionCoach', reflectionCoach, state, traceCtx);
       break;
     default:
       break;
   }
 
-  state = await safeNode('genUIPlanner', genUIPlanner, state);
-  state = await safeNode('gapDetector', gapDetector, state);
+  state = await safeNode('genUIPlanner', genUIPlanner, state, traceCtx);
+  state = await safeNode('gapDetector', gapDetector, state, traceCtx);
   return state;
 }
 
@@ -143,11 +177,12 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') || 'unknown';
   const sessionUser = await getSessionUser();
   const body = await req.json();
-  const { messages, userId, gradeLevel, studentContext } = body as {
+  const { messages, userId, gradeLevel, studentContext, imageUrl } = body as {
     messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
     userId?: string;
     gradeLevel?: string;
     studentContext?: AdelineGraphState['studentContext'];
+    imageUrl?: string;
   };
 
   const effectiveUserId = sessionUser?.userId || userId;
@@ -161,61 +196,147 @@ export async function POST(req: NextRequest) {
   const prompt = latestUser?.content || '';
   const sessionId = req.headers.get('x-session-id') || 'default';
 
-  // Persist incoming user message
+  // --- Safety Layer: Content Moderation ---
+  const moderation = await moderateContent(prompt);
+  if (moderation.severity === 'blocked') {
+    console.log('[Safety] Content blocked:', moderation.flaggedCategories);
+    const safeResponse = moderation.message || "Let's keep our conversation focused on learning!";
+    return new Response(safeResponse, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+
+  // --- Safety Layer: PII Masking ---
+  const piiResult = maskPII(prompt);
+  if (piiResult.hadPII) {
+    console.log('[Safety] PII detected and masked:', piiResult.detections.map(d => d.type));
+  }
+  const safePrompt = piiResult.masked;
+  // Replace the user message content with the masked version for LLM processing
+  const safeMessages = messages.map((m) =>
+    m === latestUser ? { ...m, content: safePrompt } : m
+  );
+
+  // Persist incoming user message (original, not masked — we store truthfully)
   if (effectiveUserId && latestUser) {
     await saveMessage(effectiveUserId, sessionId, latestUser as ChatMessage);
   }
 
   const history = await loadHistory(effectiveUserId, sessionId);
-  const combinedHistory: ChatMessage[] = [...history, ...messages];
+  const combinedHistory: ChatMessage[] = [...history, ...safeMessages];
+
+  // --- Semantic Cache: Check for similar previous responses ---
+  const cached = await getCachedResponse(safePrompt);
+  if (cached && !imageUrl) {
+    console.log('[Chat] Semantic cache hit, similarity:', cached.similarity.toFixed(4));
+    if (effectiveUserId) {
+      try {
+        await saveMessage(effectiveUserId, sessionId, { role: 'assistant', content: cached.response });
+      } catch {}
+    }
+    return new Response(cached.response, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+
+  // --- Observability: Create trace context ---
+  const traceCtx = createTraceContext(effectiveUserId);
 
   let workflowState: AdelineGraphState;
   try {
-    workflowState = await runWorkflow(prompt, {
+    workflowState = await runWorkflow(safePrompt, {
       userId: effectiveUserId,
       gradeLevel,
       studentContext,
       conversationHistory: combinedHistory,
-    });
+      ...(imageUrl ? { metadata: { imageUrl } } : {}),
+    }, traceCtx);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[LangGraph:workflow]', err);
-    const fallback = 'I hit a snag while thinking that through, but I’m still here. Could you rephrase or try again?';
-    return new Response(fallback, { status: 200 });
+    throw err;
   }
 
-  const model = pickModelProvider(workflowState.selectedModel || loadConfig().models.default);
-  const data = new StreamData();
-  if (workflowState.genUIPayload) {
-    data.append({ genUIPayload: workflowState.genUIPayload });
-  }
-  if (workflowState.metadata && (workflowState.metadata as any).gapNudge) {
-    data.append({ gapNudge: (workflowState.metadata as any).gapNudge });
-  }
+  const model = getModel(workflowState.selectedModel || loadConfig().models.default);
+  console.log('[Chat] Selected model ID:', workflowState.selectedModel || loadConfig().models.default);
+  console.log('[Chat] Intent:', workflowState.intent);
+  console.log('[Chat] Has responseContent:', !!workflowState.responseContent);
 
-  const result = streamText({
-    model,
-    system: buildSystemPrompt(),
-    messages,
-    onFinish: async ({ text }) => {
-      if (userId) {
-        const session = sessionId;
+  // If an agent already produced a response, return it directly
+  if (workflowState.responseContent) {
+    const agentResponse = workflowState.responseContent;
+    console.log('[Chat] Using agent responseContent, length:', agentResponse.length);
+    
+    // Save the response
+    if (effectiveUserId) {
+      try {
         await Promise.all([
-          saveMessage(userId, session, { role: 'assistant', content: text }),
-          prisma.conversationMemory.create({
+          saveMessage(effectiveUserId, sessionId, { role: 'assistant', content: agentResponse }),
+          (prisma as any).conversationMemory.create({
             data: {
-              userId,
-              sessionId: session,
-              role: 'assistant',
-              content: text,
+              userId: effectiveUserId,
+              sessionId,
+              role: 'ASSISTANT',
+              content: agentResponse,
               metadata: { genUIPayload: workflowState.genUIPayload },
             },
           }),
         ]);
+      } catch (err) {
+        console.error('[chat:saveAgentResponse]', err);
       }
-      data.close();
+    }
+
+    // Cache the response for future similar queries
+    cacheResponse(safePrompt, agentResponse, workflowState.intent || 'CHAT').catch(() => {});
+
+    // Flush traces and return
+    forceFlush().catch(() => {});
+    return new Response(agentResponse, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+
+  // No agent response - use streamText for general chat
+  const result = streamText({
+    model,
+    system: buildSystemPrompt(),
+    messages,
+    onFinish: async ({ text, usage }) => {
+      console.log('[Chat] Stream finished. Text length:', text.length);
+      // Trace the streaming LLM call
+      recordTrace(traceCtx, {
+        agentNode: 'streamChat',
+        modelId: workflowState.selectedModel || loadConfig().models.default,
+        promptTokens: usage?.inputTokens ?? 0,
+        outputTokens: usage?.outputTokens ?? 0,
+        totalTokens: (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0),
+        latencyMs: 0, // not easily measurable for streaming
+        success: true,
+      });
+      forceFlush().catch(() => {});
+      try {
+        if (effectiveUserId) {
+          const session = sessionId;
+          await Promise.all([
+            saveMessage(effectiveUserId, session, { role: 'assistant', content: text }),
+            (prisma as any).conversationMemory.create({
+              data: {
+                userId: effectiveUserId,
+                sessionId: session,
+                role: 'ASSISTANT',
+                content: text,
+                metadata: { genUIPayload: workflowState.genUIPayload },
+              },
+            }),
+          ]);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[chat:onFinish]', err);
+      }
     },
   });
 
-  return (result as any).toDataStreamResponse({ data });
+  return result.toTextStreamResponse();
 }

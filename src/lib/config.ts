@@ -45,8 +45,10 @@ export interface AdelineConfig {
 export function loadConfig(): AdelineConfig {
   if (cachedConfig) return cachedConfig;
   const configPath = path.join(process.cwd(), 'adeline.config.toml');
+  console.log('[Config] Loading config from:', configPath);
   const raw = fs.readFileSync(configPath, 'utf-8');
   cachedConfig = parse(raw) as unknown as AdelineConfig;
+  console.log('[Config] Loaded default model:', cachedConfig.models.default);
   return cachedConfig;
 }
 

@@ -1,16 +1,3 @@
-declare module 'pdf-parse' {
-  interface PDFParseResult {
-    numpages: number;
-    numrender: number;
-    info: Record<string, unknown>;
-    metadata: unknown;
-    version: string;
-    text: string;
-  }
-  function pdf(dataBuffer: Buffer): Promise<PDFParseResult>;
-  export = pdf;
-}
-
 declare module '@react-pdf/renderer' {
   import * as React from 'react';
   export interface Style {

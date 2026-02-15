@@ -1,26 +1,55 @@
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
 import { loadConfig } from '../config';
 import { AdelineGraphState } from './types';
+import { getModel } from '../ai-models';
+import { getZPDSummaryForPrompt } from '../zpd-engine';
 
-async function draftPlan(prompt: string, modelId: string) {
+async function draftPlan(
+  prompt: string,
+  conversationHistory: Array<{ role: string; content: string }> | undefined,
+  modelId: string,
+  zpdContext: string
+) {
+  // Build context from recent conversation
+  const recentContext = conversationHistory
+    ?.slice(-6)
+    .map((m) => `${m.role}: ${m.content}`)
+    .join('\n') || '';
+
+  const zpdSection = zpdContext
+    ? `\n\nThe following concepts are in this student's Zone of Proximal Development (they have the prerequisites mastered and are ready to learn these next). Try to naturally weave relevant ZPD concepts into your project suggestions when appropriate:\n${zpdContext}`
+    : '';
+
   const { text } = await generateText({
-    model: google(modelId),
-    maxOutputTokens: 340,
+    model: getModel(modelId),
+    maxOutputTokens: 400,
     system:
-      "You are Adeline's Project Brainstormer. Be enthusiastic and affirming. Deliver a full project plan immediately: what to build/do, learning goals, mapped credits, and a next step. After the plan, gently suggest a service idea as an invitation (optional, no pressure).",
-    prompt: `Student idea: ${prompt}
+      `You are Adeline's Project Brainstormer. Be enthusiastic and affirming. Deliver a full project plan immediately: what to build/do, learning goals, mapped credits, and a next step. After the plan, gently suggest a service idea as an invitation (optional, no pressure). IMPORTANT: Pay attention to the conversation context to understand what the student is actually talking about.${zpdSection}`,
+    prompt: `Recent conversation:
+${recentContext}
 
-Respond with: 1) warm affirmation, 2) concise plan (3-4 sentences), 3) mapped credits (woodworking/geometry/biology if relevant), 4) end with an optional service invitation like "Imagine gifting one to the nursing home garden" or similar.`,
+Student's current message: ${prompt}
+
+Respond with: 1) warm affirmation, 2) concise plan based on what they're ACTUALLY discussing (3-4 sentences), 3) mapped credits relevant to their specific idea, 4) if ZPD concepts are relevant, mention one or two as stretch goals, 5) end with an optional service invitation.`,
   });
   return text;
 }
 
 export async function projectBrainstormer(state: AdelineGraphState): Promise<AdelineGraphState> {
   const config = loadConfig();
-  const modelId = config.models.default; // Gemini
+  const modelId = config.models.default;
 
-  const plan = await draftPlan(state.prompt, modelId);
+  // Fetch ZPD context if we have a userId
+  let zpdContext = '';
+  if (state.userId) {
+    try {
+      zpdContext = await getZPDSummaryForPrompt(state.userId, { limit: 5 });
+    } catch (e) {
+      console.warn('[ProjectBrainstormer] Failed to fetch ZPD context:', e);
+    }
+  }
+
+  const plan = await draftPlan(state.prompt, state.conversationHistory, modelId, zpdContext);
 
   return {
     ...state,

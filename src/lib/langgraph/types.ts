@@ -4,7 +4,9 @@ export type AdelineIntent =
   | 'BRAINSTORM'
   | 'INVESTIGATE'
   | 'GEN_UI'
-  | 'OPPORTUNITY';
+  | 'OPPORTUNITY'
+  | 'REFLECT'
+  | 'IMAGE_LOG';
 
 export interface LifeCreditMapping {
   activity: string;

@@ -69,13 +69,13 @@ content_filter = "age_appropriate_biblical_worldview"
 never_share = ["student_location", "student_full_name_externally", "parent_contact_info"]
 
 [models]
-default = "gemini-flash"
+default = "gpt-4o"
 investigation = "claude-3-sonnet-20240229"
 deep_analysis = "gpt-4o"
-embeddings = "text-embedding-004"
+embeddings = "text-embedding-3-small"
 
 [models.routing_rules]
-general_chat = "gemini-flash"
+general_chat = "gpt-4o"
 investigation_keywords = ["who profits", "follow the money", "what really happened", "investigate", "regulatory capture", "who funded"]
 investigation_model = "claude-3-sonnet-20240229"
 deep_analysis_keywords = ["compare", "analyze in depth", "economic models", "philosophical"]

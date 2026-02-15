@@ -48,7 +48,7 @@ export async function gapDetector(state: AdelineGraphState): Promise<AdelineGrap
   for (const subj of gaps) {
     let concept = await prisma.concept.findFirst({ where: { name: subj } });
     if (!concept) {
-      concept = await prisma.concept.create({
+      concept = await (prisma as any).concept.create({
         data: {
           name: subj,
           description: `${subj} mastery for grade band ${band}`,
@@ -59,6 +59,7 @@ export async function gapDetector(state: AdelineGraphState): Promise<AdelineGrap
         },
       });
     }
+    if (!concept) continue;
 
     const existingGap = await prisma.learningGap.findFirst({
       where: { conceptId: concept.id, userId: state.userId },
@@ -67,7 +68,7 @@ export async function gapDetector(state: AdelineGraphState): Promise<AdelineGrap
     if (existingGap) {
       await prisma.learningGap.update({ where: { id: existingGap.id }, data: { detectedAt: new Date(), addressed: false } });
     } else {
-      await prisma.learningGap.create({
+      await (prisma as any).learningGap.create({
         data: {
           userId: state.userId,
           conceptId: concept.id,
