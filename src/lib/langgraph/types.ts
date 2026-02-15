@@ -44,5 +44,15 @@ export interface AdelineGraphState {
     props: Record<string, unknown>;
   };
   // Additional payload for downstream planners
-  metadata?: Record<string, unknown>;
+  metadata?: {
+    imageUrl?: string;
+    reflectionMode?: string;
+    gapNudge?: string;
+    errors?: string[];
+    lifeCreditLogger?: { matched?: boolean; mapping?: LifeCreditMapping; transcriptDraft?: TranscriptDraft };
+    discernmentEngine?: { model?: string; sourcesUsed?: string | number };
+    reflectionEntryId?: string;
+    pendingReflection?: { reflectionEntryId?: string; dimension?: string; promptUsed?: string; activitySummary?: string };
+    [key: string]: unknown;
+  };
 }

@@ -62,7 +62,7 @@ async function safeNode(
         errorMessage: err instanceof Error ? err.message : String(err),
       });
     }
-    const metadata = { ...(state.metadata || {}), errors: [...(((state.metadata as any)?.errors as string[]) || []), `${name} failed`] };
+    const metadata = { ...(state.metadata || {}), errors: [...(state.metadata?.errors || []), `${name} failed`] };
     return { ...state, metadata };
   }
 }

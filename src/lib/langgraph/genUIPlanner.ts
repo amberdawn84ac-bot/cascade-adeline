@@ -20,7 +20,7 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
 
   // Priority 2: Investigation view when we ran discernment
   if (state.intent === 'INVESTIGATE' || state.metadata?.discernmentEngine) {
-    const sourcesUsed = (state.metadata as any)?.discernmentEngine?.sourcesUsed;
+    const sourcesUsed = state.metadata?.discernmentEngine?.sourcesUsed;
     return {
       component: 'InvestigationBoard',
       props: {

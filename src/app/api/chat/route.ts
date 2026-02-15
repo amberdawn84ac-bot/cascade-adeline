@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText } from 'ai';
+import { streamText, createUIMessageStream, createUIMessageStreamResponse } from 'ai';
 import prisma from '@/lib/db';
 import redis from '@/lib/redis';
 import { loadConfig } from '@/lib/config';
@@ -19,6 +19,23 @@ import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
 import { createTraceContext, recordTrace, forceFlush, type TraceContext } from '@/lib/observability/tracer';
 import { getCachedResponse, cacheResponse } from '@/lib/semantic-cache';
+
+/**
+ * Wrap a plain text response in the UI message stream protocol
+ * so the client's useChat always receives a consistent format.
+ */
+function textAsUIStream(text: string, meta?: Record<string, unknown>): Response {
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      if (meta) writer.write({ type: 'start', messageMetadata: meta });
+      writer.write({ type: 'text-start', id: 'msg' });
+      writer.write({ type: 'text-delta', id: 'msg', delta: text });
+      writer.write({ type: 'text-end', id: 'msg' });
+      writer.write({ type: 'finish', finishReason: 'stop', ...(meta ? { messageMetadata: meta } : {}) });
+    },
+  });
+  return createUIMessageStreamResponse({ stream });
+}
 
 function buildSystemPrompt() {
   const config = loadConfig();
@@ -43,7 +60,7 @@ async function saveMessage(userId: string | undefined, sessionId: string, messag
     data: {
       userId,
       sessionId,
-      role: message.role.toUpperCase() as any,
+      role: message.role.toUpperCase(),
       content: message.content,
       metadata: {},
     },
@@ -126,8 +143,8 @@ async function safeNode(
         errorMessage: err instanceof Error ? err.message : String(err),
       });
     }
-    const metadata = { ...(state.metadata || {}), errors: [...(((state.metadata as any)?.errors as string[]) || []), `${name} failed`] };
-    return { ...state, metadata };
+    const md = { ...(state.metadata || {}), errors: [...(state.metadata?.errors || []), `${name} failed`] };
+    return { ...state, metadata: md };
   }
 }
 
@@ -201,9 +218,7 @@ export async function POST(req: NextRequest) {
   if (moderation.severity === 'blocked') {
     console.log('[Safety] Content blocked:', moderation.flaggedCategories);
     const safeResponse = moderation.message || "Let's keep our conversation focused on learning!";
-    return new Response(safeResponse, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
+    return textAsUIStream(safeResponse, { intent: 'BLOCKED' });
   }
 
   // --- Safety Layer: PII Masking ---
@@ -234,9 +249,7 @@ export async function POST(req: NextRequest) {
         await saveMessage(effectiveUserId, sessionId, { role: 'assistant', content: cached.response });
       } catch {}
     }
-    return new Response(cached.response, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
+    return textAsUIStream(cached.response, { intent: cached.intent });
   }
 
   // --- Observability: Create trace context ---
@@ -262,11 +275,28 @@ export async function POST(req: NextRequest) {
   console.log('[Chat] Intent:', workflowState.intent);
   console.log('[Chat] Has responseContent:', !!workflowState.responseContent);
 
-  // If an agent already produced a response, return it directly
+  // Build metadata to send to client
+  const messageMetadata = {
+    intent: workflowState.intent,
+    genUIPayload: workflowState.genUIPayload ?? null,
+    gapNudge: workflowState.metadata?.gapNudge ?? null,
+  };
+
+  // If an agent already produced a response, stream it via UI message protocol
   if (workflowState.responseContent) {
     const agentResponse = workflowState.responseContent;
     console.log('[Chat] Using agent responseContent, length:', agentResponse.length);
-    
+
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        writer.write({ type: 'start', messageMetadata });
+        writer.write({ type: 'text-start', id: 'agent-response' });
+        writer.write({ type: 'text-delta', id: 'agent-response', delta: agentResponse });
+        writer.write({ type: 'text-end', id: 'agent-response' });
+        writer.write({ type: 'finish', finishReason: 'stop', messageMetadata });
+      },
+    });
+
     // Save the response
     if (effectiveUserId) {
       try {
@@ -289,12 +319,9 @@ export async function POST(req: NextRequest) {
 
     // Cache the response for future similar queries
     cacheResponse(safePrompt, agentResponse, workflowState.intent || 'CHAT').catch(() => {});
-
-    // Flush traces and return
     forceFlush().catch(() => {});
-    return new Response(agentResponse, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
+
+    return createUIMessageStreamResponse({ stream });
   }
 
   // No agent response - use streamText for general chat
@@ -304,14 +331,13 @@ export async function POST(req: NextRequest) {
     messages,
     onFinish: async ({ text, usage }) => {
       console.log('[Chat] Stream finished. Text length:', text.length);
-      // Trace the streaming LLM call
       recordTrace(traceCtx, {
         agentNode: 'streamChat',
         modelId: workflowState.selectedModel || loadConfig().models.default,
         promptTokens: usage?.inputTokens ?? 0,
         outputTokens: usage?.outputTokens ?? 0,
         totalTokens: (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0),
-        latencyMs: 0, // not easily measurable for streaming
+        latencyMs: 0,
         success: true,
       });
       forceFlush().catch(() => {});
@@ -332,11 +358,12 @@ export async function POST(req: NextRequest) {
           ]);
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error('[chat:onFinish]', err);
       }
     },
   });
 
-  return result.toTextStreamResponse();
+  return result.toUIMessageStreamResponse({
+    messageMetadata: () => messageMetadata,
+  });
 }

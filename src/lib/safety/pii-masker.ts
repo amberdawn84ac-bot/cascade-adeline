@@ -36,9 +36,9 @@ const PII_PATTERNS: Array<{ type: string; regex: RegExp; replacement: string | (
     replacement: '[EMAIL_REDACTED]',
   },
   {
-    type: 'phone',
-    regex: /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g,
-    replacement: '[PHONE_REDACTED]',
+    type: 'credit_card',
+    regex: /\b(?:\d{4}[-.\s]?){3}\d{4}\b/g,
+    replacement: '[CARD_REDACTED]',
   },
   {
     type: 'ssn',
@@ -46,9 +46,9 @@ const PII_PATTERNS: Array<{ type: string; regex: RegExp; replacement: string | (
     replacement: '[SSN_REDACTED]',
   },
   {
-    type: 'credit_card',
-    regex: /\b(?:\d{4}[-.\s]?){3}\d{4}\b/g,
-    replacement: '[CARD_REDACTED]',
+    type: 'phone',
+    regex: /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g,
+    replacement: '[PHONE_REDACTED]',
   },
   {
     type: 'ip_address',

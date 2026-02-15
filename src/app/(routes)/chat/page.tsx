@@ -38,9 +38,8 @@ function getMessageText(message: { content?: string; parts?: Array<{ type?: stri
 }
 
 export default function ChatPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, data, setInput, append } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput, append, error } = useChat({
     api: '/api/chat',
-    streamProtocol: 'text',
     body: {},
   });
   const [gapNudge, setGapNudge] = useState<string | null>(null);
@@ -86,18 +85,14 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, genUIPayload]);
 
+  // Extract genUIPayload and gapNudge from the latest assistant message metadata
   useEffect(() => {
-    if (!data) return;
-    const payloads = Array.isArray(data) ? data : [];
-    for (const payload of payloads) {
-      if (payload && typeof payload === 'object' && 'gapNudge' in payload) {
-        setGapNudge(String((payload as { gapNudge?: unknown }).gapNudge || ''));
-      }
-      if (payload && typeof payload === 'object' && 'genUIPayload' in payload) {
-        setGenUIPayload((payload as { genUIPayload?: unknown }).genUIPayload ?? null);
-      }
-    }
-  }, [data]);
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+    if (!lastAssistant) return;
+    const meta = (lastAssistant as any).metadata;
+    if (meta?.genUIPayload) setGenUIPayload(meta.genUIPayload);
+    if (meta?.gapNudge) setGapNudge(String(meta.gapNudge));
+  }, [messages]);
 
   const renderedMessages = useMemo(
     () =>
@@ -162,6 +157,21 @@ export default function ChatPage() {
       </header>
 
       <main style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {error && (
+          <div
+            style={{
+              background: '#FFF0F0',
+              border: '1px solid #E74C3C',
+              color: '#7B241C',
+              padding: '10px 12px',
+              borderRadius: 12,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              fontFamily: 'Kalam, "Comic Sans MS", system-ui',
+            }}
+          >
+            Oops — something went wrong. Try again in a moment.
+          </div>
+        )}
         {gapNudge && (
           <div
             style={{

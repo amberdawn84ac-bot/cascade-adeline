@@ -190,7 +190,7 @@ export async function reflectionCoach(state: AdelineGraphState): Promise<Adeline
 
   // Mode 2: Generate a new reflection prompt (post-activity)
   const activityDescription =
-    (state.metadata?.lifeCreditLogger as any)?.mapping?.activity ||
+    state.metadata?.lifeCreditLogger?.mapping?.activity ||
     state.transcriptDraft?.activityName ||
     state.prompt;
 
