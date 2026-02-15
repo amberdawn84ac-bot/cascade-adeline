@@ -1,0 +1,296 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  STUDENT
+  PARENT
+  TEACHER
+  ADMIN
+}
+
+enum ClubRole {
+  MEMBER
+  LEADER
+}
+
+enum ProjectStatus {
+  BRAINSTORM
+  ACTIVE
+  COMPLETED
+  SHOWCASED
+}
+
+enum ArtifactType {
+  DOCUMENT
+  PRESENTATION
+  VIDEO
+  PHYSICAL_BUILD
+  CODE
+  BUSINESS_PLAN
+  ART
+  OTHER
+}
+
+enum OpportunityType {
+  CONTEST
+  GRANT
+  APPRENTICESHIP
+  SERVICE_PROJECT
+  SCHOLARSHIP
+}
+
+enum SourceType {
+  PRIMARY
+  SECONDARY
+  MAINSTREAM
+  CURATED
+}
+
+enum LearningGapSeverity {
+  MINOR
+  MODERATE
+  SIGNIFICANT
+}
+
+enum ConversationRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model User {
+  id                 String               @id @default(uuid()) @db.Uuid
+  email              String               @unique
+  name               String
+  role               UserRole
+  parent             User?                @relation("ParentToChild", fields: [parentId], references: [id])
+  parentId           String?              @db.Uuid
+  children           User[]               @relation("ParentToChild")
+  avatarUrl          String?
+  age                Int?
+  interests          String[]
+  learningStyle      String?
+  onboardingComplete Boolean              @default(false)
+  clubs              ClubMembership[]
+  projects           Project[]            @relation("ProjectCreator")
+  artifacts          Artifact[]
+  transcriptEntries  TranscriptEntry[]
+  opportunities      Opportunity[]        @relation("OpportunityCreator")
+  clubsCreated       Club[]               @relation("ClubCreator")
+  approvedEntries    TranscriptEntry[]    @relation("TranscriptApprover")
+  conversationMemory ConversationMemory[]
+  learningGaps       LearningGap[]
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+}
+
+model Club {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  description String
+  ageRange    String?          @map("age_range")
+  createdBy   User             @relation("ClubCreator", fields: [createdById], references: [id])
+  createdById String           @db.Uuid
+  isActive    Boolean
+  memberships ClubMembership[]
+  projects    Project[]
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+}
+
+model ClubMembership {
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String   @db.Uuid
+  club     Club     @relation(fields: [clubId], references: [id])
+  clubId   String   @db.Uuid
+  role     ClubRole
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  @@id([userId, clubId])
+  @@index([userId])
+}
+
+model Project {
+  id             String        @id @default(uuid()) @db.Uuid
+  title          String
+  description    String
+  club           Club?         @relation(fields: [clubId], references: [id])
+  clubId         String?       @db.Uuid
+  createdBy      User          @relation("ProjectCreator", fields: [createdById], references: [id])
+  createdById    String        @db.Uuid
+  status         ProjectStatus
+  serviceGoal    String        @map("service_goal")
+  intendedImpact String        @map("intended_impact")
+  actualImpact   String?       @map("actual_impact")
+  curriculumUnit String?       @map("curriculum_unit")
+  artifacts      Artifact[]
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([createdById])
+}
+
+model Artifact {
+  id                String            @id @default(uuid()) @db.Uuid
+  project           Project           @relation(fields: [projectId], references: [id])
+  projectId         String            @db.Uuid
+  createdBy         User              @relation(fields: [createdById], references: [id])
+  createdById       String            @db.Uuid
+  title             String
+  type              ArtifactType
+  fileUrl           String?           @map("file_url")
+  description       String
+  isShowcase        Boolean           @default(false) @map("is_showcase")
+  transcriptEntries TranscriptEntry[]
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  @@index([createdById])
+}
+
+model Opportunity {
+  id               String          @id @default(uuid()) @db.Uuid
+  title            String
+  type             OpportunityType
+  description      String
+  url              String?
+  deadline         DateTime?
+  ageRange         String?         @map("age_range")
+  matchedInterests String[]        @map("matched_interests")
+  isActive         Boolean         @map("is_active")
+  createdBy        User            @relation("OpportunityCreator", fields: [createdById], references: [id])
+  createdById      String          @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@index([createdById])
+}
+
+model TranscriptEntry {
+  id                 String    @id @default(uuid()) @db.Uuid
+  user               User      @relation(fields: [userId], references: [id])
+  userId             String    @db.Uuid
+  activityName       String    @map("activity_name")
+  mappedSubject      String    @map("mapped_subject")
+  creditsEarned      Decimal   @map("credits_earned") @db.Decimal(10, 2)
+  gradeLevel         String?   @map("grade_level")
+  evidenceArtifact   Artifact? @relation(fields: [evidenceArtifactId], references: [id])
+  evidenceArtifactId String?   @db.Uuid
+  dateCompleted      DateTime  @map("date_completed")
+  approvedBy         User?     @relation("TranscriptApprover", fields: [approvedById], references: [id])
+  approvedById       String?   @db.Uuid
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([mappedSubject])
+}
+
+model Concept {
+  id            String                @id @default(uuid()) @db.Uuid
+  name          String
+  description   String
+  subjectArea   String                @map("subject_area")
+  gradeBand     String?               @map("grade_band")
+  embedding     Unsupported("vector")
+  prerequisites ConceptPrerequisite[] @relation("ConceptPrereqs")
+  dependents    ConceptPrerequisite[] @relation("ConceptDependents")
+  activities    ConceptActivity[]
+  learningGaps  LearningGap[]
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+}
+
+model ConceptPrerequisite {
+  concept        Concept @relation("ConceptPrereqs", fields: [conceptId], references: [id])
+  conceptId      String  @db.Uuid
+  prerequisite   Concept @relation("ConceptDependents", fields: [prerequisiteId], references: [id])
+  prerequisiteId String  @db.Uuid
+
+  @@id([conceptId, prerequisiteId])
+  @@index([conceptId])
+}
+
+model ConceptActivity {
+  id                  String   @id @default(uuid()) @db.Uuid
+  concept             Concept  @relation(fields: [conceptId], references: [id])
+  conceptId           String   @db.Uuid
+  activityDescription String   @map("activity_description")
+  creditMapping       String   @map("credit_mapping")
+  suggestedExtension  String   @map("suggested_extension")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([conceptId])
+}
+
+model TimelineEntry {
+  id             String     @id @default(uuid()) @db.Uuid
+  year           Int
+  title          String
+  description    String
+  worldviewNote  String     @map("worldview_note")
+  sourceType     SourceType @map("source_type")
+  sourceCitation String?    @map("source_citation")
+  curriculumUnit String?    @map("curriculum_unit")
+  tags           String[]
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+}
+
+model HippocampusDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  title      String
+  content    String
+  metadata   Json
+  sourceType SourceType @map("source_type")
+  embedding  Unsupported("vector")
+  chunkIndex Int      @map("chunk_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([sourceType])
+  // Ensure pgvector index (ivfflat/hnsw) created in migration for embedding column
+}
+
+model ConversationMemory {
+  id        String   @id @default(uuid()) @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.Uuid
+  sessionId String   @map("session_id")
+  role      ConversationRole
+  content   String
+  metadata  Json
+  embedding Unsupported("vector")
+  createdAt DateTime              @default(now()) @map("created_at")
+  updatedAt DateTime              @updatedAt @map("updated_at")
+
+  @@index([userId])
+}
+
+model LearningGap {
+  id           String              @id @default(uuid()) @db.Uuid
+  user         User                @relation(fields: [userId], references: [id])
+  userId       String              @db.Uuid
+  concept      Concept             @relation(fields: [conceptId], references: [id])
+  conceptId    String              @db.Uuid
+  detectedAt   DateTime            @map("detected_at")
+  severity     LearningGapSeverity
+  addressed    Boolean             @default(false)
+  addressedVia String?             @map("addressed_via")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+}
