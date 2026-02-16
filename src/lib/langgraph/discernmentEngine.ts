@@ -33,9 +33,9 @@ export async function discernmentEngine(state: AdelineGraphState): Promise<Adeli
   const embeddingLiteral = `[${embedding.join(',')}]`;
   
   const docs = await prisma.$queryRawUnsafe<
-    Array<{ id: string; title: string; content: string; source_type: SourceType; source_url: string | null; similarity: number }>
+    Array<{ id: string; title: string; content: string; source_type: SourceType; similarity: number }>
   >(
-    `SELECT id, title, content, source_type, source_url,
+    `SELECT id, title, content, source_type,
             1 - (embedding <=> $1::vector) AS similarity
      FROM "HippocampusDocument"
      WHERE 1 - (embedding <=> $1::vector) > 0.5
@@ -44,7 +44,7 @@ export async function discernmentEngine(state: AdelineGraphState): Promise<Adeli
     embeddingLiteral,
   );
 
-  const normalizedDocs = docs.map((d: { id: string; title: string; content: string; source_type: SourceType; source_url: string | null; similarity: number }) => ({
+  const normalizedDocs = docs.map((d: { id: string; title: string; content: string; source_type: SourceType; similarity: number }) => ({
     ...d,
     sourceType: d.source_type,
   })) as Array<{ id: string; title: string; content: string; sourceType: SourceType; similarity: number }>;

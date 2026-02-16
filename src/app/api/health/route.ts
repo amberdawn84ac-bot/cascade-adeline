@@ -12,7 +12,7 @@ export async function GET() {
 
   // Check Postgres
   try {
-    await prisma.user.count();
+    await (prisma as any).$queryRaw`SELECT 1`;
     checks.database = 'ok';
   } catch {
     checks.database = 'fail';
