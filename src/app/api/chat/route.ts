@@ -19,6 +19,7 @@ import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
 import { createTraceContext, recordTrace, forceFlush, type TraceContext } from '@/lib/observability/tracer';
 import { getCachedResponse, cacheResponse } from '@/lib/semantic-cache';
+import { checkMessageLimit, incrementMessageCount } from '@/lib/subscription';
 
 /**
  * Wrap a plain text response in the UI message stream protocol
@@ -207,6 +208,23 @@ export async function POST(req: NextRequest) {
   if (!(await rateLimit(rateKey, CHAT_RATE_LIMIT, 60))) {
     return new Response('Rate limit exceeded', { status: 429 });
   }
+
+  // Check subscription message limit
+  if (effectiveUserId) {
+    const limitCheck = await checkMessageLimit(effectiveUserId);
+    if (!limitCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'message_limit_reached',
+          message: `You've used all ${limitCheck.limit} free messages this month. Upgrade to continue learning!`,
+          tier: limitCheck.tier,
+          limit: limitCheck.limit,
+        }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
   if (!isValidMessages(messages)) return new Response('Invalid messages payload', { status: 400 });
 
   const latestUser = [...messages].reverse().find((m) => m.role === 'user');
@@ -321,6 +339,9 @@ export async function POST(req: NextRequest) {
     cacheResponse(safePrompt, agentResponse, workflowState.intent || 'CHAT').catch(() => {});
     forceFlush().catch(() => {});
 
+    // Increment message count for subscription tracking
+    if (effectiveUserId) incrementMessageCount(effectiveUserId).catch(() => {});
+
     return createUIMessageStreamResponse({ stream });
   }
 
@@ -341,6 +362,8 @@ export async function POST(req: NextRequest) {
         success: true,
       });
       forceFlush().catch(() => {});
+      // Increment message count for subscription tracking
+      if (effectiveUserId) incrementMessageCount(effectiveUserId).catch(() => {});
       try {
         if (effectiveUserId) {
           const session = sessionId;

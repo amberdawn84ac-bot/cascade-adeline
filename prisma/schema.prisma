@@ -86,6 +86,26 @@ enum JobStatus {
   FAILED
 }
 
+enum SubscriptionTier {
+  FREE
+  STUDENT
+  PARENT
+  FAMILY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum ReferralStatus {
+  PENDING
+  PAID
+  CREDITED
+}
+
 model User {
   id                 String               @id @default(uuid()) @db.Uuid
   email              String               @unique
@@ -117,6 +137,13 @@ model User {
   reviewSchedules      ReviewSchedule[]
   highlights           Highlight[]
   onboardingProgress   OnboardingProgress?
+  subscription         Subscription?
+  referralCode         String?              @unique @map("referral_code")
+  referredBy           String?              @db.Uuid @map("referred_by")
+  referralsMade        Referral[]           @relation("Referrer")
+  referralsReceived    Referral[]           @relation("Referee")
+  messageCount         Int                  @default(0) @map("message_count")
+  messageResetAt       DateTime?            @map("message_reset_at")
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")
 }
@@ -125,7 +152,9 @@ model Club {
   id          String           @id @default(uuid()) @db.Uuid
   name        String
   description String
+  subject     String?
   ageRange    String?          @map("age_range")
+  isPublic    Boolean          @default(true) @map("is_public")
   createdBy   User             @relation("ClubCreator", fields: [createdById], references: [id])
   createdById String           @db.Uuid
   isActive    Boolean
@@ -422,6 +451,41 @@ model OnboardingProgress {
   completedSteps String[]  @map("completed_steps")
   completedAt    DateTime? @map("completed_at")
   createdAt      DateTime  @default(now()) @map("created_at")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid()) @db.Uuid
+  userId               String             @unique @db.Uuid
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId     String             @unique @map("stripe_customer_id")
+  stripeSubscriptionId String             @unique @map("stripe_subscription_id")
+  stripePriceId        String             @map("stripe_price_id")
+  tier                 SubscriptionTier   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd     DateTime           @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  credits              Decimal            @default(0) @db.Decimal(10, 2)
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+}
+
+model Referral {
+  id           String         @id @default(uuid()) @db.Uuid
+  referrerId   String         @db.Uuid @map("referrer_id")
+  referrer     User           @relation("Referrer", fields: [referrerId], references: [id])
+  refereeId    String         @db.Uuid @map("referee_id")
+  referee      User           @relation("Referee", fields: [refereeId], references: [id])
+  status       ReferralStatus @default(PENDING)
+  creditAmount Decimal        @default(10.00) @db.Decimal(10, 2) @map("credit_amount")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  paidAt       DateTime?      @map("paid_at")
+  creditedAt   DateTime?      @map("credited_at")
+
+  @@index([referrerId])
+  @@index([refereeId])
 }
 
 model AIJob {

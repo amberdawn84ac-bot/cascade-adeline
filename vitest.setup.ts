@@ -77,6 +77,39 @@ vi.mock('ai', () => ({
   })),
 }));
 
+// Mock Stripe
+process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
+vi.mock('@/lib/stripe', () => ({
+  stripe: {
+    customers: { create: vi.fn() },
+    checkout: { sessions: { create: vi.fn() } },
+    subscriptions: { retrieve: vi.fn() },
+    webhooks: { constructEvent: vi.fn() },
+    billingPortal: { sessions: { create: vi.fn() } },
+  },
+  STRIPE_PRICES: {
+    STUDENT_MONTHLY: 'price_test_student_monthly',
+    STUDENT_YEARLY: 'price_test_student_yearly',
+    PARENT_MONTHLY: 'price_test_parent_monthly',
+    PARENT_YEARLY: 'price_test_parent_yearly',
+    FAMILY_MONTHLY: 'price_test_family_monthly',
+    FAMILY_YEARLY: 'price_test_family_yearly',
+  },
+  TIER_LIMITS: {
+    FREE: { messages: 10, students: 1, canCreateClubs: false, hasParentDashboard: false, hasTranscripts: false },
+    STUDENT: { messages: Infinity, students: 1, canCreateClubs: true, hasParentDashboard: false, hasTranscripts: false },
+    PARENT: { messages: Infinity, students: 1, canCreateClubs: true, hasParentDashboard: true, hasTranscripts: false },
+    FAMILY: { messages: Infinity, students: 6, canCreateClubs: true, hasParentDashboard: true, hasTranscripts: true },
+  },
+}));
+
+// Mock subscription helpers
+vi.mock('@/lib/subscription', () => ({
+  getUserSubscription: vi.fn(() => ({ tier: 'FREE', status: 'ACTIVE' })),
+  checkMessageLimit: vi.fn(() => ({ allowed: true, remaining: 9, limit: 10, tier: 'FREE' })),
+  incrementMessageCount: vi.fn(),
+}));
+
 // Mock next/headers
 vi.mock('next/headers', () => ({
   cookies: vi.fn(() => ({
