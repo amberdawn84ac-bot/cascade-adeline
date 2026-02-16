@@ -32,6 +32,17 @@ Built with love for homeschool moms and kids who learn by doing.
 - **Content Moderation**: Regex + OpenAI Moderation API
 - **COPPA Consent**: Parent-gated data controls
 
+## In Action
+
+![Chat with TranscriptCard](public/screenshots/chat-transcript.svg)
+*"I baked sourdough bread" → TranscriptCard + reflection prompt + spaced repetition scheduling*
+
+![Snap-to-Log Vision](public/screenshots/snap-log.svg)
+*Photo upload → GPT-4o vision analysis → auto-logged credits + review scheduling*
+
+![Discernment Board](public/screenshots/investigation-board.svg)
+*"Who funds the sugar industry?" → Investigation board with biblical discernment + BKT-calibrated scaffolding*
+
 ## Tech Stack
 
 | Layer          | Technology                          |
@@ -98,15 +109,11 @@ All tests run automatically on pull requests:
 git clone https://github.com/amberdawn84ac-bot/cascade-adeline.git
 cd cascade-adeline
 
-# 2. Setup
+# 2. Setup (creates .env + DB + seeds)
 npm install
-cp .env.example .env
-# Edit .env (at minimum: OPENAI_API_KEY, SUPABASE_URL, etc.)
-
-# 3. Database + seed
 npm run setup
 
-# 4. Run
+# 3. Run
 npm run dev
 ```
 
