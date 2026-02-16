@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { motion } from 'framer-motion';
 import { ChainLinks, MoneyTrail } from '../illustrations';
 
 export type SourceType = 'PRIMARY' | 'CURATED' | 'SECONDARY' | 'MAINSTREAM';
@@ -31,10 +34,13 @@ function typeColor(type: SourceType) {
 export function InvestigationBoard({ topic, sources }: InvestigationBoardProps) {
   const Icon = sources.length % 2 === 0 ? ChainLinks : MoneyTrail;
   return (
-    <div
+    <motion.div
+      whileHover={{ scale: 1.02, boxShadow: '0 16px 32px rgba(0,0,0,0.12)' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       style={{
         background: CREAM,
         border: `1px solid ${FUSCHIA}33`,
+        borderLeft: `4px solid ${FUSCHIA}`,
         borderRadius: 16,
         padding: '12px 14px',
         boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
@@ -49,8 +55,11 @@ export function InvestigationBoard({ topic, sources }: InvestigationBoardProps) 
       <div style={{ color: '#121B13', fontWeight: 700, fontSize: '1.05rem', marginBottom: 10 }}>{topic}</div>
       <div style={{ display: 'grid', gap: 10 }}>
         {sources.map((src, idx) => (
-          <div
+          <motion.div
             key={`${src.title}-${idx}`}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: idx * 0.08 }}
             style={{
               border: `1px solid ${typeColor(src.type)}40`,
               borderRadius: 12,
@@ -75,9 +84,9 @@ export function InvestigationBoard({ topic, sources }: InvestigationBoardProps) 
               </span>
             </div>
             <div style={{ color: '#4B3424', lineHeight: 1.4, fontSize: '0.95rem' }}>{src.snippet}</div>
-          </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

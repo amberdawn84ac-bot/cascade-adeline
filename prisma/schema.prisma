@@ -114,9 +114,11 @@ model User {
   learningGaps       LearningGap[]
   conceptMastery     UserConceptMastery[]
   reflections        ReflectionEntry[]
-  reviewSchedules    ReviewSchedule[]
-  createdAt          DateTime             @default(now()) @map("created_at")
-  updatedAt          DateTime             @updatedAt @map("updated_at")
+  reviewSchedules      ReviewSchedule[]
+  highlights           Highlight[]
+  onboardingProgress   OnboardingProgress?
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
 }
 
 model Club {
@@ -395,6 +397,31 @@ model LLMTrace {
   @@index([agentNode])
   @@index([createdAt])
   @@index([userId])
+}
+
+model Highlight {
+  id        String   @id @default(uuid()) @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.Uuid
+  messageId String?  @db.Uuid
+  content   String
+  type      String
+  source    String
+  impact    String?
+  userNote  String?  @map("user_note")
+  intent    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+}
+
+model OnboardingProgress {
+  id             String    @id @default(uuid()) @db.Uuid
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String    @unique @db.Uuid
+  completedSteps String[]  @map("completed_steps")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
 }
 
 model AIJob {

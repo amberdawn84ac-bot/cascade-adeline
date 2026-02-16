@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { motion } from 'framer-motion';
 import { OpenBook } from '../illustrations';
 
 export type TranscriptCardProps = {
@@ -13,7 +16,9 @@ const CREAM = '#FFFDF7';
 
 export function TranscriptCard({ activityName, mappedSubjects, creditsEarned, extensionSuggestion }: TranscriptCardProps) {
   return (
-    <div
+    <motion.div
+      whileHover={{ scale: 1.02, boxShadow: '0 16px 32px rgba(0,0,0,0.12)' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       style={{
         background: CREAM,
         borderLeft: `6px solid ${PAPAYA}`,
@@ -23,24 +28,17 @@ export function TranscriptCard({ activityName, mappedSubjects, creditsEarned, ex
         position: 'relative',
         overflow: 'hidden',
         fontFamily: 'Kalam, "Comic Sans MS", system-ui',
-        animation: 'stampPop 280ms ease-out',
       }}
     >
-      <style>{`
-        @keyframes stampPop {
-          0% { transform: scale(0.7) rotate(-6deg); opacity: 0; }
-          60% { transform: scale(1.05) rotate(2deg); opacity: 1; }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-      `}</style>
       <div style={{ position: 'absolute', top: 10, right: 12, color: PAPAYA }}>
         <OpenBook size={26} color={PAPAYA} />
       </div>
       <div style={{ fontSize: '1rem', fontWeight: 700, color: '#2F4731', marginBottom: 6 }}>{activityName}</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
         {mappedSubjects.map((subj) => (
-          <span
+          <motion.span
             key={subj}
+            whileHover={{ scale: 1.05 }}
             style={{
               background: '#FFEBD7',
               color: PAPAYA,
@@ -48,10 +46,12 @@ export function TranscriptCard({ activityName, mappedSubjects, creditsEarned, ex
               borderRadius: 999,
               fontWeight: 600,
               fontSize: '0.85rem',
+              display: 'inline-block',
+              cursor: 'pointer',
             }}
           >
             {subj}
-          </span>
+          </motion.span>
         ))}
       </div>
       <div style={{ color: '#121B13', fontWeight: 600, marginBottom: extensionSuggestion ? 6 : 0 }}>
@@ -60,6 +60,6 @@ export function TranscriptCard({ activityName, mappedSubjects, creditsEarned, ex
       {extensionSuggestion ? (
         <div style={{ color: '#4B3424', fontSize: '0.95rem' }}>Next step: {extensionSuggestion}</div>
       ) : null}
-    </div>
+    </motion.div>
   );
 }

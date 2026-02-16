@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { WheatStalk } from '@/components/illustrations';
 import { SketchnoteRenderer } from '@/components/sketchnote/SketchnoteRenderer';
+import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
+import { AdelineTyping } from '@/components/chat/AdelineTyping';
+import { WaitingTips } from '@/components/chat/WaitingTips';
+import { ErrorDisplay } from '@/components/chat/ErrorDisplay';
 
 const CREAM = '#FFFEF7';
 const PALM = '#2F4731';
@@ -44,6 +48,8 @@ export default function ChatPage() {
   });
   const [gapNudge, setGapNudge] = useState<string | null>(null);
   const [genUIPayload, setGenUIPayload] = useState<any | null>(null);
+  const [detectedIntent, setDetectedIntent] = useState<string | undefined>(undefined);
+  const [showTips, setShowTips] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -85,14 +91,25 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, genUIPayload]);
 
-  // Extract genUIPayload and gapNudge from the latest assistant message metadata
+  // Extract genUIPayload, gapNudge, and intent from the latest assistant message metadata
   useEffect(() => {
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
     if (!lastAssistant) return;
     const meta = (lastAssistant as any).metadata;
     if (meta?.genUIPayload) setGenUIPayload(meta.genUIPayload);
     if (meta?.gapNudge) setGapNudge(String(meta.gapNudge));
+    if (meta?.intent) setDetectedIntent(meta.intent);
   }, [messages]);
+
+  // Show tips after 5 seconds of loading
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => setShowTips(true), 5000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowTips(false);
+    }
+  }, [isLoading]);
 
   const renderedMessages = useMemo(
     () =>
@@ -158,19 +175,15 @@ export default function ChatPage() {
 
       <main style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {error && (
-          <div
-            style={{
-              background: '#FFF0F0',
-              border: '1px solid #E74C3C',
-              color: '#7B241C',
-              padding: '10px 12px',
-              borderRadius: 12,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-              fontFamily: 'Kalam, "Comic Sans MS", system-ui',
+          <ErrorDisplay
+            error={error}
+            onRetry={() => {
+              const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+              if (lastUserMsg) {
+                append({ role: 'user', content: getMessageText(lastUserMsg) });
+              }
             }}
-          >
-            Oops — something went wrong. Try again in a moment.
-          </div>
+          />
         )}
         {gapNudge && (
           <div
@@ -187,6 +200,12 @@ export default function ChatPage() {
           </div>
         )}
         {renderedMessages}
+
+        {genUIPayload && <GenUIRenderer payload={genUIPayload} />}
+
+        {isLoading && <AdelineTyping intent={detectedIntent} />}
+        {isLoading && <WaitingTips show={showTips} />}
+
         <div ref={messagesEndRef} />
       </main>
 
