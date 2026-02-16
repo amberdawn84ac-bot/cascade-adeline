@@ -4,7 +4,12 @@
   "buildCommand": "npx prisma generate && next build",
   "installCommand": "npm install",
   "regions": ["iad1"],
-  "crons": [],
+  "crons": [
+    {
+      "path": "/api/cron/purge-data",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/api/stripe/webhook",

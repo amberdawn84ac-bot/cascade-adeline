@@ -26,7 +26,15 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const supaUser = data.user;
   if (!supaUser) return null;
 
-  const user = await prisma.user.findUnique({ where: { id: supaUser.id }, select: { role: true, email: true, id: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: supaUser.id },
+    select: { role: true, email: true, id: true, accountLockedAt: true, dataDeletionRequestedAt: true },
+  });
   if (!user) return null;
+
+  // Hard-lock: reject if account is locked or deletion requested
+  if (user.accountLockedAt) return null;
+  if (user.dataDeletionRequestedAt) return null;
+
   return { userId: user.id, role: user.role, email: user.email };
 }

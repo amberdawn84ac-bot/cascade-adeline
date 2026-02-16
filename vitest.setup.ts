@@ -103,6 +103,13 @@ vi.mock('@/lib/stripe', () => ({
   },
 }));
 
+// Mock semantic cache
+vi.mock('@/lib/semantic-cache', () => ({
+  getCachedResponse: vi.fn(() => null),
+  cacheResponse: vi.fn(),
+  getSemanticCacheStats: vi.fn(() => ({ hits: 0, misses: 0, stores: 0, hitRate: '0%' })),
+}));
+
 // Mock subscription helpers
 vi.mock('@/lib/subscription', () => ({
   getUserSubscription: vi.fn(() => ({ tier: 'FREE', status: 'ACTIVE' })),

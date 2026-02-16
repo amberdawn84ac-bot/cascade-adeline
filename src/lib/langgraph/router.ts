@@ -100,6 +100,13 @@ export async function router(state: AdelineGraphState): Promise<AdelineGraphStat
   const config = loadConfig();
   const baseModel = config.models.default;
 
+  // If audio is attached, override to AUDIO_LOG
+  if (state.metadata?.audioBase64) {
+    console.log('[Router] Audio detected, overriding to AUDIO_LOG');
+    const model = selectModel('LIFE_LOG', state.prompt, config);
+    return { ...state, intent: 'AUDIO_LOG', selectedModel: model };
+  }
+
   // If an image is attached, override to IMAGE_LOG
   if (state.metadata?.imageUrl) {
     console.log('[Router] Image detected, overriding to IMAGE_LOG');

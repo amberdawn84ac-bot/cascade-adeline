@@ -16,6 +16,7 @@ import { loadConfig } from './config';
  */
 
 const CACHE_PREFIX = 'semcache:';
+const STATS_KEY = 'semcache:stats';
 const SIMILARITY_THRESHOLD = 0.92;
 const CACHE_TTL_SECONDS = 3600; // 1 hour
 const MAX_CACHE_ENTRIES = 500;
@@ -90,6 +91,9 @@ export async function getCachedResponse(
 
     if (bestMatch) {
       console.log(`[SemanticCache] HIT — similarity: ${bestMatch.similarity.toFixed(4)}`);
+      redis.hincrby(STATS_KEY, 'hits', 1).catch(() => {});
+    } else {
+      redis.hincrby(STATS_KEY, 'misses', 1).catch(() => {});
     }
 
     return bestMatch;
@@ -137,7 +141,34 @@ export async function cacheResponse(
     }
 
     console.log(`[SemanticCache] STORED — bucket: ${bucket}, intent: ${intent}`);
+    redis.hincrby(STATS_KEY, 'stores', 1).catch(() => {});
   } catch (err) {
     console.warn('[SemanticCache] Store failed:', err);
+  }
+}
+
+/**
+ * Get semantic cache hit-rate statistics.
+ */
+export async function getSemanticCacheStats(): Promise<{
+  hits: number;
+  misses: number;
+  stores: number;
+  hitRate: string;
+}> {
+  try {
+    const stats = await redis.hgetall(STATS_KEY) as Record<string, string> | null;
+    const hits = Number(stats?.hits ?? 0);
+    const misses = Number(stats?.misses ?? 0);
+    const stores = Number(stats?.stores ?? 0);
+    const total = hits + misses;
+    return {
+      hits,
+      misses,
+      stores,
+      hitRate: total > 0 ? `${((hits / total) * 100).toFixed(1)}%` : '0%',
+    };
+  } catch {
+    return { hits: 0, misses: 0, stores: 0, hitRate: '0%' };
   }
 }

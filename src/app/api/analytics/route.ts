@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
+import { getSemanticCacheStats } from '@/lib/semantic-cache';
 
 /**
  * GET /api/analytics — Usage dashboard data.
@@ -103,6 +104,7 @@ export async function GET(req: NextRequest) {
         totalTokens: m._sum.totalTokens ?? 0,
         totalCostUSD: Number((m._sum.estimatedCost ?? 0).toFixed(6)),
       })),
+      semanticCache: await getSemanticCacheStats(),
     });
   } catch (err) {
     console.error('[API:analytics:GET]', err);

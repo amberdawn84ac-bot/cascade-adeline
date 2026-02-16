@@ -17,7 +17,7 @@ async function draftPlan(
     .join('\n') || '';
 
   const zpdSection = zpdContext
-    ? `\n\nThe following concepts are in this student's Zone of Proximal Development (they have the prerequisites mastered and are ready to learn these next). Try to naturally weave relevant ZPD concepts into your project suggestions when appropriate:\n${zpdContext}`
+    ? `\n\nThe following concepts are in this student's Zone of Proximal Development (BKT = Bayesian Knowledge Tracing probability of mastery). Use BKT P(L) values to calibrate difficulty: P(L)<0.3 = introduce gently, P(L) 0.3-0.6 = scaffold with support, P(L)>0.6 = challenge with extension. Try to naturally weave relevant ZPD concepts into your project suggestions:\n${zpdContext}`
     : '';
 
   const { text } = await generateText({

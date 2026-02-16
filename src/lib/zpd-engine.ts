@@ -5,6 +5,77 @@ const MASTERY_THRESHOLD = 0.7;   // Concept considered "mastered" at this level
 const PREREQ_READINESS = 0.7;    // Avg prerequisite mastery needed to enter ZPD
 const DECAY_HALF_LIFE_DAYS = 30; // Mastery decays by half every 30 days without practice
 
+// --- BKT Parameters ---
+// Bayesian Knowledge Tracing: 4-parameter model
+// P(L0) = prior probability of knowing the concept
+// P(T)  = probability of learning on each opportunity
+// P(S)  = probability of slipping (knows but answers wrong)
+// P(G)  = probability of guessing (doesn't know but answers right)
+export interface BKTParams {
+  pL: number;  // P(L) — current probability of mastery
+  pT: number;  // P(T) — learn rate
+  pS: number;  // P(S) — slip rate
+  pG: number;  // P(G) — guess rate
+}
+
+const DEFAULT_BKT: BKTParams = {
+  pL: 0.1,   // low prior — assume student doesn't know yet
+  pT: 0.15,  // moderate learning rate per opportunity
+  pS: 0.05,  // low slip rate
+  pG: 0.25,  // moderate guess rate
+};
+
+/**
+ * Update BKT probability after an observation.
+ * @param params Current BKT parameters
+ * @param correct Whether the student answered/performed correctly
+ * @returns Updated P(L) — posterior probability of mastery
+ */
+export function bktUpdate(params: BKTParams, correct: boolean): number {
+  const { pL, pT, pS, pG } = params;
+
+  // P(correct | L) and P(correct | ¬L)
+  const pCorrectGivenL = 1 - pS;
+  const pCorrectGivenNotL = pG;
+
+  // Posterior P(L | observation) via Bayes
+  let posteriorL: number;
+  if (correct) {
+    const pCorrect = pL * pCorrectGivenL + (1 - pL) * pCorrectGivenNotL;
+    posteriorL = (pL * pCorrectGivenL) / pCorrect;
+  } else {
+    const pIncorrect = pL * pS + (1 - pL) * (1 - pG);
+    posteriorL = (pL * pS) / pIncorrect;
+  }
+
+  // Apply learning transition: P(L_new) = P(L|obs) + (1 - P(L|obs)) * P(T)
+  return posteriorL + (1 - posteriorL) * pT;
+}
+
+/**
+ * Get BKT params from mastery history, or return defaults.
+ */
+function getBKTFromHistory(history: unknown): BKTParams {
+  if (history && typeof history === 'object' && !Array.isArray(history)) {
+    const h = history as Record<string, unknown>;
+    if (h.bkt && typeof h.bkt === 'object') {
+      const bkt = h.bkt as Record<string, number>;
+      return {
+        pL: bkt.pL ?? DEFAULT_BKT.pL,
+        pT: bkt.pT ?? DEFAULT_BKT.pT,
+        pS: bkt.pS ?? DEFAULT_BKT.pS,
+        pG: bkt.pG ?? DEFAULT_BKT.pG,
+      };
+    }
+  }
+  // If history is an array (legacy format), extract pL from last entry
+  if (Array.isArray(history) && history.length > 0) {
+    const last = history[history.length - 1];
+    return { ...DEFAULT_BKT, pL: last?.newLevel ?? DEFAULT_BKT.pL };
+  }
+  return { ...DEFAULT_BKT };
+}
+
 // --- Types ---
 export interface ZPDConcept {
   conceptId: string;
@@ -22,6 +93,7 @@ export interface MasterySnapshot {
   name: string;
   masteryLevel: number;
   decayAdjusted: number;
+  bktProbability: number;  // BKT P(L) — probability student has mastered this
   lastPracticed: Date | null;
   status: 'mastered' | 'in_zpd' | 'not_ready' | 'unknown';
 }
@@ -77,11 +149,14 @@ export async function getUserMasteryMap(userId: string): Promise<Map<string, Mas
     let lastPracticed = record?.lastPracticed ?? null;
     let decayAdjusted = lastPracticed ? applyDecay(rawMastery, lastPracticed) : rawMastery;
 
+    const bktParams = getBKTFromHistory(record?.history);
+
     map.set(concept.id, {
       conceptId: concept.id,
       name: concept.name,
       masteryLevel: rawMastery,
       decayAdjusted,
+      bktProbability: bktParams.pL,
       lastPracticed,
       status: 'unknown', // will be set by ZPD computation
     });
@@ -187,28 +262,45 @@ export async function getZPDConcepts(
 }
 
 /**
- * Update a user's mastery level for a concept.
- * Uses an upsert to create or update the record.
- * The `delta` is added to the current mastery (clamped to 0-1).
+ * Update a user's mastery level for a concept using BKT.
+ * The `correct` flag drives BKT update; `delta` is kept for backward compat.
+ * BKT params are persisted in the history JSON field.
  */
 export async function updateMastery(
   userId: string,
   conceptId: string,
   delta: number,
-  evidence?: Record<string, unknown>
+  evidence?: Record<string, unknown> & { correct?: boolean }
 ): Promise<void> {
   const existing = await prisma.userConceptMastery.findUnique({
     where: { userId_conceptId: { userId, conceptId } },
   });
 
   const currentLevel = existing?.masteryLevel ?? 0;
-  const newLevel = Math.max(0, Math.min(1, currentLevel + delta));
+
+  // Get current BKT params
+  const bktParams = getBKTFromHistory(existing?.history);
+
+  // Determine if this was a correct observation
+  // If evidence.correct is explicitly set, use it; otherwise infer from delta sign
+  const correct = evidence?.correct ?? (delta > 0);
+
+  // Run BKT update
+  const newPL = bktUpdate(bktParams, correct);
+
+  // Blend BKT probability with delta-based update (BKT takes priority)
+  const bktLevel = newPL;
+  const deltaLevel = Math.max(0, Math.min(1, currentLevel + delta));
+  // Use BKT as primary signal, delta as secondary (80/20 blend)
+  const newLevel = Math.max(0, Math.min(1, 0.8 * bktLevel + 0.2 * deltaLevel));
 
   const historyEntry = {
     timestamp: new Date().toISOString(),
     previousLevel: currentLevel,
     newLevel,
     delta,
+    correct,
+    bkt: { pL: newPL, pT: bktParams.pT, pS: bktParams.pS, pG: bktParams.pG },
     ...(evidence ?? {}),
   };
 
@@ -221,12 +313,12 @@ export async function updateMastery(
       conceptId,
       masteryLevel: newLevel,
       lastPracticed: new Date(),
-      history: [historyEntry] as any,
+      history: { entries: [historyEntry], bkt: { pL: newPL, pT: bktParams.pT, pS: bktParams.pS, pG: bktParams.pG } } as any,
     },
     update: {
       masteryLevel: newLevel,
       lastPracticed: new Date(),
-      history: [...existingHistory, historyEntry] as any,
+      history: { entries: [...(existingHistory as any[]), historyEntry], bkt: { pL: newPL, pT: bktParams.pT, pS: bktParams.pS, pG: bktParams.pG } } as any,
     },
   });
 }
@@ -244,12 +336,18 @@ export async function getZPDSummaryForPrompt(
     return 'No concepts currently identified in the student\'s Zone of Proximal Development.';
   }
 
-  const lines = zpd.map((c, i) =>
-    `${i + 1}. **${c.name}** (${c.subjectArea}${c.gradeBand ? `, ${c.gradeBand}` : ''}) — ` +
-    `Mastery: ${(c.currentMastery * 100).toFixed(0)}%, ` +
-    `Prereq Readiness: ${(c.prerequisiteReadiness * 100).toFixed(0)}%, ` +
-    `Priority: ${(c.priority * 100).toFixed(0)}%`
-  );
+  // Fetch BKT probabilities for richer prompt context
+  const masteryMap = await getUserMasteryMap(userId);
 
-  return `Student's Zone of Proximal Development (top ${zpd.length} concepts):\n${lines.join('\n')}`;
+  const lines = zpd.map((c, i) => {
+    const snapshot = masteryMap.get(c.conceptId);
+    const bktProb = snapshot?.bktProbability ?? c.currentMastery;
+    return `${i + 1}. **${c.name}** (${c.subjectArea}${c.gradeBand ? `, ${c.gradeBand}` : ''}) — ` +
+      `BKT P(L)=${bktProb.toFixed(2)}, ` +
+      `Mastery: ${(c.currentMastery * 100).toFixed(0)}%, ` +
+      `Prereq Readiness: ${(c.prerequisiteReadiness * 100).toFixed(0)}%, ` +
+      `Priority: ${(c.priority * 100).toFixed(0)}%`;
+  });
+
+  return `Student's Zone of Proximal Development (top ${zpd.length} concepts, BKT = Bayesian Knowledge Tracing probability of mastery):\n${lines.join('\n')}`;
 }

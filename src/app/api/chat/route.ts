@@ -12,6 +12,7 @@ import { opportunityScout } from '@/lib/langgraph/opportunityScout';
 import { gapDetector } from '@/lib/langgraph/gapDetector';
 import { reflectionCoach } from '@/lib/langgraph/reflectionCoach';
 import { visionAnalyzer } from '@/lib/langgraph/visionAnalyzer';
+import { voiceLogger } from '@/lib/langgraph/voiceLogger';
 import { AdelineGraphState } from '@/lib/langgraph/types';
 import { getSessionUser } from '@/lib/auth';
 import { getModel } from '@/lib/ai-models';
@@ -182,6 +183,12 @@ async function runWorkflow(prompt: string, baseState: Partial<AdelineGraphState>
       state = { ...state, metadata: { ...state.metadata, reflectionMode: 'post_activity' } };
       state = await safeNode('reflectionCoach', reflectionCoach, state, traceCtx);
       break;
+    case 'AUDIO_LOG':
+      state = await safeNode('voiceLogger', voiceLogger, state, traceCtx);
+      state = await safeNode('lifeCreditLogger', lifeCreditLogger, state, traceCtx);
+      state = { ...state, metadata: { ...state.metadata, reflectionMode: 'post_activity' } };
+      state = await safeNode('reflectionCoach', reflectionCoach, state, traceCtx);
+      break;
     default:
       break;
   }
@@ -195,12 +202,13 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') || 'unknown';
   const sessionUser = await getSessionUser();
   const body = await req.json();
-  const { messages, userId, gradeLevel, studentContext, imageUrl } = body as {
+  const { messages, userId, gradeLevel, studentContext, imageUrl, audioBase64 } = body as {
     messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
     userId?: string;
     gradeLevel?: string;
     studentContext?: AdelineGraphState['studentContext'];
     imageUrl?: string;
+    audioBase64?: string;
   };
 
   const effectiveUserId = sessionUser?.userId || userId;
@@ -280,7 +288,7 @@ export async function POST(req: NextRequest) {
       gradeLevel,
       studentContext,
       conversationHistory: combinedHistory,
-      ...(imageUrl ? { metadata: { imageUrl } } : {}),
+      ...((imageUrl || audioBase64) ? { metadata: { ...(imageUrl ? { imageUrl } : {}), ...(audioBase64 ? { audioBase64 } : {}) } } : {}),
     }, traceCtx);
   } catch (err) {
     // eslint-disable-next-line no-console

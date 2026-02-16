@@ -52,8 +52,61 @@ export default function ChatPage() {
   const [showTips, setShowTips] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBase64, setAudioBase64] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          setAudioBase64(base64);
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setRecordingDuration(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(d => d + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+
+  const clearAudio = () => {
+    setAudioBase64(null);
+    setRecordingDuration(0);
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -80,11 +133,13 @@ export default function ChatPage() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() && !pendingImageUrl) return;
-    handleSubmit(e, {
-      body: pendingImageUrl ? { imageUrl: pendingImageUrl } : {},
-    });
+    if (!input.trim() && !pendingImageUrl && !audioBase64) return;
+    const body: Record<string, string> = {};
+    if (pendingImageUrl) body.imageUrl = pendingImageUrl;
+    if (audioBase64) body.audioBase64 = audioBase64;
+    handleSubmit(e, { body });
     clearImage();
+    clearAudio();
   };
 
   useEffect(() => {
@@ -253,6 +308,27 @@ export default function ChatPage() {
             </button>
           </div>
         )}
+        {audioBase64 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18 }}>🎙️</span>
+            <span style={{ fontSize: 13, color: '#4B3424' }}>Voice memo ready ({recordingDuration}s)</span>
+            <button
+              type="button"
+              onClick={clearAudio}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 8,
+                border: '1px solid #E7DAC3',
+                background: '#FFF',
+                color: '#4B3424',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 10 }}>
           <input
             ref={fileInputRef}
@@ -277,6 +353,23 @@ export default function ChatPage() {
           >
             📷
           </button>
+          <button
+            type="button"
+            onClick={isRecording ? stopRecording : startRecording}
+            title={isRecording ? 'Stop recording' : 'Voice Log — record what you did'}
+            style={{
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: isRecording ? '2px solid #E53E3E' : '1px solid #E7DAC3',
+              background: isRecording ? '#FED7D7' : audioBase64 ? '#FFF3E7' : '#FFFFFF',
+              color: isRecording ? '#E53E3E' : '#4B3424',
+              cursor: 'pointer',
+              fontSize: 18,
+              animation: isRecording ? 'pulse 1.5s infinite' : 'none',
+            }}
+          >
+            {isRecording ? '⏹️' : '🎙️'}
+          </button>
           <input
             value={input}
             onChange={handleInputChange}
@@ -293,7 +386,7 @@ export default function ChatPage() {
           />
           <button
             type="submit"
-            disabled={isLoading || (!input.trim() && !pendingImageUrl)}
+            disabled={isLoading || (!input.trim() && !pendingImageUrl && !audioBase64)}
             style={{
               padding: '12px 18px',
               borderRadius: 14,
@@ -301,8 +394,8 @@ export default function ChatPage() {
               background: PAPAYA,
               color: '#FFFFFF',
               fontWeight: 700,
-              cursor: isLoading || (!input.trim() && !pendingImageUrl) ? 'not-allowed' : 'pointer',
-              opacity: isLoading || (!input.trim() && !pendingImageUrl) ? 0.7 : 1,
+              cursor: isLoading || (!input.trim() && !pendingImageUrl && !audioBase64) ? 'not-allowed' : 'pointer',
+              opacity: isLoading || (!input.trim() && !pendingImageUrl && !audioBase64) ? 0.7 : 1,
               boxShadow: '0 6px 12px rgba(189,104,9,0.3)',
             }}
           >
