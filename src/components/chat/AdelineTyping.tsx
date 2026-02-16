@@ -49,7 +49,7 @@ export function AdelineTyping({ intent }: Props) {
   const message = intent ? INTENT_MESSAGES[intent] : THINKING_MESSAGES[messageIndex];
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+    <div data-testid="adeline-typing" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
       <motion.div
         animate={{ scale: [1, 1.1, 1] }}
         transition={{ duration: 2, repeat: Infinity }}

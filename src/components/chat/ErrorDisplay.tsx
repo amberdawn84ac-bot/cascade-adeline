@@ -87,6 +87,7 @@ export function ErrorDisplay({ error, onRetry, onClear }: Props) {
 
   return (
     <motion.div
+      data-testid="error-display"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       style={{

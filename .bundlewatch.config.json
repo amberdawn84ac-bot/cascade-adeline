@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "path": ".next/static/chunks/pages/index-*.js",
+      "maxSize": "200kb"
+    },
+    {
+      "path": ".next/static/chunks/pages/_app-*.js",
+      "maxSize": "500kb"
+    },
+    {
+      "path": ".next/static/chunks/pages/chat-*.js",
+      "maxSize": "300kb"
+    }
+  ],
+  "ci": {
+    "trackBranches": ["main"],
+    "repoBranchBase": "main"
+  }
+}

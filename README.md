@@ -32,6 +32,49 @@ Built with love for homeschool moms and kids who learn by doing.
 
 See [ROADMAP.md](ROADMAP.md) for full architecture and implementation details.
 
+## Testing
+
+### Unit Tests
+
+```bash
+npm run test              # Run once
+npm run test:watch        # Watch mode
+npm run test -- --coverage # With coverage
+```
+
+### E2E Tests
+
+```bash
+npm run test:e2e          # Headless (CI mode)
+npm run test:e2e:ui       # Interactive UI
+npm run test:e2e:headed   # See browser
+```
+
+### All Tests
+
+```bash
+npm run test:all          # Unit + E2E
+```
+
+### Performance Benchmarks
+
+```bash
+npm run test:e2e -- e2e/specs/performance.spec.ts
+npm run bundlewatch       # Check bundle sizes
+```
+
+## CI/CD
+
+All tests run automatically on pull requests:
+
+- ✅ Unit tests with coverage
+- ✅ E2E tests (3 browsers: Chrome, Firefox, Safari)
+- ✅ TypeScript type checking
+- ✅ ESLint
+- ✅ Lighthouse audits (Performance >90, A11y >95)
+- ✅ Prisma schema validation
+- ✅ Bundle size monitoring
+
 ## Quick Start
 
 ```bash
