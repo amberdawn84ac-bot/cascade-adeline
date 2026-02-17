@@ -1,6 +1,6 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
-  WheatStalk,
   OpenBook,
   Compass,
   Scroll,
@@ -11,12 +11,29 @@ import {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#FFFEF7] text-[#2F4731] selection:bg-[#BD6809]/20">
+    <div className="min-h-screen bg-[#FFFEF7] text-[#2F4731] selection:bg-[#BD6809]/20 relative">
+      {/* Watermark */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center">
+        <Image
+          src="/adeline-watermark.png"
+          alt=""
+          width={800}
+          height={800}
+          className="opacity-[0.03] select-none"
+          priority={false}
+        />
+      </div>
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 bg-white/70 backdrop-blur-xl z-50 border-b border-[#E7DAC3]">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <WheatStalk size={36} color="#BD6809" />
+            <Image
+              src="/adeline-nav.png"
+              alt="Adeline"
+              width={44}
+              height={44}
+              className="rounded-xl shadow-lg -rotate-3"
+            />
             <span className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-emilys-candy), "Emilys Candy", cursive' }}>
               Dear Adeline
             </span>
@@ -267,7 +284,7 @@ export default function Home() {
       <footer className="py-24 px-6 border-t border-[#E7DAC3] bg-white/50">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 justify-between items-center gap-10 opacity-60">
           <div className="flex items-center gap-4">
-            <WheatStalk size={32} color="#BD6809" />
+            <Image src="/adeline-nav.png" alt="Adeline" width={40} height={40} className="rounded-lg" />
             <span className="text-xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), "Emilys Candy", cursive' }}>
               Dear Adeline Academy
             </span>
