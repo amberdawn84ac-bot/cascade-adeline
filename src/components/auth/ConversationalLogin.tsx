@@ -51,6 +51,28 @@ export function ConversationalLogin() {
     }
   };
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // For now, assume auto-confirm. In production, show message to check email.
+      router.refresh();
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign up');
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md mx-auto p-6">
       <div className="mb-8 text-center">
@@ -183,20 +205,21 @@ export function ConversationalLogin() {
                   )}
                 </div>
                 
-                <div className="flex justify-between items-center">
+                <div className="flex gap-4">
                   <button
                     type="button"
-                    onClick={() => setStep('email')}
-                    className="text-[#2F4731]/60 hover:text-[#2F4731] text-sm font-bold"
+                    onClick={handleSignUp}
+                    disabled={loading}
+                    className="flex-1 bg-[#E7DAC3] text-[#2F4731] px-6 py-3 rounded-xl font-bold hover:bg-[#D4C3A3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Back
+                    {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Sign Up'}
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="bg-[#2F4731] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#1E2E20] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-[#2F4731] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#1E2E20] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loading ? <Loader2 className="animate-spin" size={20} /> : 'Let me in!'}
+                    {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Sign In'}
                   </button>
                 </div>
               </form>
