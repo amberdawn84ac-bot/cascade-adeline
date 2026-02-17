@@ -7,7 +7,7 @@ import { getSessionUser } from '@/lib/auth';
 
 function SectionHeader({ title, accent }: { title: string; accent?: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 24 }}>
       <DottedArrow size={140} color={accent || '#BD6809'} />
       <h2
         style={{
@@ -77,6 +77,39 @@ function ProjectBadge({ title, status }: { title: string; status: string }) {
   );
 }
 
+function StandardsProgress({ standards }: { standards: any[] }) {
+  const stats = {
+    math: { total: 0, mastered: 0 },
+    ela: { total: 0, mastered: 0 },
+    science: { total: 0, mastered: 0 },
+    social: { total: 0, mastered: 0 },
+  };
+
+  standards.forEach((s) => {
+    const subj = s.standard.subject.toLowerCase();
+    const isMastered = s.mastery === 'MASTERED' || s.mastery === 'PROFICIENT';
+    
+    if (subj.includes('math')) { stats.math.total++; if (isMastered) stats.math.mastered++; }
+    else if (subj.includes('english') || subj.includes('ela')) { stats.ela.total++; if (isMastered) stats.ela.mastered++; }
+    else if (subj.includes('science')) { stats.science.total++; if (isMastered) stats.science.mastered++; }
+    else { stats.social.total++; if (isMastered) stats.social.mastered++; }
+  });
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+      {Object.entries(stats).map(([key, stat]) => (
+        <div key={key} className="bg-white border border-[#E7DAC3] rounded-xl p-3 text-center">
+          <div className="text-xs uppercase font-bold text-[#BD6809] mb-1">{key === 'social' ? 'History' : key}</div>
+          <div className="text-2xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy)' }}>
+            {stat.mastered} <span className="text-sm text-[#2F4731]/40">/ {stat.total || '-'}</span>
+          </div>
+          <div className="text-[10px] text-[#2F4731]/60 font-bold mt-1">OK Standards</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default async function ParentDashboard() {
   const sessionUser = await getSessionUser();
   if (!sessionUser) {
@@ -96,9 +129,12 @@ export default async function ParentDashboard() {
           name: true,
           gradeLevel: true,
           projects: true,
+          standardsProgress: {
+            include: { standard: true }
+          },
           transcriptEntries: {
             orderBy: { dateCompleted: 'desc' },
-            take: 20,
+            take: 5,
             select: { id: true, activityName: true, mappedSubject: true, creditsEarned: true, notes: true, createdAt: true },
           },
           learningGaps: {
@@ -133,25 +169,28 @@ export default async function ParentDashboard() {
       </h1>
       <WheatDivider size={200} color="#BD6809" />
 
-      <div style={{ display: 'grid', gap: 20, marginTop: 16 }}>
+      <div style={{ display: 'grid', gap: 24, marginTop: 24 }}>
         {parent.children.map((child: any) => (
           <div
             key={child.id}
             style={{
               background: '#FFFFFF',
               border: '1px solid #E7DAC3',
-              borderRadius: 16,
-              padding: '14px 16px',
+              borderRadius: 24,
+              padding: '24px',
               boxShadow: '0 6px 18px rgba(0,0,0,0.06)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{child.name}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'var(--font-emilys-candy)' }}>{child.name}</div>
                 <div style={{ color: '#4B3424' }}>Grade: {child.gradeLevel || '—'}</div>
               </div>
               <VineDivider size={120} color="#2F4731" />
             </div>
+
+            <SectionHeader title="Oklahoma Standards Compliance" accent="#2F4731" />
+            <StandardsProgress standards={child.standardsProgress} />
 
             <SectionHeader title="Recent Transcript Entries" accent="#BD6809" />
             <div style={{ display: 'grid', gap: 10 }}>
@@ -166,55 +205,35 @@ export default async function ParentDashboard() {
                       creditsEarned={entry.creditsEarned.toString()}
                       extensionSuggestion={entry.notes || undefined}
                     />
-                    <div style={{ position: 'absolute', top: 8, right: 10, display: 'flex', gap: 8 }}>
-                      <button
-                        style={{
-                          background: '#D4EDDA',
-                          color: '#2F4731',
-                          border: '1px solid #2F4731',
-                          borderRadius: 8,
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        style={{
-                          background: '#FFE4EC',
-                          color: '#9A3F4A',
-                          border: '1px solid #9A3F4A',
-                          borderRadius: 8,
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Flag
-                      </button>
-                    </div>
                   </div>
                 ))
               )}
             </div>
 
-            <SectionHeader title="Active Projects" accent="#2F4731" />
-            <div style={{ display: 'grid', gap: 8 }}>
-              {child.projects.length === 0 ? (
-                <div style={{ color: '#4B3424' }}>No projects yet.</div>
-              ) : (
-                child.projects.map((p: any) => <ProjectBadge key={p.id} title={p.title} status={p.status} />)
-              )}
-            </div>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <SectionHeader title="Active Projects" accent="#2F4731" />
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {child.projects.length === 0 ? (
+                    <div style={{ color: '#4B3424' }}>No projects yet.</div>
+                  ) : (
+                    child.projects.map((p: any) => <ProjectBadge key={p.id} title={p.title} status={p.status} />)
+                  )}
+                </div>
+              </div>
 
-            <SectionHeader title="Learning Gaps" accent="#9A3F4A" />
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {child.learningGaps.length === 0 ? (
-                <div style={{ color: '#4B3424' }}>No gaps detected.</div>
-              ) : (
-                child.learningGaps.map((gap: any) => (
-                  <GapBadge key={gap.id} text={gap.concept.name} addressed={gap.addressed} />
-                ))
-              )}
+              <div>
+                <SectionHeader title="Learning Gaps" accent="#9A3F4A" />
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {child.learningGaps.length === 0 ? (
+                    <div style={{ color: '#4B3424' }}>No gaps detected.</div>
+                  ) : (
+                    child.learningGaps.map((gap: any) => (
+                      <GapBadge key={gap.id} text={gap.concept.name} addressed={gap.addressed} />
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         ))}

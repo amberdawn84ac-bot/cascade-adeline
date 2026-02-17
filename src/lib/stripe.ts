@@ -1,13 +1,17 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set');
-}
+const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2026-01-28.clover',
-  typescript: true,
-});
+export const stripe = STRIPE_SECRET 
+  ? new Stripe(STRIPE_SECRET, {
+      apiVersion: '2026-01-28.clover',
+      typescript: true,
+    })
+  : (new Proxy({}, {
+      get: () => {
+        throw new Error('Stripe is not configured (STRIPE_SECRET_KEY missing)');
+      }
+    }) as unknown as Stripe);
 
 // Price IDs (set these after creating products in Stripe Dashboard)
 export const STRIPE_PRICES = {

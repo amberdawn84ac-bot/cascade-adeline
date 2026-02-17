@@ -244,8 +244,11 @@ model Opportunity {
 
 model TranscriptEntry {
   id                 String    @id @default(uuid()) @db.Uuid
-  user               User      @relation(fields: [userId], references: [id])
-  userId             String    @db.Uuid
+  metadata    Json?    @default("{}")
+
+  user User? @relation(fields: [userId], references: [id])
+  userId String? @db.Uuid
+
   activityName       String    @map("activity_name")
   mappedSubject      String    @map("mapped_subject")
   creditsEarned      Decimal   @map("credits_earned") @db.Decimal(10, 2)
@@ -345,7 +348,8 @@ model ConversationMemory {
   createdAt DateTime              @default(now()) @map("created_at")
   updatedAt DateTime              @updatedAt @map("updated_at")
 
-  @@index([userId])
+  @@index([userId, sessionId])
+  @@index([createdAt])
 }
 
 model LearningGap {
