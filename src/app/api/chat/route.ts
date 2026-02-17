@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText, createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+import { streamText, generateText, createUIMessageStream, createUIMessageStreamResponse } from 'ai';
 import prisma from '@/lib/db';
 import redis from '@/lib/redis';
 import { loadConfig } from '@/lib/config';
@@ -188,6 +188,30 @@ async function runWorkflow(prompt: string, baseState: Partial<AdelineGraphState>
       state = await safeNode('lifeCreditLogger', lifeCreditLogger, state, traceCtx);
       state = { ...state, metadata: { ...state.metadata, reflectionMode: 'post_activity' } };
       state = await safeNode('reflectionCoach', reflectionCoach, state, traceCtx);
+      break;
+    case 'ASSESS':
+      // Placement assessment — guide user to the placement API or generate inline assessment
+      state = await safeNode('placementGuide', async (s: AdelineGraphState) => {
+        const model = getModel(s.selectedModel || loadConfig().models.default);
+        const { text } = await generateText({
+          model,
+          maxOutputTokens: 500,
+          temperature: 0.3,
+          prompt: `You are Adeline, a warm homeschool learning companion. The student wants to assess their level.
+
+Student said: "${s.prompt}"
+Grade level: ${(s.metadata as any)?.gradeLevel || 'unknown'}
+
+Generate a friendly placement assessment response that:
+1. Acknowledges their request warmly
+2. Asks 2-3 adaptive questions for the subject they mentioned (or math if unspecified)
+3. Explains you'll use their answers to calibrate their learning path
+4. Keep it conversational and encouraging
+
+If they mention a specific subject, focus on that. Otherwise start with math.`,
+        });
+        return { ...s, responseContent: text };
+      }, state, traceCtx);
       break;
     default:
       break;

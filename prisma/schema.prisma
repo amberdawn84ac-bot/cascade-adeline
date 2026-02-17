@@ -134,6 +134,8 @@ model User {
   learningGaps       LearningGap[]
   conceptMastery     UserConceptMastery[]
   reflections        ReflectionEntry[]
+  standardsProgress  StudentStandardProgress[]
+  placementAssessments PlacementAssessment[]
   reviewSchedules      ReviewSchedule[]
   highlights           Highlight[]
   onboardingProgress   OnboardingProgress?
@@ -274,6 +276,7 @@ model Concept {
   learningGaps      LearningGap[]
   userMastery       UserConceptMastery[]
   reviewSchedules   ReviewSchedule[]
+  skillMappings     SkillStandardMapping[]
   createdAt         DateTime              @default(now()) @map("created_at")
   updatedAt         DateTime              @updatedAt @map("updated_at")
 }
@@ -514,4 +517,100 @@ model AIJob {
   @@index([userId, status])
   @@index([sessionId])
   @@index([status])
+}
+
+// --- State Standards & Compliance (ported from old dear-adeline) ---
+
+enum MasteryLevel {
+  INTRODUCED
+  DEVELOPING
+  PROFICIENT
+  MASTERED
+}
+
+enum AlignmentStrength {
+  FULL
+  PARTIAL
+  RELATED
+}
+
+enum AssessmentStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model StateStandard {
+  id                String                    @id @default(uuid()) @db.Uuid
+  standardCode      String                    @map("standard_code")
+  jurisdiction      String                    // e.g. "Oklahoma", "California"
+  subject           String                    // e.g. "Mathematics", "English Language Arts"
+  gradeLevel        String                    @map("grade_level")
+  statementText     String                    @map("statement_text")
+  description       String?
+  learningComponents LearningComponent[]
+  skillMappings     SkillStandardMapping[]
+  studentProgress   StudentStandardProgress[]
+
+  @@unique([standardCode, jurisdiction])
+  @@index([jurisdiction, subject])
+  @@index([jurisdiction, gradeLevel])
+}
+
+model LearningComponent {
+  id             String        @id @default(uuid()) @db.Uuid
+  standard       StateStandard @relation(fields: [standardId], references: [id], onDelete: Cascade)
+  standardId     String        @db.Uuid @map("standard_id")
+  componentText  String        @map("component_text")
+  componentOrder Int?          @map("component_order")
+
+  @@index([standardId])
+}
+
+model SkillStandardMapping {
+  id                String            @id @default(uuid()) @db.Uuid
+  conceptId         String            @db.Uuid @map("concept_id")
+  concept           Concept           @relation(fields: [conceptId], references: [id])
+  standardId        String            @db.Uuid @map("standard_id")
+  standard          StateStandard     @relation(fields: [standardId], references: [id])
+  alignmentStrength AlignmentStrength @default(FULL) @map("alignment_strength")
+  notes             String?
+
+  @@unique([conceptId, standardId])
+  @@index([conceptId])
+  @@index([standardId])
+}
+
+model StudentStandardProgress {
+  id          String       @id @default(uuid()) @db.Uuid
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String       @db.Uuid @map("user_id")
+  standard    StateStandard @relation(fields: [standardId], references: [id])
+  standardId  String       @db.Uuid @map("standard_id")
+  mastery     MasteryLevel @default(INTRODUCED)
+  sourceType  String?      @map("source_type")  // e.g. "activity_log", "assessment", "manual"
+  sourceId    String?      @map("source_id")
+  evidence    Json?        // additional context
+  demonstratedAt DateTime  @default(now()) @map("demonstrated_at")
+
+  @@unique([userId, standardId])
+  @@index([userId])
+  @@index([standardId])
+  @@index([userId, mastery])
+}
+
+model PlacementAssessment {
+  id             String           @id @default(uuid()) @db.Uuid
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String           @db.Uuid @map("user_id")
+  status         AssessmentStatus @default(IN_PROGRESS)
+  currentSubject String?          @map("current_subject")
+  responses      Json?            // { questionIndex: { question, answer, timestamp } }
+  results        Json?            // { subject: { level, confidence, recommendations } }
+  learningProfile Json?           @map("learning_profile") // { interests, style, pace }
+  startedAt      DateTime         @default(now()) @map("started_at")
+  completedAt    DateTime?        @map("completed_at")
+
+  @@index([userId, status])
+  @@index([userId])
 }

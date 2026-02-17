@@ -7,7 +7,8 @@ export type AdelineIntent =
   | 'OPPORTUNITY'
   | 'REFLECT'
   | 'IMAGE_LOG'
-  | 'AUDIO_LOG';
+  | 'AUDIO_LOG'
+  | 'ASSESS';
 
 export interface LifeCreditMapping {
   activity: string;

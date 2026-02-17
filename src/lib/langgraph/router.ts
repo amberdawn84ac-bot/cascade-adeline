@@ -11,6 +11,7 @@ const INTENT_LABELS: AdelineIntent[] = [
   'GEN_UI',
   'OPPORTUNITY',
   'REFLECT',
+  'ASSESS',
 ];
 
 async function llmClassifyIntent(prompt: string, modelId: string): Promise<AdelineIntent | null> {
@@ -25,12 +26,13 @@ Intent definitions:
 - INVESTIGATE: User asks investigative questions about institutions, corporations, funding, or systemic issues. Keywords: "who profits", "who funds", "investigate", "follow the money".
 - OPPORTUNITY: User asks about opportunities, scholarships, competitions, or resources.
 - REFLECT: User is reflecting on their learning process, thinking about how they learned, or responding to a reflection question. Keywords: "I learned", "I realized", "I noticed", "what I found hard", "next time I would".
+- ASSESS: User wants to take a placement test, assess their level, or find out where they are in a subject. Keywords: "assess", "placement", "test my level", "where am I in", "what grade".
 - CHAT: General conversation, greetings, or questions that don't fit above categories.
 - GEN_UI: Requests for specific UI components (rare).
 
 User message: "${prompt}"
 
-Return ONLY the single intent label (LIFE_LOG, BRAINSTORM, INVESTIGATE, OPPORTUNITY, REFLECT, CHAT, or GEN_UI):`,
+Return ONLY the single intent label (LIFE_LOG, BRAINSTORM, INVESTIGATE, OPPORTUNITY, REFLECT, ASSESS, CHAT, or GEN_UI):`,
     });
     const normalized = text.trim().toUpperCase().replace(/[^A-Z_]/g, '');
     console.log('[Router] LLM classified as:', normalized);
@@ -66,6 +68,10 @@ function heuristicIntent(prompt: string): AdelineIntent {
   }
   if (lower.includes('opportunit')) {
     return 'OPPORTUNITY';
+  }
+  const assessPhrases = ['assess my', 'placement test', 'test my level', 'what grade am i', 'where am i in', 'assess me', 'placement assessment', 'evaluate my'];
+  if (assessPhrases.some((phrase) => lower.includes(phrase))) {
+    return 'ASSESS';
   }
   const reflectPhrases = ['i learned', 'i realized', 'i noticed', 'what i found hard', 'next time i would', 'i struggled with', 'it made me think'];
   if (reflectPhrases.some((phrase) => lower.includes(phrase))) {
