@@ -7,12 +7,13 @@ import { loadConfig } from './config';
  * Semantic Cache ("Hippocampus Cache")
  *
  * Before hitting the LLM, embed the query and check Redis for a
- * "close enough" cached response (cosine similarity > threshold).
+ * "close enough" cached GenUI response (cosine similarity > threshold).
  *
  * Saves tokens and latency for repeated/similar questions.
+ * Returns cached GenUI JSON instantly if hit (50ms).
  *
  * Storage: Redis hash with key = truncated embedding fingerprint
- * Each entry stores: { embedding: number[], response: string, intent: string, timestamp: number }
+ * Each entry stores: { embedding: number[], genui: object, intent: string, timestamp: number }
  */
 
 const CACHE_PREFIX = 'semcache:';
@@ -45,12 +46,12 @@ function embeddingFingerprint(embedding: number[]): string {
 }
 
 /**
- * Look up a semantically similar cached response.
- * Returns the cached response if similarity > threshold, otherwise null.
+ * Look up a semantically similar cached GenUI response.
+ * Returns the cached GenUI JSON if similarity > threshold, otherwise null.
  */
-export async function getCachedResponse(
+export async function getCachedGenUI(
   query: string
-): Promise<{ response: string; intent: string; similarity: number } | null> {
+): Promise<{ genui: any; intent: string; similarity: number } | null> {
   try {
     const config = loadConfig();
     const embeddingModel = getEmbeddingModel(config.models.embeddings);
@@ -68,7 +69,7 @@ export async function getCachedResponse(
     const entries = await redis.lrange(cacheKey, 0, -1);
     if (!entries || entries.length === 0) return null;
 
-    let bestMatch: { response: string; intent: string; similarity: number } | null = null;
+    let bestMatch: { genui: any; intent: string; similarity: number } | null = null;
 
     for (const raw of entries) {
       try {
@@ -78,7 +79,7 @@ export async function getCachedResponse(
         if (similarity >= SIMILARITY_THRESHOLD) {
           if (!bestMatch || similarity > bestMatch.similarity) {
             bestMatch = {
-              response: entry.response,
+              genui: entry.genui,
               intent: entry.intent || 'CHAT',
               similarity,
             };
@@ -104,11 +105,11 @@ export async function getCachedResponse(
 }
 
 /**
- * Store a response in the semantic cache.
+ * Store a GenUI response in the semantic cache.
  */
-export async function cacheResponse(
+export async function cacheGenUI(
   query: string,
-  response: string,
+  genui: any,
   intent: string
 ): Promise<void> {
   try {
@@ -125,7 +126,7 @@ export async function cacheResponse(
 
     const entry = JSON.stringify({
       embedding: queryEmbedding,
-      response,
+      genui,
       intent,
       query: query.substring(0, 100), // truncated for debugging
       timestamp: Date.now(),

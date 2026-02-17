@@ -19,7 +19,7 @@ import { getModel } from '@/lib/ai-models';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
 import { createTraceContext, recordTrace, forceFlush, type TraceContext } from '@/lib/observability/tracer';
-import { getCachedResponse, cacheResponse } from '@/lib/semantic-cache';
+import { getCachedResponse, cacheResponse, getCachedGenUI, cacheGenUI } from '@/lib/semantic-cache';
 import { checkMessageLimit, incrementMessageCount } from '@/lib/subscription';
 
 /**
@@ -302,6 +302,32 @@ export async function POST(req: NextRequest) {
     return textAsUIStream(cached.response, { intent: cached.intent });
   }
 
+  // --- Semantic Cache: Check for similar GenUI responses ---
+  const cachedGenUI = await getCachedGenUI(safePrompt);
+  if (cachedGenUI && !imageUrl) {
+    console.log('[Chat] GenUI semantic cache hit, similarity:', cachedGenUI.similarity.toFixed(4));
+    const messageMetadata = {
+      intent: cachedGenUI.intent,
+      genUIPayload: cachedGenUI.genui,
+      gapNudge: null, // Cached responses don't have gap nudges
+    };
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        writer.write({ type: 'start', messageMetadata });
+        writer.write({ type: 'text-start', id: 'cached-response' });
+        writer.write({ type: 'text-delta', id: 'cached-response', delta: 'From my memory...' });
+        writer.write({ type: 'text-end', id: 'cached-response' });
+        writer.write({ type: 'finish', finishReason: 'stop', messageMetadata });
+      },
+    });
+    if (effectiveUserId) {
+      try {
+        await saveMessage(effectiveUserId, sessionId, { role: 'assistant', content: 'From my memory...' });
+      } catch {}
+    }
+    return createUIMessageStreamResponse({ stream });
+  }
+
   // --- Observability: Create trace context ---
   const traceCtx = createTraceContext(effectiveUserId);
 
@@ -369,6 +395,9 @@ export async function POST(req: NextRequest) {
 
     // Cache the response for future similar queries
     cacheResponse(safePrompt, agentResponse, workflowState.intent || 'CHAT').catch(() => {});
+    if (workflowState.genUIPayload) {
+      cacheGenUI(safePrompt, workflowState.genUIPayload, workflowState.intent || 'CHAT').catch(() => {});
+    }
     forceFlush().catch(() => {});
 
     // Increment message count for subscription tracking
