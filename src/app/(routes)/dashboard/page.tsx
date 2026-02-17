@@ -8,7 +8,8 @@ import {
   ScrollText,
   Clock,
   Trophy,
-  ArrowRight
+  ArrowRight,
+  Gamepad2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -25,6 +26,7 @@ async function getDashboardData(userId: string) {
     math: { earned: 0, total: 0, recent: [] as string[] },
     ela: { earned: 0, total: 0, recent: [] as string[] },
     history: { earned: 0, total: 0, recent: [] as string[] },
+    arcade: { earned: 0, total: 0, recent: [] as string[] },
   };
 
   progress.forEach(p => {
@@ -43,6 +45,9 @@ async function getDashboardData(userId: string) {
     } else if (subject.includes('social') || subject.includes('history')) {
       stats.history.total++;
       if (isMastered) stats.history.earned++;
+    } else if (subject.includes('computer') || subject.includes('tech') || subject.includes('code') || subject.includes('game')) {
+      stats.arcade.total++;
+      if (isMastered) stats.arcade.earned++;
     }
   });
 
@@ -89,6 +94,16 @@ const ROOMS = [
     borderColor: 'border-indigo-500/20',
     textColor: 'text-indigo-800',
     description: 'Explore primary sources and uncover the truth of the past.',
+  },
+  {
+    id: 'arcade',
+    title: 'The Arcade',
+    subtitle: 'Games & Coding',
+    icon: Gamepad2,
+    color: 'bg-violet-500/10',
+    borderColor: 'border-violet-500/20',
+    textColor: 'text-violet-800',
+    description: 'Play learning games and build your own with code.',
   },
 ];
 

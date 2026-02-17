@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
@@ -8,7 +8,7 @@ const TIERS = [
   {
     id: 'FREE',
     name: 'Try It',
-    price: { monthly: 0, yearly: 0 },
+    price: { monthly: 0 },
     description: 'Perfect for trying Adeline',
     features: [
       '10 messages per month',
@@ -19,11 +19,12 @@ const TIERS = [
     ],
     cta: 'Start Free',
     ctaAction: '/chat',
+    paypalOption: null,
   },
   {
     id: 'STUDENT',
     name: 'Student',
-    price: { monthly: 2.99, yearly: 28.80 },
+    price: { monthly: 2.99 },
     description: 'Unlimited learning for one',
     features: [
       '✨ Unlimited messages',
@@ -34,11 +35,12 @@ const TIERS = [
     ],
     cta: 'Upgrade',
     popular: false,
+    paypalOption: 'One Student Unlimited',
   },
   {
     id: 'PARENT',
     name: 'Parent',
-    price: { monthly: 19, yearly: 182.40 },
+    price: { monthly: 19.99 },
     description: 'Track one learner deeply',
     features: [
       'Everything in Student, plus:',
@@ -49,11 +51,12 @@ const TIERS = [
     ],
     cta: 'Upgrade',
     popular: false,
+    paypalOption: 'Parent Account w/ 1 child and transcripts',
   },
   {
     id: 'FAMILY',
     name: 'Family',
-    price: { monthly: 29, yearly: 278.40 },
+    price: { monthly: 29.99 },
     description: 'For multi-child families',
     features: [
       'Everything in Parent, plus:',
@@ -64,32 +67,65 @@ const TIERS = [
     ],
     cta: 'Upgrade',
     popular: true,
+    paypalOption: 'Family Account w/ up to 6 and transcripts',
+  },
+  {
+    id: 'COOP',
+    name: 'Co-op',
+    price: { monthly: 49.99 },
+    description: 'For classrooms & co-ops',
+    features: [
+      'Everything in Family, plus:',
+      '🏫 Up to 40 students',
+      'Classroom management',
+      'Bulk progress reports',
+      'Dedicated support',
+    ],
+    cta: 'Upgrade',
+    popular: false,
+    paypalOption: 'Co-op or Classroom w/ up to 40 students',
   },
 ];
 
 export default function PricingPage() {
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const [selectedOption, setSelectedOption] = useState<string>('One Student Unlimited');
 
-  const handleUpgrade = async (tierId: string) => {
-    if (tierId === 'FREE') {
+  const handleUpgrade = (tier: typeof TIERS[0]) => {
+    if (tier.id === 'FREE') {
       router.push('/chat');
       return;
     }
 
-    const response = await fetch('/api/stripe/create-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier: tierId, billing }),
-    });
-
-    const { url } = await response.json();
-    if (url) window.location.href = url;
+    if (tier.paypalOption && formRef.current) {
+      setSelectedOption(tier.paypalOption);
+      // Allow state to update then submit
+      setTimeout(() => {
+        formRef.current?.submit();
+      }, 100);
+    }
   };
 
   return (
     <div style={{ minHeight: '100vh', background: '#FFFEF7', padding: '40px 24px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        {/* Hidden PayPal Form */}
+        <form 
+          action="https://www.paypal.com/cgi-bin/webscr" 
+          method="post" 
+          target="_top" 
+          ref={formRef}
+          className="hidden"
+          style={{ display: 'none' }}
+        >
+          <input type="hidden" name="cmd" value="_s-xclick" />
+          <input type="hidden" name="hosted_button_id" value="4PJRZA3JXYZ8G" />
+          <input type="hidden" name="on0" value="Subscriptions"/>
+          <input type="hidden" name="os0" value={selectedOption} />
+          <input type="hidden" name="currency_code" value="USD" />
+        </form>
+
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <h1 style={{
@@ -108,45 +144,6 @@ export default function PricingPage() {
           }}>
             Start free, upgrade anytime. No credit card required.
           </p>
-
-          {/* Billing Toggle */}
-          <div style={{
-            display: 'inline-flex',
-            gap: 8,
-            background: '#FFFFFF',
-            border: '2px solid #E7DAC3',
-            borderRadius: 999,
-            padding: 4,
-          }}>
-            <button
-              onClick={() => setBilling('monthly')}
-              style={{
-                padding: '8px 24px',
-                borderRadius: 999,
-                border: 'none',
-                background: billing === 'monthly' ? '#BD6809' : 'transparent',
-                color: billing === 'monthly' ? '#FFF' : '#2F4731',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBilling('yearly')}
-              style={{
-                padding: '8px 24px',
-                borderRadius: 999,
-                border: 'none',
-                background: billing === 'yearly' ? '#BD6809' : 'transparent',
-                color: billing === 'yearly' ? '#FFF' : '#2F4731',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Yearly <span style={{ fontSize: 12 }}>(Save 20%)</span>
-            </button>
-          </div>
         </div>
 
         {/* Pricing Cards */}
@@ -199,11 +196,11 @@ export default function PricingPage() {
                   fontWeight: 700,
                   color: '#2F4731',
                 }}>
-                  ${tier.price[billing]}
+                  ${tier.price.monthly}
                 </span>
                 {tier.price.monthly > 0 && (
                   <span style={{ color: '#4B3424', fontSize: '1rem' }}>
-                    /{billing === 'monthly' ? 'mo' : 'yr'}
+                    /mo
                   </span>
                 )}
               </div>
@@ -233,7 +230,7 @@ export default function PricingPage() {
               </ul>
 
               <button
-                onClick={() => handleUpgrade(tier.id)}
+                onClick={() => handleUpgrade(tier)}
                 style={{
                   width: '100%',
                   padding: '12px 24px',
