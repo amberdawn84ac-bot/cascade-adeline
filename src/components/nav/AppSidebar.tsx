@@ -38,7 +38,6 @@ const NAV_ITEMS = [
   },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
   { label: 'Library', href: '/library', icon: Library },
-  { label: 'Parent Portal', href: '/parent', icon: GraduationCap },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
