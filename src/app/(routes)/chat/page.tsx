@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { WheatStalk } from '@/components/illustrations';
+import { Lightbulb, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SketchnoteRenderer } from '@/components/sketchnote/SketchnoteRenderer';
 import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
 import { AdelineTyping } from '@/components/chat/AdelineTyping';
@@ -240,12 +242,6 @@ export default function ChatPage() {
             }}
           />
         )}
-import { Lightbulb, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-// ... (previous imports)
-
-// ... (inside component)
         {/* Gap Nudge */}
         <AnimatePresence>
           {gapNudge && (

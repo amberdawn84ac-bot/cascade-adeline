@@ -11,13 +11,31 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  FlaskConical,
+  Calculator,
+  Feather,
+  ScrollText,
+  Gamepad2,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', href: '/dashboard', icon: Home },
+  { 
+    label: 'Dashboard', 
+    href: '/dashboard', 
+    icon: Home,
+    children: [
+      { label: 'The Laboratory', href: '/dashboard/science', icon: FlaskConical },
+      { label: 'The Counting House', href: '/dashboard/math', icon: Calculator },
+      { label: 'The Scriptorium', href: '/dashboard/ela', icon: Feather },
+      { label: 'The Great Archive', href: '/dashboard/history', icon: ScrollText },
+      { label: 'The Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
+    ]
+  },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
   { label: 'Library', href: '/library', icon: Library },
   { label: 'Parent Portal', href: '/parent', icon: GraduationCap },
@@ -26,6 +44,13 @@ const NAV_ITEMS = [
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard']);
+
+  const toggleExpand = (label: string) => {
+    setExpandedItems(prev => 
+      prev.includes(label) ? prev.filter(i => i !== label) : [...prev, label]
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#FFFEF7] flex flex-col md:flex-row">
@@ -51,7 +76,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-[#FFFDF5] border-r border-[#E7DAC3] transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:h-screen sticky top-0",
+          "fixed inset-y-0 left-0 z-40 w-64 bg-[#FFFDF5] border-r border-[#E7DAC3] transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:h-screen sticky top-0 overflow-y-auto",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -79,22 +104,62 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 space-y-2">
             {NAV_ITEMS.map((item) => {
               const isActive = pathname === item.href;
+              const isExpanded = expandedItems.includes(item.label);
+              const hasChildren = item.children && item.children.length > 0;
               const Icon = item.icon;
+
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
-                    isActive 
-                      ? "bg-[#2F4731] text-white shadow-lg shadow-[#2F4731]/20 font-bold" 
-                      : "text-[#2F4731]/70 hover:bg-[#2F4731]/5 hover:text-[#2F4731] font-medium"
+                <div key={item.href}>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={item.href}
+                      onClick={() => !hasChildren && setIsOpen(false)}
+                      className={cn(
+                        "flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                        isActive && !hasChildren
+                          ? "bg-[#2F4731] text-white shadow-lg shadow-[#2F4731]/20 font-bold" 
+                          : "text-[#2F4731]/70 hover:bg-[#2F4731]/5 hover:text-[#2F4731] font-medium"
+                      )}
+                    >
+                      <Icon size={20} className={cn("transition-transform group-hover:scale-110", isActive && !hasChildren && "text-[#BD6809]")} />
+                      <span>{item.label}</span>
+                    </Link>
+                    {hasChildren && (
+                      <button 
+                        onClick={() => toggleExpand(item.label)}
+                        className="p-2 text-[#2F4731]/50 hover:text-[#2F4731] hover:bg-[#2F4731]/5 rounded-lg transition-colors"
+                      >
+                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sub-items */}
+                  {hasChildren && isExpanded && (
+                    <div className="ml-9 mt-1 space-y-1 border-l-2 border-[#E7DAC3]/50 pl-2">
+                      {item.children!.map((child) => {
+                        const isChildActive = pathname === child.href;
+                        const ChildIcon = child.icon;
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={() => setIsOpen(false)}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm",
+                              isChildActive
+                                ? "bg-[#BD6809]/10 text-[#BD6809] font-bold" 
+                                : "text-[#2F4731]/60 hover:text-[#2F4731] hover:bg-[#2F4731]/5"
+                            )}
+                          >
+                            <ChildIcon size={16} />
+                            <span>{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   )}
-                >
-                  <Icon size={20} className={cn("transition-transform group-hover:scale-110", isActive && "text-[#BD6809]")} />
-                  <span>{item.label}</span>
-                </Link>
+                </div>
               );
             })}
           </nav>

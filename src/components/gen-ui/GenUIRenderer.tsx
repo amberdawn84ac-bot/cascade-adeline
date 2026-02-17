@@ -8,6 +8,7 @@ import {
   InvestigationBoard,
   ProjectImpactCard,
   MissionBriefing,
+  Timeline,
 } from './index';
 
 type GenUIPayload = {
@@ -20,6 +21,7 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   InvestigationBoard,
   ProjectImpactCard,
   MissionBriefing,
+  Timeline,
 };
 
 const INTENT_BORDER_COLORS: Record<string, string> = {
@@ -27,6 +29,7 @@ const INTENT_BORDER_COLORS: Record<string, string> = {
   InvestigationBoard: '#3D1419',
   ProjectImpactCard: '#2F4731',
   MissionBriefing: '#9A3F4A',
+  Timeline: '#6366F1',
 };
 
 export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
