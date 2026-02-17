@@ -70,14 +70,14 @@ never_share = ["student_location", "student_full_name_externally", "parent_conta
 
 [models]
 default = "gpt-4o"
-investigation = "claude-3-sonnet-20240229"
+investigation = "claude-3-5-sonnet-20240620"
 deep_analysis = "gpt-4o"
 embeddings = "text-embedding-3-small"
 
 [models.routing_rules]
 general_chat = "gpt-4o"
 investigation_keywords = ["who profits", "follow the money", "what really happened", "investigate", "regulatory capture", "who funded"]
-investigation_model = "claude-3-sonnet-20240229"
+investigation_model = "claude-3-5-sonnet-20240620"
 deep_analysis_keywords = ["compare", "analyze in depth", "economic models", "philosophical"]
 deep_analysis_model = "gpt-4o"
 

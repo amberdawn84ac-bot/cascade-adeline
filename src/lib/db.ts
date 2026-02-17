@@ -8,9 +8,7 @@ declare global {
 function createClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
   if (!url) {
-    console.warn('[db] DATABASE_URL is not set — Prisma client will not be functional');
-    // Return a stub client that will throw on actual DB calls
-    return new PrismaClient({ accelerateUrl: 'https://placeholder.prisma.io' }) as PrismaClient;
+    throw new Error('[db] DATABASE_URL is not set. Please add it to your .env file.');
   }
 
   // If a Prisma Accelerate URL is provided, use it directly

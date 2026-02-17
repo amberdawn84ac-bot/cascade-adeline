@@ -132,7 +132,7 @@ async function safeNode(
     return result;
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error(`[LangGraph:${name}]`, err);
+    console.error(`🚨 CRITICAL FAILURE IN NODE [${name}]:`, err);
     if (traceCtx) {
       recordTrace(traceCtx, {
         agentNode: name,
