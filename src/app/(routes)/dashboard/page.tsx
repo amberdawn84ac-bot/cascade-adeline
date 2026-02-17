@@ -1,5 +1,6 @@
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { getZPDConcepts } from '@/lib/zpd-engine';
 import { redirect } from 'next/navigation';
 import { 
   FlaskConical, 
@@ -20,13 +21,16 @@ async function getDashboardData(userId: string) {
     include: { standard: true },
   });
 
+  // Fetch ZPD suggestions
+  const zpd = await getZPDConcepts(userId, { limit: 1 });
+
   // Calculate stats per room
-  const stats = {
-    science: { earned: 0, total: 0, recent: [] as string[] },
-    math: { earned: 0, total: 0, recent: [] as string[] },
-    ela: { earned: 0, total: 0, recent: [] as string[] },
-    history: { earned: 0, total: 0, recent: [] as string[] },
-    arcade: { earned: 0, total: 0, recent: [] as string[] },
+  const roomStats = {
+    science: { earned: 0, total: 0 },
+    math: { earned: 0, total: 0 },
+    ela: { earned: 0, total: 0 },
+    history: { earned: 0, total: 0 },
+    arcade: { earned: 0, total: 0 },
   };
 
   progress.forEach(p => {
@@ -34,24 +38,24 @@ async function getDashboardData(userId: string) {
     const isMastered = p.mastery === 'MASTERED' || p.mastery === 'PROFICIENT';
     
     if (subject.includes('science')) {
-      stats.science.total++;
-      if (isMastered) stats.science.earned++;
+      roomStats.science.total++;
+      if (isMastered) roomStats.science.earned++;
     } else if (subject.includes('math')) {
-      stats.math.total++;
-      if (isMastered) stats.math.earned++;
+      roomStats.math.total++;
+      if (isMastered) roomStats.math.earned++;
     } else if (subject.includes('english') || subject.includes('language') || subject.includes('ela')) {
-      stats.ela.total++;
-      if (isMastered) stats.ela.earned++;
+      roomStats.ela.total++;
+      if (isMastered) roomStats.ela.earned++;
     } else if (subject.includes('social') || subject.includes('history')) {
-      stats.history.total++;
-      if (isMastered) stats.history.earned++;
+      roomStats.history.total++;
+      if (isMastered) roomStats.history.earned++;
     } else if (subject.includes('computer') || subject.includes('tech') || subject.includes('code') || subject.includes('game')) {
-      stats.arcade.total++;
-      if (isMastered) stats.arcade.earned++;
+      roomStats.arcade.total++;
+      if (isMastered) roomStats.arcade.earned++;
     }
   });
 
-  return stats;
+  return { roomStats, zpdRecommendation: zpd[0] || null };
 }
 
 const ROOMS = [
@@ -114,7 +118,7 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const stats = await getDashboardData(session.userId);
+  const { roomStats, zpdRecommendation } = await getDashboardData(session.userId);
 
   return (
     <div className="space-y-10">
@@ -131,7 +135,7 @@ export default async function DashboardPage() {
       {/* The Rooms Grid */}
       <div className="grid md:grid-cols-2 gap-6">
         {ROOMS.map((room) => {
-          const roomStats = stats[room.id as keyof typeof stats];
+          const stats = roomStats[room.id as keyof typeof roomStats];
           return (
             <Link 
               key={room.id} 
@@ -144,7 +148,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-white/60 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
                   <Trophy size={14} className={room.textColor} />
-                  <span>{roomStats.earned} Mastered</span>
+                  <span>{stats.earned} Mastered</span>
                 </div>
               </div>
               
@@ -190,11 +194,19 @@ export default async function DashboardPage() {
               Zone of Proximal Development
             </h3>
             <p className="text-white/80 text-sm">
-              Adeline has detected a perfect next step for you in <span className="text-[#BD6809] font-bold">Geometry</span>.
+              {zpdRecommendation ? (
+                <>
+                  Adeline has detected a perfect next step for you: <span className="text-[#BD6809] font-bold">{zpdRecommendation.name}</span>.
+                </>
+              ) : (
+                "Start exploring to uncover your next learning step!"
+              )}
             </p>
-            <button className="w-full py-3 bg-white text-[#2F4731] rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-[#BD6809] hover:text-white transition-colors">
-              See Suggestion
-            </button>
+            {zpdRecommendation && (
+              <button className="w-full py-3 bg-white text-[#2F4731] rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-[#BD6809] hover:text-white transition-colors">
+                Explore {zpdRecommendation.name}
+              </button>
+            )}
           </div>
           {/* Decorative circle */}
           <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-[#BD6809]/20 rounded-full blur-2xl" />

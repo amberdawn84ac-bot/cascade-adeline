@@ -240,20 +240,57 @@ export default function ChatPage() {
             }}
           />
         )}
-        {gapNudge && (
-          <div
-            style={{
-              background: '#FFF3E7',
-              border: `1px solid ${PAPAYA}`,
-              color: '#4B3424',
-              padding: '10px 12px',
-              borderRadius: 12,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-            }}
-          >
-            Gap Nudge: {gapNudge}
-          </div>
-        )}
+import { Lightbulb, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// ... (previous imports)
+
+// ... (inside component)
+        {/* Gap Nudge */}
+        <AnimatePresence>
+          {gapNudge && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              style={{
+                background: '#FFFDF5',
+                border: `1px solid ${PAPAYA}`,
+                borderRadius: 16,
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'start',
+                gap: 12,
+                boxShadow: '0 4px 12px rgba(189,104,9,0.1)',
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ 
+                background: `${PAPAYA}20`, 
+                padding: 8, 
+                borderRadius: '50%',
+                color: PAPAYA
+              }}>
+                <Lightbulb size={20} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, color: PALM, fontSize: '0.9rem', marginBottom: 4 }}>
+                  Adeline's Insight
+                </div>
+                <div style={{ color: '#4B3424', fontSize: '0.95rem', lineHeight: 1.4 }}>
+                  {gapNudge}
+                </div>
+              </div>
+              <button 
+                onClick={() => setGapNudge(null)}
+                style={{ color: '#4B3424', opacity: 0.5, cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {renderedMessages}
 
         {genUIPayload && <GenUIRenderer payload={genUIPayload} />}
