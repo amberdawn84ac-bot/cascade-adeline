@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(test:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm ls:*)",
+      "Bash(node -e:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
