@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   Home, 
   MessageCircle, 
@@ -18,10 +18,14 @@ import {
   ScrollText,
   Gamepad2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Users
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { createServerClient } from '@supabase/ssr';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
 
 const NAV_ITEMS = [
   { 
@@ -38,10 +42,20 @@ const NAV_ITEMS = [
   },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
   { label: 'Library', href: '/library', icon: Library },
+  { label: 'Family Portal', href: '/parent', icon: Users },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard']);
 
@@ -173,6 +187,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               Settings
             </Link>
             <button
+              onClick={handleSignOut}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-[#6B1D2A]/80 hover:text-[#6B1D2A] transition-colors"
             >
               <LogOut size={16} />
