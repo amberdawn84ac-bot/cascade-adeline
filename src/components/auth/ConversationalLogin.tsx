@@ -3,8 +3,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, GraduationCap, Users, User, Loader2, Mail } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+// createBrowserClient is exported at runtime but tsc ^5.4 misses it due to a peer-dep
+// version-keying bug. Load it via require and cast to the equivalent server client type.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
 
 type Role = 'student' | 'parent' | 'teacher';
 type Mode = 'login' | 'signup';
@@ -33,7 +38,7 @@ export function ConversationalLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient(
+  const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
