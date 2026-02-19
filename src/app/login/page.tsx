@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { ConversationalLogin } from '@/components/auth/ConversationalLogin';
 import { WheatStalk } from '@/components/illustrations';
 
@@ -24,7 +25,9 @@ export default function LoginPage() {
         <WheatStalk size={120} color="#2F4731" />
       </div>
 
-      <ConversationalLogin />
+      <Suspense fallback={<div className="w-full max-w-md mx-auto p-6 text-center text-[#2F4731]/60">Loading...</div>}>
+        <ConversationalLogin />
+      </Suspense>
     </div>
   );
 }
