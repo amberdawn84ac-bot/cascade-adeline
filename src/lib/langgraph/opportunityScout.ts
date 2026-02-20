@@ -4,6 +4,69 @@ import { loadConfig } from '../config';
 import { AdelineGraphState } from './types';
 import { getModel } from '../ai-models';
 
+/**
+ * Proactively checks for relevant opportunities based on a student's recent projects.
+ * This function is intended to be triggered during the user's login sequence.
+ */
+export async function proactiveOpportunityScout(userId: string): Promise<{ opportunity: any; briefing: string } | null> {
+  const config = loadConfig();
+  const modelId = config.models.default;
+
+  // Fetch the student's recent transcript entries (projects)
+  const recentTranscripts = await prisma.transcriptEntry.findMany({
+    where: { userId },
+    orderBy: { dateCompleted: 'desc' },
+    take: 5,
+  });
+
+  if (!recentTranscripts.length) {
+    console.log('[ProactiveOpportunityScout] No recent projects found for user:', userId);
+    return null;
+  }
+
+  // Extract keywords from recent activities
+  const activityKeywords = recentTranscripts.map(t => t.activityName).join(', ');
+
+  // Find opportunities that match these keywords or have upcoming deadlines
+  const opportunities = await prisma.opportunity.findMany({
+    where: {
+      OR: [
+        { deadline: { gte: new Date() } }, // Upcoming deadlines
+        { description: { contains: activityKeywords, mode: 'insensitive' } }, // Keyword match
+        { title: { contains: activityKeywords, mode: 'insensitive' } },
+      ],
+    },
+    orderBy: { deadline: 'asc' },
+    take: 3,
+  });
+
+  if (!opportunities.length) {
+    console.log('[ProactiveOpportunityScout] No matching opportunities found for user:', userId);
+    return null;
+  }
+
+  // Select the most relevant opportunity (simplified: the first one)
+  const selectedOpportunity = opportunities[0];
+
+  // Generate a mission briefing
+  const { text } = await generateText({
+    model: getModel(modelId),
+    maxOutputTokens: 250,
+    prompt: `You are Adeline, a warm and encouraging learning companion. You have found a perfect opportunity for a student based on their recent work.
+
+Student's recent projects: ${activityKeywords}
+Opportunity: ${selectedOpportunity.title} - ${selectedOpportunity.description}
+Deadline: ${selectedOpportunity.deadline?.toLocaleDateString()}
+
+Generate a short, exciting "Mission Briefing" that frames this as a quest. Be encouraging and highlight how their recent work has prepared them for this. Keep it under 150 words.`,
+  });
+
+  return {
+    opportunity: selectedOpportunity,
+    briefing: text.trim(),
+  };
+}
+
 async function inferInterests(prompt: string, history: AdelineGraphState['conversationHistory'], modelId: string) {
   const convo = history?.map((h) => `${h.role}: ${h.content}`).join('\n') || '';
   const { text } = await generateText({

@@ -13,13 +13,14 @@ import { gapDetector } from '@/lib/langgraph/gapDetector';
 import { reflectionCoach } from '@/lib/langgraph/reflectionCoach';
 import { visionAnalyzer } from '@/lib/langgraph/visionAnalyzer';
 import { voiceLogger } from '@/lib/langgraph/voiceLogger';
+import { generateAnalogy } from '@/lib/langgraph/generateAnalogy';
 import { AdelineGraphState } from '@/lib/langgraph/types';
 import { getSessionUser } from '@/lib/auth';
 import { getModel } from '@/lib/ai-models';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
 import { createTraceContext, recordTrace, forceFlush, type TraceContext } from '@/lib/observability/tracer';
-import { getCachedResponse, cacheResponse, getCachedGenUI, cacheGenUI } from '@/lib/semantic-cache';
+import { getCachedGenUI, cacheGenUI } from '@/lib/semantic-cache';
 import { checkMessageLimit, incrementMessageCount } from '@/lib/subscription';
 
 /**
@@ -189,6 +190,9 @@ async function runWorkflow(prompt: string, baseState: Partial<AdelineGraphState>
       state = { ...state, metadata: { ...state.metadata, reflectionMode: 'post_activity' } };
       state = await safeNode('reflectionCoach', reflectionCoach, state, traceCtx);
       break;
+    case 'ANALOGY':
+      state = await safeNode('generateAnalogy', generateAnalogy, state, traceCtx);
+      break;
     case 'ASSESS':
       // Placement assessment — guide user to the placement API or generate inline assessment
       state = await safeNode('placementGuide', async (s: AdelineGraphState) => {
@@ -290,18 +294,6 @@ export async function POST(req: NextRequest) {
   const history = await loadHistory(effectiveUserId, sessionId);
   const combinedHistory: ChatMessage[] = [...history, ...safeMessages];
 
-  // --- Semantic Cache: Check for similar previous responses ---
-  const cached = await getCachedResponse(safePrompt);
-  if (cached && !imageUrl) {
-    console.log('[Chat] Semantic cache hit, similarity:', cached.similarity.toFixed(4));
-    if (effectiveUserId) {
-      try {
-        await saveMessage(effectiveUserId, sessionId, { role: 'assistant', content: cached.response });
-      } catch {}
-    }
-    return textAsUIStream(cached.response, { intent: cached.intent });
-  }
-
   // --- Semantic Cache: Check for similar GenUI responses ---
   const cachedGenUI = await getCachedGenUI(safePrompt);
   if (cachedGenUI && !imageUrl) {
@@ -394,7 +386,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Cache the response for future similar queries
-    cacheResponse(safePrompt, agentResponse, workflowState.intent || 'CHAT').catch(() => {});
     if (workflowState.genUIPayload) {
       cacheGenUI(safePrompt, workflowState.genUIPayload, workflowState.intent || 'CHAT').catch(() => {});
     }

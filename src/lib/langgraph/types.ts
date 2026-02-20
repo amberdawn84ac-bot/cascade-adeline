@@ -8,7 +8,8 @@ export type AdelineIntent =
   | 'REFLECT'
   | 'IMAGE_LOG'
   | 'AUDIO_LOG'
-  | 'ASSESS';
+  | 'ASSESS'
+  | 'ANALOGY';
 
 export interface LifeCreditMapping {
   activity: string;
@@ -30,6 +31,10 @@ export interface AdelineGraphState {
   prompt: string;
   intent?: AdelineIntent;
   selectedModel?: string;
+  cognitiveLoad?: {
+    score: number;
+    level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  };
   lifeCredit?: LifeCreditMapping;
   transcriptDraft?: TranscriptDraft;
   conversationHistory?: Array<{ role: string; content: string }>;
@@ -44,7 +49,10 @@ export interface AdelineGraphState {
   genUIPayload?: {
     component: string;
     props: Record<string, unknown>;
-  };
+  } | Array<{
+    component: string;
+    props: Record<string, unknown>;
+  }>;
   // Additional payload for downstream planners
   metadata?: {
     imageUrl?: string;
@@ -52,7 +60,11 @@ export interface AdelineGraphState {
     gapNudge?: string;
     errors?: string[];
     lifeCreditLogger?: { matched?: boolean; mapping?: LifeCreditMapping; transcriptDraft?: TranscriptDraft };
-    discernmentEngine?: { model?: string; sourcesUsed?: string | number };
+    discernmentEngine?: { 
+      model?: string; 
+      sourcesUsed?: string | number; 
+      investigationId?: string;
+    };
     reflectionEntryId?: string;
     pendingReflection?: { reflectionEntryId?: string; dimension?: string; promptUsed?: string; activitySummary?: string };
     [key: string]: unknown;

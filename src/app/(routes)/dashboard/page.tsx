@@ -1,6 +1,7 @@
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { getZPDConcepts } from '@/lib/zpd-engine';
+import { proactiveOpportunityScout } from '@/lib/langgraph/opportunityScout';
 import { redirect } from 'next/navigation';
 import { 
   FlaskConical, 
@@ -13,6 +14,7 @@ import {
   Gamepad2
 } from 'lucide-react';
 import Link from 'next/link';
+import { MissionBriefing } from '@/components/ui/quests/MissionBriefing';
 
 async function getDashboardData(userId: string) {
   // Fetch standards progress grouped by subject
@@ -23,6 +25,9 @@ async function getDashboardData(userId: string) {
 
   // Fetch ZPD suggestions
   const zpd = await getZPDConcepts(userId, { limit: 1 });
+
+  // Proactively scout for opportunities
+  const opportunity = await proactiveOpportunityScout(userId);
 
   // Calculate stats per room
   const roomStats = {
@@ -55,7 +60,7 @@ async function getDashboardData(userId: string) {
     }
   });
 
-  return { roomStats, zpdRecommendation: zpd[0] || null };
+  return { roomStats, zpdRecommendation: zpd[0] || null, opportunity };
 }
 
 const ROOMS = [
@@ -118,7 +123,7 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const { roomStats, zpdRecommendation } = await getDashboardData(session.userId);
+  const { roomStats, zpdRecommendation, opportunity } = await getDashboardData(session.userId);
 
   return (
     <div className="space-y-10">
@@ -131,6 +136,16 @@ export default async function DashboardPage() {
           Your learning journey is unfolding beautifully. Where shall we go today?
         </p>
       </header>
+
+      {/* Proactive Opportunity Mission Briefing */}
+      {opportunity && (
+        <MissionBriefing
+          title={opportunity.opportunity.title}
+          description={opportunity.opportunity.description}
+          deadline={opportunity.opportunity.deadline}
+          briefing={opportunity.briefing}
+        />
+      )}
 
       {/* The Rooms Grid */}
       <div className="grid md:grid-cols-2 gap-6">

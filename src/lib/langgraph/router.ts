@@ -12,6 +12,7 @@ const INTENT_LABELS: AdelineIntent[] = [
   'OPPORTUNITY',
   'REFLECT',
   'ASSESS',
+  'ANALOGY',
 ];
 
 async function llmClassifyIntent(prompt: string, modelId: string): Promise<AdelineIntent | null> {
@@ -105,6 +106,13 @@ function selectModel(intent: AdelineIntent, prompt: string, config: ReturnType<t
 export async function router(state: AdelineGraphState): Promise<AdelineGraphState> {
   const config = loadConfig();
   const baseModel = config.models.default;
+
+  // If cognitive load is high or critical, prioritize analogy generation
+  if (state.cognitiveLoad?.level === 'HIGH' || state.cognitiveLoad?.level === 'CRITICAL') {
+    console.log('[Router] High cognitive load detected, overriding to ANALOGY');
+    const model = selectModel('ANALOGY', state.prompt, config);
+    return { ...state, intent: 'ANALOGY', selectedModel: model };
+  }
 
   // If audio is attached, override to AUDIO_LOG
   if (state.metadata?.audioBase64) {

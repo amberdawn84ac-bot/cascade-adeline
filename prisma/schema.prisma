@@ -55,9 +55,9 @@ enum OpportunityType {
 
 enum SourceType {
   PRIMARY
+  CURATED
   SECONDARY
   MAINSTREAM
-  CURATED
 }
 
 enum LearningGapSeverity {
@@ -148,6 +148,8 @@ model User {
   messageResetAt           DateTime?            @map("message_reset_at")
   dataDeletionRequestedAt  DateTime?            @map("data_deletion_requested_at")
   accountLockedAt          DateTime?            @map("account_locked_at")
+  investigations          Investigation[]
+  createdShareLinks       ShareLink[]          @relation("ShareLinkCreator")
   createdAt                DateTime             @default(now()) @map("created_at")
   updatedAt                DateTime             @updatedAt @map("updated_at")
 
@@ -617,4 +619,42 @@ model PlacementAssessment {
 
   @@index([userId, status])
   @@index([userId])
+}
+
+model Investigation {
+  id          String      @id @default(cuid())
+  title       String
+  summary     String
+  userId      String      @db.Uuid
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  sources     InvestigationSource[]
+  shareLinks  ShareLink[]
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("investigations")
+}
+
+model InvestigationSource {
+  id            String      @id @default(cuid())
+  title         String
+  content       String
+  sourceType    SourceType
+  investigationId String
+  createdAt     DateTime    @default(now())
+  investigation  Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  @@map("investigation_sources")
+}
+
+model ShareLink {
+  id             String       @id @default(cuid())
+  investigationId String
+  createdBy      String       @db.Uuid
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  creator        User         @relation("ShareLinkCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("share_links")
 }

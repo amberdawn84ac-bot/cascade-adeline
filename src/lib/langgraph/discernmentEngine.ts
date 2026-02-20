@@ -76,6 +76,68 @@ ${prioritized || '- none found'}
 Respond with a concise investigation summary citing the sources used.`,
   });
 
+  // Try to create investigation record (will fail until database is migrated)
+  let investigationId = null;
+  try {
+    const investigation = await prisma.investigation.create({
+      data: {
+        title: `Investigation: ${state.prompt.slice(0, 50)}...`,
+        summary: text,
+        userId: state.userId!,
+        sources: {
+          create: normalizedDocs.map((doc) => ({
+            title: doc.title,
+            content: doc.content,
+            sourceType: doc.sourceType,
+          })),
+        },
+      },
+    });
+    investigationId = investigation.id;
+  } catch (error) {
+    console.log('[DiscernmentEngine] Database not yet migrated, using text response');
+  }
+
+  // Determine if this is a complex investigation
+  const isComplex = normalizedDocs.length > 2 || normalizedDocs.some(d => d.sourceType === 'PRIMARY');
+
+  // If we successfully created an investigation and it's complex, return GenUI components
+  if (investigationId && isComplex) {
+    return {
+      ...state,
+      responseContent: null,
+      genUIPayload: [
+        {
+          component: 'InvestigationBoard',
+          props: {
+            investigation: {
+              id: investigationId,
+              title: `Investigation: ${state.prompt.slice(0, 50)}...`,
+              summary: text,
+              sources: normalizedDocs,
+            },
+          },
+        },
+        {
+          component: 'ShareWidget',
+          props: {
+            investigationId,
+            title: `Investigation: ${state.prompt.slice(0, 50)}...`,
+          },
+        },
+      ],
+      metadata: {
+        ...state.metadata,
+        discernmentEngine: {
+          model: modelId,
+          sourcesUsed: prioritized,
+          investigationId,
+        },
+      },
+    };
+  }
+
+  // Otherwise, return text response
   return {
     ...state,
     responseContent: text,
@@ -84,6 +146,7 @@ Respond with a concise investigation summary citing the sources used.`,
       discernmentEngine: {
         model: modelId,
         sourcesUsed: prioritized,
+        ...(investigationId && { investigationId }),
       },
     },
   };
