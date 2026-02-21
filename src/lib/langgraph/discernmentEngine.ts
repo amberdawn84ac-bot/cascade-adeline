@@ -105,7 +105,7 @@ Respond with a concise investigation summary citing the sources used.`,
   if (investigationId && isComplex) {
     return {
       ...state,
-      responseContent: null,
+      responseContent: undefined,
       genUIPayload: [
         {
           component: 'InvestigationBoard',

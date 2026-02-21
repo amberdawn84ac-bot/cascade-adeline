@@ -50,17 +50,21 @@ Return ONLY the analogy text, nothing else.`,
       props: {
         concept,
         analogy,
-        interests,
+        interests: interests,
       },
     };
 
     return {
       ...state,
-      responseContent: null, // The response is now handled by a GenUI component
+      responseContent: undefined, // The response is now handled by a GenUI component
       genUIPayload,
       metadata: {
         ...state.metadata,
-        generateAnalogy: { concept, analogy },
+        generateAnalogy: {
+          model: modelId,
+          interests: interests,
+          concept: concept,
+        },
       },
     };
   } catch (err) {

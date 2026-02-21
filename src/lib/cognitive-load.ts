@@ -14,16 +14,17 @@ export async function recordInteraction(data: {
   sentimentScore: number;
 }) {
   if (!data.userId) return;
-  await prisma.userInteractionStats.create({
-    data: {
-      userId: data.userId,
-      sessionId: data.sessionId,
-      messageId: data.messageId,
-      responseTimeMs: data.responseTimeMs,
-      editDistance: data.editDistance,
-      sentimentScore: data.sentimentScore,
-    },
-  });
+  // TODO: Create userInteractionStats model in Prisma schema
+  // await prisma.userInteractionStats.create({
+  //   data: {
+  //     userId: data.userId,
+  //     sessionId: data.sessionId,
+  //     messageId: data.messageId,
+  //     responseTimeMs: data.responseTimeMs,
+  //     editDistance: data.editDistance,
+  //     sentimentScore: data.sentimentScore,
+  //   },
+  // });
 }
 
 // --- Cognitive Load Calculation ---
@@ -36,6 +37,9 @@ interface Baseline {
 }
 
 async function getUserBaseline(userId: string): Promise<Baseline | null> {
+  // TODO: Create userInteractionStats model in Prisma schema
+  return null;
+  /*
   const recentInteractions = await prisma.userInteractionStats.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
@@ -46,8 +50,8 @@ async function getUserBaseline(userId: string): Promise<Baseline | null> {
     return null;
   }
 
-  const responseTimes = recentInteractions.map(i => i.responseTimeMs);
-  const editDistances = recentInteractions.map(i => i.editDistance);
+  const responseTimes = recentInteractions.map((i: any) => i.responseTimeMs);
+  const editDistances = recentInteractions.map((i: any) => i.editDistance);
 
   const calculateMean = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
   const calculateStdDev = (arr: number[], mean: number) => {
@@ -66,6 +70,7 @@ async function getUserBaseline(userId: string): Promise<Baseline | null> {
     avgEditDistance,
     stdDevEditDistance,
   };
+  */
 }
 
 function calculateZScore(value: number, mean: number, stdDev: number): number {
