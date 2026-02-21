@@ -212,7 +212,7 @@ export function ConversationalLogin() {
 
           {mode === 'login' && loginStep === 'password' && (
             <motion.div key="login-password" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-2xl font-bold text-[#2F4731] text-center mb-6" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>Your secret key?</h2>
+              <h2 className="text-2xl font-bold text-[#2F4731] text-center mb-6" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>What&apos;s your password?</h2>
               <form onSubmit={handleLogin} className="space-y-4">
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={`${inputClass} text-center`} autoFocus required />
                 {error && <p className="text-red-500 text-sm text-center font-bold bg-red-50 p-2 rounded-lg">{error}</p>}
@@ -250,7 +250,7 @@ export function ConversationalLogin() {
 
           {mode === 'signup' && signupStep === 'password' && (
             <motion.div key="signup-password" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-2xl font-bold text-[#2F4731] text-center mb-6" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>Choose a secret key</h2>
+              <h2 className="text-2xl font-bold text-[#2F4731] text-center mb-6" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>Choose a password</h2>
               <form onSubmit={handleSignup} className="space-y-4">
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" className={`${inputClass} text-center`} autoFocus required minLength={8} />
                 {error && <p className="text-red-500 text-sm text-center font-bold bg-red-50 p-2 rounded-lg">{error}</p>}
