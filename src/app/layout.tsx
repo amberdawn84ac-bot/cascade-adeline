@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Emilys_Candy } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Emilys_Candy,
+  Kalam,
+  Kranky,
+  Permanent_Marker,
+  Swanky_and_Moo_Moo,
+} from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,8 +20,37 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Adeline's brand fonts — each carries semantic meaning (see adeline.config.toml [ui])
 const emilysCandy = Emilys_Candy({
   variable: "--font-emilys-candy",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+// Handwritten body — warm, personal, like a note from a friend
+const kalam = Kalam({
+  variable: "--font-kalam",
+  weight: ["400", "700"],
+  subsets: ["latin"],
+});
+
+// Playful headers — fun facts, asides, unexpected delights
+const kranky = Kranky({
+  variable: "--font-kranky",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+// Emphasis — key terms, warnings, things that must be remembered
+const permanentMarker = Permanent_Marker({
+  variable: "--font-permanent-marker",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+// Body alt — casual, conversational tone
+const swankyAndMooMoo = Swanky_and_Moo_Moo({
+  variable: "--font-swanky",
   weight: "400",
   subsets: ["latin"],
 });
@@ -40,7 +77,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${emilysCandy.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${emilysCandy.variable} ${kalam.variable} ${kranky.variable} ${permanentMarker.variable} ${swankyAndMooMoo.variable} antialiased`}
       >
         {children}
       </body>

@@ -1,86 +1,72 @@
+import { generateText } from 'ai';
 import { AdelineStateType } from '../state';
+import { loadConfig, buildSystemPrompt } from '@/lib/config';
+import { getModel } from '@/lib/ai-models';
 
+/**
+ * ProjectBrainstormer Node — Helping students build things with PURPOSE.
+ *
+ * Adeline's brainstorm philosophy (from adeline.config.toml):
+ * - Every project must help someone, solve a problem, or add beauty to the world.
+ * - Service is an invitation, NEVER a gate.
+ * - Reject busywork: redirect it toward real purpose.
+ * - Concrete plan: what to build + 3-4 steps + mapped credits.
+ */
 export async function projectBrainstormer(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
+  const lastMessage = state.messages[state.messages.length - 1];
+  const content = lastMessage.content as string;
+
   try {
-    // In a real implementation, this would:
-    // 1. Analyze the user's project idea or interests
-    // 2. Generate creative project suggestions
-    // 3. Provide step-by-step guidance
-    // 4. Include resource recommendations
-    
-    const lastMessage = state.messages[state.messages.length - 1];
-    const content = lastMessage.content as string;
-    
-    // Simple project idea extraction
-    const projectIdeas = [
-      {
-        title: 'Interactive Story App',
-        description: 'Create a choose-your-own-adventure mobile app with multiple story paths',
-        skills: ['Mobile Development', 'Storytelling', 'UI Design'],
-        difficulty: 'Intermediate',
-        estimatedTime: '4-6 weeks',
-        resources: ['React Native', 'Figma', 'Canva'],
-      },
-      {
-        title: 'Community Garden Project',
-        description: 'Start a sustainable garden in your community and document the process',
-        skills: ['Gardening', 'Photography', 'Community Organizing'],
-        difficulty: 'Beginner',
-        estimatedTime: '2-3 months',
-        resources: ['Local Nursery', 'Camera', 'Social Media'],
-      },
-      {
-        title: 'Science YouTube Channel',
-        description: 'Create educational science videos explaining complex concepts simply',
-        skills: ['Video Production', 'Science Communication', 'Video Editing'],
-        difficulty: 'Intermediate',
-        estimatedTime: '6-8 weeks',
-        resources: ['Camera', 'Editing Software', 'Animation Tools'],
-      },
-      {
-        title: 'Personal Finance Tracker',
-        description: 'Build an app to track personal finances and learn budgeting skills',
-        skills: ['Web Development', 'Data Analysis', 'Financial Planning'],
-        difficulty: 'Advanced',
-        estimatedTime: '8-10 weeks',
-        resources: ['React', 'Charts.js', 'Plaid API'],
-      }
-    ];
+    const config = loadConfig();
+    const modelId = config.models.default;
+    const basePrompt = buildSystemPrompt(config);
 
-    const response = `Based on your interest in "${content}", here are some project ideas to explore:
+    const brainstormerContext = `\n\nCURRENT MODE: Project Brainstorming
+The student wants to build or create something. Help them develop a project with REAL PURPOSE.
 
-${projectIdeas.map((idea, index) => 
-  `${index + 1}. **${idea.title}**
-   - ${idea.description}
-   - Skills: ${idea.skills.join(', ')}
-   - Difficulty: ${idea.difficulty}
-   - Time: ${idea.estimatedTime}
-   - Resources: ${idea.resources.join(', ')}
-`).join('\n\n')}
+Your approach:
+1. First, ask or assume WHO this helps — a neighbor, the community, themselves, the environment.
+2. Give a CONCRETE plan specific to what they mentioned: what to actually build or create, 3-4 clear steps.
+3. Map the relevant academic credits (subjects and skills this covers).
+4. At the end, offer ONE optional service angle — not required, just an invitation.
 
-Which project sounds most interesting to you? I can help you break it down into manageable steps and create a timeline for completion.`;
+If the idea sounds like busywork (no real purpose), redirect warmly: "I love this. But let's make it matter — who does it help?"
+Do NOT give generic project ideas that have nothing to do with what the student mentioned.`;
+
+    const conversationMessages = state.messages.slice(0, -1).map((m) => ({
+      role: m._getType() === 'human' ? ('user' as const) : ('assistant' as const),
+      content: m.content as string,
+    }));
+
+    const { text } = await generateText({
+      model: getModel(modelId),
+      system: basePrompt + brainstormerContext,
+      messages: [
+        ...conversationMessages,
+        { role: 'user', content },
+      ],
+      maxOutputTokens: 500,
+    });
 
     return {
-      response_content: response,
+      response_content: text,
+      genUIPayload: {
+        component: 'ProjectImpactCard',
+        props: { suggestion: text, prompt: content },
+      },
       metadata: {
         ...state.metadata,
-        projectBrainstormer: {
-          ideas_generated: projectIdeas.length,
-          timestamp: new Date().toISOString(),
-        },
+        projectBrainstormer: { model: modelId, timestamp: new Date().toISOString() },
       },
     };
-    
   } catch (error) {
-    console.error('Project Brainstormer error:', error);
+    console.error('[ProjectBrainstormer] Error:', error);
     return {
-      response_content: "I'm having trouble generating project ideas right now. Let's try a different approach - what subjects are you most interested in exploring?",
+      response_content:
+        "I couldn't connect to brainstorm just now. Tell me more about what you want to build and try again.",
       metadata: {
         ...state.metadata,
-        projectBrainstormer: {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString(),
-        },
+        projectBrainstormer: { error: error instanceof Error ? error.message : String(error) },
       },
     };
   }

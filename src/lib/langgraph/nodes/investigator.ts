@@ -1,118 +1,76 @@
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
-import { AdelineStateType } from "../state";
-import prisma from "@/lib/db";
+import { generateText } from 'ai';
+import { AdelineStateType } from '../state';
+import { loadConfig, buildSystemPrompt } from '@/lib/config';
+import { getModel } from '@/lib/ai-models';
 
+/**
+ * Investigator Node — Discernment Engine
+ *
+ * Handles questions about institutions, corporations, funding, and systems.
+ * Adeline's investigation philosophy (from adeline.config.toml):
+ * - Always ask: Who profits? Follow the money.
+ * - Prioritize primary sources over mainstream summaries.
+ * - Center human suffering, not abstract talking points.
+ * - Help students form their own conclusions — never tell them what to believe.
+ */
 export async function investigator(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
   const lastMessage = state.messages[state.messages.length - 1];
   const content = lastMessage.content as string;
-  
+
   try {
-    // Search HippocampusDocument table using vector search
-    // For now, we'll do a simple text search since we don't have vector search set up yet
-    let documents: any[] = [];
-    try {
-      documents = await prisma.hippocampusDocument.findMany({
-        where: {
-          OR: [
-            { content: { contains: content, mode: 'insensitive' } },
-            { title: { contains: content, mode: 'insensitive' } },
-          ],
-        },
-        take: 10,
-      });
-    } catch (docError) {
-      console.warn('HippocampusDocument search failed:', docError);
-    }
-    
-    // Search Investigation table for related investigations
-    let investigations: any[] = [];
-    try {
-      investigations = await prisma.investigation.findMany({
-        where: {
-          OR: [
-            { title: { contains: content, mode: 'insensitive' } },
-            { summary: { contains: content, mode: 'insensitive' } },
-          ],
-        },
-        include: {
-          sources: true,
-        },
-        take: 5,
-      });
-    } catch (invError) {
-      console.warn('Investigation search failed:', invError);
-    }
-    
-    // Combine and format results
-    const sources = [
-      ...documents.map((doc: any) => ({
-        type: 'document',
-        title: doc.title,
-        content: doc.content,
-        sourceType: doc.sourceType,
-        id: doc.id,
-      })),
-      ...investigations.flatMap((inv: any) => 
-        inv.sources.map((source: any) => ({
-          type: 'investigation_source',
-          title: source.title,
-          content: source.content,
-          sourceType: source.sourceType,
-          investigationId: inv.id,
-          investigationTitle: inv.title,
-          id: source.id,
-        }))
-      ),
-    ];
-    
-    // Generate response based on findings
-    let response = "I've searched for information about your query. ";
-    
-    if (sources.length === 0) {
-      // For timeline requests, provide a helpful fallback response
-      if (content.toLowerCase().includes('timeline') || content.toLowerCase().includes('civil war')) {
-        response = `I understand you're interested in a timeline of the Civil War. While I don't have specific timeline data in our database yet, I can help you investigate this topic further. 
+    const config = loadConfig();
+    // Use the investigation model (Claude) for discernment tasks
+    const modelId = config.models.investigation || config.models.default;
+    const basePrompt = buildSystemPrompt(config);
 
-Would you like me to:
-1. Help you research key events of the Civil War
-2. Create a study plan for learning about this period
-3. Find primary sources about specific battles or events
+    const investigatorContext = `\n\nCURRENT MODE: Investigation / Discernment
+You are functioning as Adeline's Discernment Engine. The student has an investigative question.
 
-What specific aspect of the Civil War would you like to explore?`;
-      } else {
-        response += "I couldn't find any specific information about that topic in our database. Would you like me to help you investigate this further?";
-      }
-    } else {
-      response += `I found ${sources.length} relevant sources:\n\n`;
-      sources.forEach((source, index) => {
-        response += `${index + 1}. **${source.title}**\n`;
-        response += `   ${source.content.substring(0, 200)}...\n\n`;
-      });
-    }
-    
+Your approach:
+- Lead by tracing incentives: Who profits from this narrative? Who funded the research?
+- Cite types of primary sources that would answer this definitively (congressional records, SEC filings, patents, court documents, first-person testimony, corporate funding disclosures).
+- Center the human cost — focus on real people harmed, not abstract "environmental concerns."
+- Present the evidence landscape honestly, including what IS known and what remains murky.
+- Do NOT say "some people believe" or "experts say." Name the specific actors and their interests.
+- End with 1-2 questions that teach the student HOW to keep digging: "What would you search for in a FOIA request? Who filed the patent?"
+
+Source priority (tag your sources): [PRIMARY] > [CURATED] > [SECONDARY] > [MAINSTREAM]`;
+
+    const conversationMessages = state.messages.slice(0, -1).map((m) => ({
+      role: m._getType() === 'human' ? ('user' as const) : ('assistant' as const),
+      content: m.content as string,
+    }));
+
+    const { text } = await generateText({
+      model: getModel(modelId),
+      system: basePrompt + investigatorContext,
+      messages: [
+        ...conversationMessages,
+        { role: 'user', content },
+      ],
+      maxOutputTokens: 800,
+    });
+
     return {
-      investigation_sources: sources,
-      response_content: response,
+      response_content: text,
+      investigation_sources: [],
+      genUIPayload: {
+        component: 'InvestigationBoard',
+        props: { query: content, summary: text },
+      },
       metadata: {
         ...state.metadata,
-        investigator: {
-          sources_found: sources.length,
-          search_query: content,
-          timestamp: new Date().toISOString(),
-        },
+        investigator: { model: modelId, timestamp: new Date().toISOString() },
       },
     };
-    
   } catch (error) {
-    console.error('Investigator error:', error);
+    console.error('[Investigator] Error:', error);
     return {
-      response_content: "I'm having trouble accessing our investigation database right now. Let me help you with a general response instead. For Civil War timeline requests, I'd be happy to help you research key events and create a structured timeline together.",
+      response_content:
+        "I hit a snag while digging into that. Try rephrasing your question and I'll investigate again.",
       metadata: {
         ...state.metadata,
-        investigator: {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString(),
-        },
+        investigator: { error: error instanceof Error ? error.message : String(error) },
       },
     };
   }

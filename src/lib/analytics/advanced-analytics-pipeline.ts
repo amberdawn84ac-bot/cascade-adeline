@@ -1,7 +1,8 @@
-At line:1 char:128
-+ ... 4\dear-adeline\src\lib\analytics\advanced-analytics-pipeline.ts) -Raw
-+                                                                      ~~~~
-Unexpected token '-Raw' in expression or statement.
-    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
-    + FullyQualifiedErrorId : UnexpectedToken
- 
+/**
+ * Advanced Analytics Pipeline
+ *
+ * Placeholder — this file was corrupted (contained shell error output).
+ * Rebuild from scratch when analytics features are prioritized.
+ */
+
+export {};

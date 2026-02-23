@@ -169,49 +169,50 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, genUIPayload]);
 
-  // Extract genUIPayload, gapNudge, and intent from the latest assistant message metadata
+  // Extract genUIPayload, gapNudge, and intent from the latest assistant message annotations.
+  // AI SDK v6 sends writeMessageAnnotation() values as an ARRAY in message.annotations.
   useEffect(() => {
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
     if (!lastAssistant) return;
-    
-    // Try multiple sources for metadata
-    const meta = (lastAssistant as any).metadata || 
-                 (lastAssistant as any).data || 
-                 (lastAssistant as any).annotations ||
-                 {};
-    
-    // Also check for direct genUIPayload attachment
-    const directPayload = (lastAssistant as any).genUIPayload;
-    
-    console.log('[ChatPage] Extracting metadata:', { meta, directPayload });
-    
-    // Safely extract and validate genUIPayload
-    const payloadSource = directPayload || meta?.genUIPayload || meta?.genuiPayload;
+
+    // In AI SDK v6, annotations written via dataStream.writeMessageAnnotation()
+    // arrive as an array: message.annotations = [{ genUIPayload: {...} }, { intent: "INVESTIGATE" }]
+    const annotations: Array<Record<string, unknown>> = Array.isArray(
+      (lastAssistant as any).annotations,
+    )
+      ? (lastAssistant as any).annotations
+      : [];
+
+    // Find genUIPayload across all annotations
+    let payloadSource: unknown = null;
+    let intentSource: string | undefined;
+    let gapNudgeSource: string | undefined;
+
+    for (const annotation of annotations) {
+      if (annotation.genUIPayload && !payloadSource) payloadSource = annotation.genUIPayload;
+      if (annotation.intent && !intentSource) intentSource = String(annotation.intent);
+      if (annotation.gapNudge && !gapNudgeSource) gapNudgeSource = String(annotation.gapNudge);
+    }
+
+    // Parse and validate genUIPayload
     if (payloadSource) {
       try {
-        // If it's a string, parse it as JSON
-        const payload = typeof payloadSource === 'string' 
-          ? JSON.parse(payloadSource) 
-          : payloadSource;
-        
-        // Validate payload structure
-        if (payload && typeof payload === 'object' && payload.component) {
-          console.log('[ChatPage] Valid GenUI payload found:', payload.component);
+        const payload =
+          typeof payloadSource === 'string' ? JSON.parse(payloadSource) : payloadSource;
+        if (payload && typeof payload === 'object' && (payload as any).component) {
           setGenUIPayload(payload);
         } else {
-          console.warn('[ChatPage] Invalid genUIPayload structure:', payload);
           setGenUIPayload(null);
         }
-      } catch (error) {
-        console.error('[ChatPage] Failed to parse genUIPayload:', error);
+      } catch {
         setGenUIPayload(null);
       }
     } else {
       setGenUIPayload(null);
     }
-    
-    if (meta?.gapNudge) setGapNudge(String(meta.gapNudge));
-    if (meta?.intent) setDetectedIntent(meta.intent);
+
+    if (intentSource) setDetectedIntent(intentSource);
+    if (gapNudgeSource) setGapNudge(gapNudgeSource);
   }, [messages]);
 
   // Show tips after 5 seconds of loading
@@ -244,13 +245,24 @@ export default function ChatPage() {
               {isUser ? (
                 <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Kalam, "Comic Sans MS", system-ui' }}>{getMessageText(m)}</div>
               ) : (
-                <SketchnoteRenderer content={getMessageText(m)} mode={gapNudge ? 'SKETCHNOTE' : 'CHAT'} genUIPayload={genUIPayload || undefined} />
+                <SketchnoteRenderer
+                  content={getMessageText(m)}
+                  // Use SKETCHNOTE mode for educational intents; CHAT mode for casual replies
+                  mode={
+                    ['INVESTIGATE', 'LIFE_LOG', 'BRAINSTORM', 'REFLECT', 'ASSESS', 'ANALOGY'].includes(
+                      detectedIntent || '',
+                    )
+                      ? 'SKETCHNOTE'
+                      : 'CHAT'
+                  }
+                  genUIPayload={genUIPayload || undefined}
+                />
               )}
             </div>
           </div>
         );
       }),
-    [messages, genUIPayload, gapNudge],
+    [messages, genUIPayload, gapNudge, detectedIntent],
   );
 
   return (

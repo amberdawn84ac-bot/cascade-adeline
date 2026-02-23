@@ -233,7 +233,7 @@ async function calculateServiceLearning(
       const metadata = entry.metadata as any;
       return metadata?.skills || [];
     })
-  );
+  ));
 
   const leadershipDemonstrated = Math.min(1, serviceActivities.filter(entry =>
     entry.activityName.toLowerCase().includes('lead') ||
