@@ -21,7 +21,8 @@ import {
   ChevronRight,
   Users,
   DollarSign,
-  Book
+  Book,
+  ChefHat
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -36,10 +37,12 @@ const NAV_ITEMS = [
     icon: Home,
     children: [
       { label: 'Science Lab', href: '/dashboard/science', icon: FlaskConical },
-      { label: 'Math Hub', href: '/dashboard/math', icon: Calculator },
-      { label: 'Deep Dives', href: '/dashboard/ela', icon: Feather },
-      { label: 'History Zone', href: '/dashboard/history', icon: ScrollText },
+      { label: 'Math', href: '/dashboard/math', icon: Calculator },
+      { label: 'Reading Nook', href: '/dashboard/ela', icon: Feather },
+      { label: 'Deep Dives', href: '/dashboard/history', icon: ScrollText },
       { label: 'Game Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
+      { label: 'College Prep', href: '/dashboard/college-prep', icon: GraduationCap },
+      { label: 'Domestic Arts', href: '/dashboard/domestic-arts', icon: ChefHat },
     ]
   },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
