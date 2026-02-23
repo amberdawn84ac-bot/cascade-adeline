@@ -16,19 +16,24 @@ ${JSON.stringify(rules, null, 2)}
 
 Student description: """${prompt}"""
 
-CREDIT SCALE: 1 credit = 1 full year of study (~180 hours). Use this scale:
-- Quick activity (under 1 hour): 0.005 credits
-- Short project (1-3 hours): 0.01-0.02 credits  
+CRITICAL GRADING MATH: 1.0 full high school credit equals approximately 120 hours of dedicated coursework. Therefore, a single 1-hour to 2-hour activity (like baking bread, a museum visit, or a coding session) should only be awarded between 0.01 and 0.02 credits. NEVER award large amounts like 0.25 or 0.5 credits for a single daily task. Estimate the realistic time the activity took in hours, and multiply by 0.008 to get the correct fractional credit.
+
+CREDIT SCALE GUIDE (based on 120 hours = 1.0 credit):
+- Quick activity (under 1 hour): 0.005-0.008 credits
+- Short activity (1-2 hours): 0.01-0.02 credits  
+- Medium project (3-4 hours): 0.02-0.03 credits
 - Half-day project (4-6 hours): 0.03-0.05 credits
-- Full day project: 0.05-0.08 credits
-- Multi-day project: 0.1+ credits
+- Full day project (7-8 hours): 0.05-0.07 credits
+- Multi-day project: 0.1+ credits (only for significant multi-day efforts)
+
+CALCULATION EXAMPLE: 2-hour baking session = 2 hours × 0.008 = 0.016 credits
 
 Return ONLY strict JSON with this shape (no prose):
 {
   "matchedRuleKey": "baking",
   "activityDescription": "Baked bread for elderly neighbor",
   "mappedSubjects": ["Chemistry: Fermentation", "Math: Ratios"],
-  "suggestedCredits": 0.01,
+  "suggestedCredits": 0.016,
   "extensionSuggestion": "Test a variable next time — try different flour types and compare results"
 }
 If you cannot confidently map, return {"matchedRuleKey": null}.
@@ -79,7 +84,7 @@ export async function lifeCreditLogger(state: AdelineGraphState): Promise<Adelin
   const transcriptDraft: TranscriptDraft = {
     activityName: llmResult.activityDescription || state.prompt,
     mappedSubject: mapping.mappedSubjects,
-    creditsEarned: Number(llmResult.suggestedCredits ?? 0.5) || 0.5,
+    creditsEarned: Number(llmResult.suggestedCredits ?? 0.01) || 0.01,
     notes: llmResult.extensionSuggestion || `Auto-mapped from life activity: ${state.prompt}`,
   };
 
