@@ -22,7 +22,8 @@ import {
   Users,
   DollarSign,
   Book,
-  ChefHat
+  ChefHat,
+  MapPin
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
       { label: 'Game Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
       { label: 'College Prep', href: '/dashboard/college-prep', icon: GraduationCap },
       { label: 'Domestic Arts', href: '/dashboard/domestic-arts', icon: ChefHat },
+      { label: 'Expeditions', href: '/dashboard/expeditions', icon: MapPin },
     ]
   },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
