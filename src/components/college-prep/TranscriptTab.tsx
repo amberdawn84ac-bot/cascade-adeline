@@ -62,7 +62,7 @@ export default function TranscriptTab() {
           id: entry.id,
           activityName: entry.activityName,
           mappedSubject: entry.mappedSubject,
-          creditsEarned: entry.creditsEarned,
+          creditsEarned: Number(entry.creditsEarned),
           dateCompleted: new Date(entry.dateCompleted),
           notes: entry.notes,
         });
@@ -102,7 +102,10 @@ export default function TranscriptTab() {
     );
   }
 
-  const totalCredits = Object.values(groupedTranscript).flat().reduce((sum, entry) => sum + entry.creditsEarned, 0);
+  const totalCredits = Object.values(groupedTranscript).flat().reduce((sum, entry) => {
+    const credits = typeof entry.creditsEarned === 'number' ? entry.creditsEarned : Number(entry.creditsEarned) || 0;
+    return sum + credits;
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -129,7 +132,10 @@ export default function TranscriptTab() {
             <CardTitle className="flex items-center justify-between">
               {subject}
               <Badge variant="outline">
-                {entries.reduce((sum, entry) => sum + entry.creditsEarned, 0).toFixed(2)} credits
+                {entries.reduce((sum, entry) => {
+                  const credits = typeof entry.creditsEarned === 'number' ? entry.creditsEarned : Number(entry.creditsEarned) || 0;
+                  return sum + credits;
+                }, 0).toFixed(2)} credits
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -148,7 +154,7 @@ export default function TranscriptTab() {
                   <TableRow key={entry.id}>
                     <TableCell className="font-medium">{entry.activityName}</TableCell>
                     <TableCell>{new Date(entry.dateCompleted).toLocaleDateString()}</TableCell>
-                    <TableCell>{entry.creditsEarned.toFixed(2)}</TableCell>
+                    <TableCell>{(typeof entry.creditsEarned === 'number' ? entry.creditsEarned : Number(entry.creditsEarned) || 0).toFixed(2)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {entry.notes || '-'}
                     </TableCell>
