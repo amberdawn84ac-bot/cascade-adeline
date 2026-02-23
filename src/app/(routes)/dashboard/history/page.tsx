@@ -1,6 +1,6 @@
 import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { Clock, Users, BookOpen, Search } from 'lucide-react';
+import { Clock, Users, BookOpen, Search, ScrollText, Eye, AlertTriangle } from 'lucide-react';
 import { Timeline } from '@/components/gen-ui/Timeline';
 import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
 import prisma from '@/lib/db';
