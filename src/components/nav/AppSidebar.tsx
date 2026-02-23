@@ -39,8 +39,8 @@ const NAV_ITEMS = [
     children: [
       { label: 'Science Lab', href: '/dashboard/science', icon: FlaskConical },
       { label: 'Math', href: '/dashboard/math', icon: Calculator },
-      { label: 'Reading Nook', href: '/dashboard/ela', icon: Feather },
-      { label: 'Deep Dives', href: '/dashboard/history', icon: ScrollText },
+      { label: 'Reading Nook', href: '/dashboard/reading-nook', icon: Feather },
+      { label: 'Deep Dives', href: '/dashboard/ela', icon: ScrollText },
       { label: 'Game Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
       { label: 'College Prep', href: '/dashboard/college-prep', icon: GraduationCap },
       { label: 'Domestic Arts', href: '/dashboard/domestic-arts', icon: ChefHat },
