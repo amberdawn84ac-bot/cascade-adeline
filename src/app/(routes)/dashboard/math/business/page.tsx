@@ -1,0 +1,141 @@
+import { getSessionUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { TrendingUp, DollarSign, Calculator, BarChart3 } from 'lucide-react';
+import Link from 'next/link';
+
+export default async function BusinessMathPage() {
+  const session = await getSessionUser();
+  
+  if (!session) {
+    redirect('/login');
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="bg-amber-50 rounded-[2rem] p-8 border border-amber-100">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="p-3 bg-amber-100 rounded-xl text-amber-700">
+            <TrendingUp size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-amber-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+              Business Math
+            </h1>
+            <p className="text-amber-800/70 text-lg">
+              Run a virtual business and learn real-world math skills
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Business Simulation */}
+      <div className="bg-white rounded-[2rem] p-8 border-2 border-amber-100">
+        <h2 className="text-2xl font-bold text-amber-900 mb-6">Your Virtual Lemonade Stand</h2>
+        
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Business Stats */}
+          <div className="space-y-4">
+            <h3 className="font-bold text-amber-800 mb-4">Business Metrics</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                <span className="flex items-center gap-2">
+                  <DollarSign size={16} className="text-green-600" />
+                  Daily Revenue
+                </span>
+                <span className="font-bold text-green-600">$45.00</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                <span className="flex items-center gap-2">
+                  <Calculator size={16} className="text-blue-600" />
+                  Daily Costs
+                </span>
+                <span className="font-bold text-blue-600">$12.50</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                <span className="flex items-center gap-2">
+                  <BarChart3 size={16} className="text-purple-600" />
+                  Daily Profit
+                </span>
+                <span className="font-bold text-purple-600">$32.50</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Controls */}
+          <div className="space-y-4">
+            <h3 className="font-bold text-amber-800 mb-4">Business Decisions</h3>
+            <div className="space-y-3">
+              <div className="p-4 bg-amber-50 rounded-lg">
+                <label className="block text-sm font-medium text-amber-800 mb-2">
+                  Price per Cup ($)
+                </label>
+                <input 
+                  type="range" 
+                  min="0.50" 
+                  max="3.00" 
+                  step="0.25" 
+ defaultValue="1.50"
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-amber-600 mt-1">
+                  <span>$0.50</span>
+                  <span>$1.50</span>
+                  <span>$3.00</span>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-amber-50 rounded-lg">
+                <label className="block text-sm font-medium text-amber-800 mb-2">
+                  Cups to Make
+                </label>
+                <input 
+                  type="number" 
+                  min="10" 
+                  max="100" 
+                  defaultValue="50"
+                  className="w-full px-3 py-2 border border-amber-200 rounded-lg"
+                />
+              </div>
+              
+              <button className="w-full bg-amber-600 text-white py-3 rounded-lg font-bold hover:bg-amber-700 transition-colors">
+                Calculate Daily Profit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Learning Objectives */}
+      <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-[2rem] p-8 border border-amber-100">
+        <h2 className="text-2xl font-bold text-amber-900 mb-6">Math Skills You'll Learn</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { skill: "Profit Calculation", desc: "Revenue - Costs = Profit" },
+            { skill: "Percentages", desc: "Markup, discounts, profit margins" },
+            { skill: "Budgeting", desc: "Planning expenses and revenue" },
+            { skill: "Scaling", desc: "Growing your business mathematically" }
+          ].map((item, index) => (
+            <div key={index} className="text-center p-4 bg-white rounded-xl">
+              <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center text-amber-700 font-bold mx-auto mb-3">
+                {index + 1}
+              </div>
+              <h3 className="font-bold text-slate-800 mb-2">{item.skill}</h3>
+              <p className="text-sm text-slate-600">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Back Navigation */}
+      <div className="text-center">
+        <Link 
+          href="/dashboard/math"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors"
+        >
+          ← Back to Math Hub
+        </Link>
+      </div>
+    </div>
+  );
+}

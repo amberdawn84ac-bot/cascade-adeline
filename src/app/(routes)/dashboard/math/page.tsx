@@ -2,6 +2,7 @@ import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Calculator, TrendingUp, PieChart, Ruler } from 'lucide-react';
 import { DottedArrow } from '@/components/illustrations';
+import Link from 'next/link';
 
 export default async function MathPage() {
   const session = await getSessionUser();
@@ -31,46 +32,52 @@ export default async function MathPage() {
       {/* Activities Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Business Math */}
-        <div className="group bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
-          <div className="mb-4 p-3 bg-green-100 rounded-xl w-fit text-green-700 group-hover:bg-green-600 group-hover:text-white transition-colors">
-            <TrendingUp size={24} />
+        <Link href="/dashboard/math/business" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
+            <div className="mb-4 p-3 bg-green-100 rounded-xl w-fit text-green-700 group-hover:bg-green-600 group-hover:text-white transition-colors">
+              <TrendingUp size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Business Math</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Run a virtual business! Learn profit calculation, budgeting, and financial planning.
+            </p>
+            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
+              Start Business <DottedArrow size={24} className="ml-2 rotate-180" />
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Business Math</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Run a virtual business! Learn profit calculation, budgeting, and financial planning.
-          </p>
-          <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
-            Start Business <DottedArrow size={24} className="ml-2 rotate-180" />
-          </div>
-        </div>
+        </Link>
 
         {/* Geometry */}
-        <div className="group bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
-          <div className="mb-4 p-3 bg-blue-100 rounded-xl w-fit text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-            <Ruler size={24} />
+        <Link href="/dashboard/math/geometry" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
+            <div className="mb-4 p-3 bg-blue-100 rounded-xl w-fit text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <Ruler size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Geometry Workshop</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Build and measure! Explore shapes, areas, volumes through hands-on projects.
+            </p>
+            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
+              Build & Measure <DottedArrow size={24} className="ml-2 rotate-180" />
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Geometry Workshop</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Build and measure! Explore shapes, areas, volumes through hands-on projects.
-          </p>
-          <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
-            Build & Measure <DottedArrow size={24} className="ml-2 rotate-180" />
-          </div>
-        </div>
+        </Link>
 
         {/* Data Analysis */}
-        <div className="group bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
-          <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-            <PieChart size={24} />
+        <Link href="/dashboard/math/data" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
+            <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <PieChart size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Data Detective</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Analyze real data, create charts, and discover patterns in numbers.
+            </p>
+            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
+              Analyze Data <DottedArrow size={24} className="ml-2 rotate-180" />
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Data Detective</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Analyze real data, create charts, and discover patterns in numbers.
-          </p>
-          <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
-            Analyze Data <DottedArrow size={24} className="ml-2 rotate-180" />
-          </div>
-        </div>
+        </Link>
       </div>
 
       {/* Math Concepts Section */}

@@ -2,6 +2,7 @@ import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { FlaskConical, Microscope, Dna, Beaker } from 'lucide-react';
 import { DottedArrow } from '@/components/illustrations';
+import Link from 'next/link';
 
 export default async function SciencePage() {
   const session = await getSessionUser();
@@ -31,46 +32,52 @@ export default async function SciencePage() {
       {/* Activities Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Nature Journal */}
-        <div className="group bg-white p-6 rounded-[2rem] border-2 border-emerald-100 hover:border-emerald-300 transition-all hover:shadow-lg cursor-pointer">
-          <div className="mb-4 p-3 bg-green-100 rounded-xl w-fit text-green-700 group-hover:bg-green-600 group-hover:text-white transition-colors">
-            <Microscope size={24} />
+        <Link href="/dashboard/science/nature" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-emerald-100 hover:border-emerald-300 transition-all hover:shadow-lg cursor-pointer">
+            <div className="mb-4 p-3 bg-green-100 rounded-xl w-fit text-green-700 group-hover:bg-green-600 group-hover:text-white transition-colors">
+              <Microscope size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Nature Journal</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Document your observations of plants, animals, and weather patterns in your backyard.
+            </p>
+            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-emerald-600">
+              Start Journaling <DottedArrow size={24} className="ml-2 rotate-180" />
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Nature Journal</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Document your observations of plants, animals, and weather patterns in your backyard.
-          </p>
-          <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-emerald-600">
-            Start Journaling <DottedArrow size={24} className="ml-2 rotate-180" />
-          </div>
-        </div>
+        </Link>
 
         {/* Chemistry Experiments */}
-        <div className="group bg-white p-6 rounded-[2rem] border-2 border-emerald-100 hover:border-emerald-300 transition-all hover:shadow-lg cursor-pointer">
-          <div className="mb-4 p-3 bg-blue-100 rounded-xl w-fit text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-            <Beaker size={24} />
+        <Link href="/dashboard/science/chemistry" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-emerald-100 hover:border-emerald-300 transition-all hover:shadow-lg cursor-pointer">
+            <div className="mb-4 p-3 bg-blue-100 rounded-xl w-fit text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <Beaker size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Kitchen Chemistry</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Safe experiments using household items. Learn about reactions, solutions, and mixtures.
+            </p>
+            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-emerald-600">
+              Mix & Learn <DottedArrow size={24} className="ml-2 rotate-180" />
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Kitchen Chemistry</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Safe experiments using household items. Learn about reactions, solutions, and mixtures.
-          </p>
-          <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-emerald-600">
-            Mix & Learn <DottedArrow size={24} className="ml-2 rotate-180" />
-          </div>
-        </div>
+        </Link>
 
         {/* Biology Studies */}
-        <div className="group bg-white p-6 rounded-[2rem] border-2 border-emerald-100 hover:border-emerald-300 transition-all hover:shadow-lg cursor-pointer">
-          <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-            <Dna size={24} />
+        <Link href="/dashboard/science/biology" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-emerald-100 hover:border-emerald-300 transition-all hover:shadow-lg cursor-pointer">
+            <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <Dna size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Life Science</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Explore living organisms, ecosystems, and the building blocks of life.
+            </p>
+            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-emerald-600">
+              Explore Life <DottedArrow size={24} className="ml-2 rotate-180" />
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Life Science</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Explore living organisms, ecosystems, and the building blocks of life.
-          </p>
-          <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-emerald-600">
-            Explore Life <DottedArrow size={24} className="ml-2 rotate-180" />
-          </div>
-        </div>
+        </Link>
       </div>
 
       {/* Scientific Method Section */}
