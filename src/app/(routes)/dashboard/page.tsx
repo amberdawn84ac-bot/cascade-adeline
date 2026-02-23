@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { MissionBriefing } from '@/components/ui/quests/MissionBriefing';
+import KnowledgeHerbarium from '@/components/dashboard/KnowledgeHerbarium';
 
 async function getDashboardData(userId: string) {
   // Fetch standards progress grouped by subject
@@ -186,6 +187,9 @@ export default async function DashboardPage() {
           );
         })}
       </div>
+
+      {/* Knowledge Herbarium */}
+      <KnowledgeHerbarium userId={session.userId} />
 
       {/* Recent Activity & Quick Actions */}
       <div className="grid md:grid-cols-3 gap-8">
