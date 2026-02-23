@@ -48,27 +48,21 @@ export default function ChatPage() {
     api: '/api/chat',
     body: {},
     // Custom handling for the response to extract GenUI metadata
-    onResponse: async (response) => {
+    onFinish: async (message) => {
       try {
-        const data = await response.json();
-        
-        // Check if response contains GenUI payload
-        if (data.genUIPayload || data.metadata?.genUIPayload) {
-          // Store the GenUI payload in a way that can be accessed by the message
-          const genUIPayload = data.genUIPayload || data.metadata?.genUIPayload;
+        // The message.content contains the response text
+        // Check if there's GenUI payload in the message metadata
+        if (message && typeof message === 'object') {
+          const genUIPayload = (message as any).genUIPayload;
+          const metadata = (message as any).metadata;
           
-          // Add the payload to the last message's metadata
-          if (messages.length > 0) {
-            const lastMessage = messages[messages.length - 1];
-            if (lastMessage.role === 'assistant') {
-              // Attach the GenUI payload to the message
-              (lastMessage as any).genUIPayload = genUIPayload;
-              (lastMessage as any).metadata = {
-                ...data.metadata,
-                genUIPayload
-              };
-            }
+          if (genUIPayload) {
+            console.log('[ChatPage] GenUI payload found:', genUIPayload);
+            setGenUIPayload(genUIPayload);
           }
+          
+          if (metadata?.gapNudge) setGapNudge(String(metadata.gapNudge));
+          if (metadata?.intent) setDetectedIntent(metadata.intent);
         }
       } catch (error) {
         console.error('Failed to parse chat response:', error);

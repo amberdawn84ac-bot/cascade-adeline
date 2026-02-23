@@ -34,29 +34,15 @@ export async function POST(req: NextRequest) {
     const result = await adelineBrainRunnable.invoke(initialState);
     const responseContent = result.response_content || "I am processing that request. Give me just a moment.";
     
-    // Create a proper streaming response with GenUI payload
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        // Send GenUI payload first if it exists
-        if (result.genUIPayload) {
-          const data = `0:${JSON.stringify(result.genUIPayload)}\n`;
-          controller.enqueue(encoder.encode(data));
-        }
-        
-        // Send the text response
-        const text = `0:${JSON.stringify(responseContent)}\n`;
-        controller.enqueue(encoder.encode(text));
-        
-        controller.close();
-      },
-    });
-
-    return new Response(stream, {
+    // Create a simple JSON response with both text and GenUI payload
+    return new Response(JSON.stringify({
+      text: responseContent,
+      genUIPayload: result.genUIPayload,
+      metadata: result.metadata
+    }), {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
       },
     });
     
