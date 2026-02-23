@@ -14,42 +14,22 @@ function textAsUIStream(text: string, meta?: Record<string, unknown>): Response 
       writer.write({ type: 'text-delta', id: 'msg', delta: text });
       writer.write({ type: 'text-end', id: 'msg' });
       writer.write({ type: 'finish', finishReason: 'stop', ...(meta ? { messageMetadata: meta } : {}) });
-    }
+    },
   });
-  
   return createUIMessageStreamResponse({ stream });
 }
 
 export async function POST(req: NextRequest) {
   try {
-    // Get user session
     const user = await getSessionUser();
-    if (!user) {
-      return new Response('Unauthorized', { status: 401 });
-    }
+    if (!user) return new Response('Unauthorized', { status: 401 });
 
-    // Parse request body
     const body = await req.json();
     const { messages } = body;
-
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return new Response('Invalid messages format', { status: 400 });
-    }
-
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role !== 'user') {
-      return new Response('Last message must be from user', { status: 400 });
-    }
-
-    // Safety checks
     const maskedContent = maskPII(lastMessage.content);
-    const moderationResult = await moderateContent(maskedContent.masked);
     
-    if (moderationResult.severity === 'blocked') {
-      return new Response('Content violates safety guidelines', { status: 400 });
-    }
-
-    // Create initial state for LangGraph
+    // Setup initial LangGraph state
     const initialState = {
       messages: [new HumanMessage(maskedContent.masked)],
       userId: user.userId,
@@ -60,26 +40,20 @@ export async function POST(req: NextRequest) {
       learning_gaps: [],
       response_content: '',
       genUIPayload: null,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        user_role: user.role,
-      },
+      metadata: { timestamp: new Date().toISOString(), user_role: user.role },
     };
 
-    // Run the LangGraph
+    // Run the LangGraph Brain
     const result = await adelineBrainRunnable.invoke(initialState);
-
-    // Extract response content and GenUI payload
-    const responseContent = result.response_content || "I'm here to help! Could you tell me more about what you'd like to learn or explore?";
-    const genUIPayload = result.genUIPayload;
-
-    // Return the stream with GenUI metadata if present
-    return textAsUIStream(responseContent, {
-      intent: result.intent,
-      metadata: result.metadata,
-      genUIPayload: genUIPayload,
-    });
-
+    const responseContent = result.response_content || "I am processing that request. Give me just a moment.";
+    
+    // Merge GenUI payload into metadata if it exists
+    const finalMetadata = {
+      ...result.metadata,
+      ...(result.genUIPayload ? { genUIPayload: result.genUIPayload } : {})
+    };
+    
+    return textAsUIStream(responseContent, finalMetadata);
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response('Internal server error', { status: 500 });
