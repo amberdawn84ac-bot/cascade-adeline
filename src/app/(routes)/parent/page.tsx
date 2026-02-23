@@ -1,113 +1,63 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/db';
-import { TranscriptCard } from '@/components/gen-ui/TranscriptCard';
-import { WheatDivider, VineDivider, DottedArrow } from '@/components/illustrations';
 import { getSessionUser } from '@/lib/auth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
+import { User, Calendar, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
 
-function SectionHeader({ title, accent }: { title: string; accent?: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 24 }}>
-      <DottedArrow size={140} color={accent || '#BD6809'} />
-      <h2
-        style={{
-          fontFamily: 'Kalam, "Comic Sans MS", system-ui',
-          color: accent || '#BD6809',
-          fontSize: '1.2rem',
-          margin: 0,
-        }}
-      >
-        {title}
-      </h2>
-    </div>
-  );
+// Server Actions for credit approval/rejection
+async function approveCredit(formData: FormData) {
+  'use server';
+  
+  try {
+    const creditId = formData.get('creditId') as string;
+    const user = await getSessionUser();
+    if (!user || user.role !== 'PARENT') {
+      throw new Error('Unauthorized');
+    }
+
+    // Update the transcript entry to mark it as approved by this parent
+    await prisma.transcriptEntry.update({
+      where: { id: creditId },
+      data: {
+        approvedById: user.userId,
+      },
+    });
+
+    // Revalidate the page to show updated data
+    redirect('/parent');
+  } catch (error) {
+    console.error('Error approving credit:', error);
+    throw error;
+  }
 }
 
-function GapBadge({ text, addressed }: { text: string; addressed: boolean }) {
-  return (
-    <span
-      style={{
-        background: addressed ? '#D4EDDA' : '#FFE4EC',
-        color: addressed ? '#2F4731' : '#9A3F4A',
-        padding: '4px 8px',
-        borderRadius: 999,
-        fontFamily: 'Kalam, "Comic Sans MS", system-ui',
-        fontSize: '0.85rem',
-        fontWeight: 700,
-      }}
-    >
-      {text} {addressed ? '✓' : '•'}
-    </span>
-  );
-}
+async function rejectCredit(formData: FormData) {
+  'use server';
+  
+  try {
+    const creditId = formData.get('creditId') as string;
+    const user = await getSessionUser();
+    if (!user || user.role !== 'PARENT') {
+      throw new Error('Unauthorized');
+    }
 
-function ProjectBadge({ title, status }: { title: string; status: string }) {
-  const statusColor: Record<string, string> = {
-    BRAINSTORM: '#BD6809',
-    ACTIVE: '#2F4731',
-    COMPLETED: '#3D1419',
-    SHOWCASED: '#6F42C1',
-  };
-  return (
-    <div
-      style={{
-        border: `1px solid ${(statusColor[status] || '#2F4731')}33`,
-        borderRadius: 12,
-        padding: '8px 10px',
-        background: '#FFFFFF',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontFamily: 'Kalam, "Comic Sans MS", system-ui', color: '#121B13', fontWeight: 700 }}>{title}</span>
-        <span
-          style={{
-            background: `${statusColor[status] || '#2F4731'}12`,
-            color: statusColor[status] || '#2F4731',
-            padding: '3px 8px',
-            borderRadius: 999,
-            fontSize: '0.8rem',
-            fontWeight: 700,
-          }}
-        >
-          {status}
-        </span>
-      </div>
-    </div>
-  );
-}
+    // Delete the transcript entry (rejecting the credit)
+    await prisma.transcriptEntry.delete({
+      where: { id: creditId },
+    });
 
-function StandardsProgress({ standards }: { standards: any[] }) {
-  const stats = {
-    math: { total: 0, mastered: 0 },
-    ela: { total: 0, mastered: 0 },
-    science: { total: 0, mastered: 0 },
-    social: { total: 0, mastered: 0 },
-  };
-
-  standards.forEach((s) => {
-    const subj = s.standard.subject.toLowerCase();
-    const isMastered = s.mastery === 'MASTERED' || s.mastery === 'PROFICIENT';
-    
-    if (subj.includes('math')) { stats.math.total++; if (isMastered) stats.math.mastered++; }
-    else if (subj.includes('english') || subj.includes('ela')) { stats.ela.total++; if (isMastered) stats.ela.mastered++; }
-    else if (subj.includes('science')) { stats.science.total++; if (isMastered) stats.science.mastered++; }
-    else { stats.social.total++; if (isMastered) stats.social.mastered++; }
-  });
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-      {Object.entries(stats).map(([key, stat]) => (
-        <div key={key} className="bg-white border border-[#E7DAC3] rounded-xl p-3 text-center">
-          <div className="text-xs uppercase font-bold text-[#BD6809] mb-1">{key === 'social' ? 'History' : key}</div>
-          <div className="text-2xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy)' }}>
-            {stat.mastered} <span className="text-sm text-[#2F4731]/40">/ {stat.total || '-'}</span>
-          </div>
-          <div className="text-[10px] text-[#2F4731]/60 font-bold mt-1">OK Standards</div>
-        </div>
-      ))}
-    </div>
-  );
+    // Revalidate the page to show updated data
+    redirect('/parent');
+  } catch (error) {
+    console.error('Error rejecting credit:', error);
+    throw error;
+  }
 }
 
 export default async function ParentDashboard() {
@@ -116,9 +66,10 @@ export default async function ParentDashboard() {
     redirect('/login');
   }
   if (sessionUser.role !== 'PARENT') {
-    return <div style={{ padding: 24 }}>Unauthorized.</div>;
+    return <div className="p-6">Unauthorized access.</div>;
   }
 
+  // Fetch parent data with pending credits
   const parent = await prisma.user.findUnique({
     where: { id: sessionUser.userId },
     select: {
@@ -128,21 +79,19 @@ export default async function ParentDashboard() {
           id: true,
           name: true,
           gradeLevel: true,
-          projects: true,
-          standardsProgress: {
-            include: { standard: true }
-          },
           transcriptEntries: {
+            where: {
+              approvedById: null, // Only fetch pending entries
+            },
             orderBy: { dateCompleted: 'desc' },
-            take: 5,
-            select: { id: true, activityName: true, mappedSubject: true, creditsEarned: true, notes: true, createdAt: true },
-          },
-          learningGaps: {
             select: {
               id: true,
-              addressed: true,
-              severity: true,
-              concept: { select: { name: true } },
+              activityName: true,
+              mappedSubject: true,
+              creditsEarned: true,
+              notes: true,
+              dateCompleted: true,
+              createdAt: true,
             },
           },
         },
@@ -151,92 +100,198 @@ export default async function ParentDashboard() {
   });
 
   if (!parent) {
-    return <div style={{ padding: 24 }}>Parent not found.</div>;
+    return <div className="p-6">Parent not found.</div>;
   }
 
+  // Calculate pending credits summary
+  const totalPendingCredits = parent.children.reduce(
+    (total, child) => total + child.transcriptEntries.reduce((sum, entry) => sum + Number(entry.creditsEarned), 0),
+    0
+  );
+
+  const totalPendingEntries = parent.children.reduce(
+    (total, child) => total + child.transcriptEntries.length,
+    0
+  );
+
   return (
-    <div
-      style={{
-        background: '#FFFEF7',
-        minHeight: '100vh',
-        padding: '24px 28px',
-        fontFamily: 'Kalam, "Comic Sans MS", system-ui',
-        color: '#121B13',
-      }}
-    >
-      <h1 style={{ fontFamily: '"Emilys Candy", cursive', color: '#BD6809', fontSize: '2rem', marginBottom: 12 }}>
-        Parent Dashboard — {parent.name}
-      </h1>
-      <WheatDivider size={200} color="#BD6809" />
-
-      <div style={{ display: 'grid', gap: 24, marginTop: 24 }}>
-        {parent.children.map((child: any) => (
-          <div
-            key={child.id}
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid #E7DAC3',
-              borderRadius: 24,
-              padding: '24px',
-              boxShadow: '0 6px 18px rgba(0,0,0,0.06)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'var(--font-emilys-candy)' }}>{child.name}</div>
-                <div style={{ color: '#4B3424' }}>Grade: {child.gradeLevel || '—'}</div>
-              </div>
-              <VineDivider size={120} color="#2F4731" />
-            </div>
-
-            <SectionHeader title="Oklahoma Standards Compliance" accent="#2F4731" />
-            <StandardsProgress standards={child.standardsProgress} />
-
-            <SectionHeader title="Recent Transcript Entries" accent="#BD6809" />
-            <div style={{ display: 'grid', gap: 10 }}>
-              {child.transcriptEntries.length === 0 ? (
-                <div style={{ color: '#4B3424' }}>No entries yet.</div>
-              ) : (
-                child.transcriptEntries.map((entry: any) => (
-                  <div key={entry.id} style={{ position: 'relative' }}>
-                    <TranscriptCard
-                      activityName={entry.activityName}
-                      mappedSubjects={[entry.mappedSubject]}
-                      creditsEarned={entry.creditsEarned.toString()}
-                      extensionSuggestion={entry.notes || undefined}
-                    />
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <SectionHeader title="Active Projects" accent="#2F4731" />
-                <div style={{ display: 'grid', gap: 8 }}>
-                  {child.projects.length === 0 ? (
-                    <div style={{ color: '#4B3424' }}>No projects yet.</div>
-                  ) : (
-                    child.projects.map((p: any) => <ProjectBadge key={p.id} title={p.title} status={p.status} />)
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <SectionHeader title="Learning Gaps" accent="#9A3F4A" />
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {child.learningGaps.length === 0 ? (
-                    <div style={{ color: '#4B3424' }}>No gaps detected.</div>
-                  ) : (
-                    child.learningGaps.map((gap: any) => (
-                      <GapBadge key={gap.id} text={gap.concept.name} addressed={gap.addressed} />
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Parent Approval Portal</h1>
+            <p className="text-gray-600 mt-1">Review and approve pending credits for {parent.name}</p>
           </div>
-        ))}
+          <div className="flex items-center gap-2">
+            <User className="h-5 w-5 text-gray-400" />
+            <span className="text-sm text-gray-600">{parent.name}</span>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Credits</CardTitle>
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalPendingEntries}</div>
+              <p className="text-xs text-muted-foreground">
+                {totalPendingCredits.toFixed(2)} total credits awaiting approval
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Children</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{parent.children.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Active students in your account
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Status</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">Review Needed</div>
+              <p className="text-xs text-muted-foreground">
+                Credits pending your approval
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Pending Credits by Child */}
+        <div className="space-y-6">
+          {parent.children.map((child) => (
+            <Card key={child.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{child.name}</CardTitle>
+                    <CardDescription>
+                      Grade {child.gradeLevel || 'Not specified'} • {child.transcriptEntries.length} pending credits
+                    </CardDescription>
+                  </div>
+                  <Badge variant={child.transcriptEntries.length > 0 ? "destructive" : "secondary"}>
+                    {child.transcriptEntries.length > 0 ? 'Action Required' : 'All Caught Up'}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {child.transcriptEntries.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                    <p>No pending credits for {child.name}</p>
+                    <p className="text-sm">All credits have been reviewed.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Activity</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Credits</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {child.transcriptEntries.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{entry.activityName}</div>
+                              {entry.notes && (
+                                <div className="text-sm text-gray-500 mt-1">{entry.notes}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{entry.mappedSubject}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-semibold">{Number(entry.creditsEarned).toFixed(2)}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                              <Calendar className="h-4 w-4" />
+                              {format(new Date(entry.dateCompleted), 'MMM d, yyyy')}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <form action={approveCredit}>
+                                <input type="hidden" name="creditId" value={entry.id} />
+                                <Button type="submit" size="sm" className="bg-green-600 hover:bg-green-700">
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                              </form>
+                              <form action={rejectCredit}>
+                                <input type="hidden" name="creditId" value={entry.id} />
+                                <Button type="submit" size="sm" variant="destructive">
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </form>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Information Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>About Credit Approval</CardTitle>
+            <CardDescription>
+              As a parent, you can review and approve credits earned by your children through various activities.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold">Approving Credits</h4>
+                  <p className="text-sm text-gray-600">
+                    Click "Approve" to confirm the credit and add it to your child's official transcript.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold">Rejecting Credits</h4>
+                  <p className="text-sm text-gray-600">
+                    Click "Reject" if you believe the credit was earned in error or needs revision.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Separator />
+            <p className="text-sm text-gray-500">
+              All approved credits become part of your child's permanent academic record and contribute to their overall learning progress.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
