@@ -111,52 +111,34 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
       parsedPayload = JSON.parse(payload);
     } catch (error) {
       console.error('[GenUIRenderer] Failed to parse payload string:', error);
-      return (
-        <div style={{
-          padding: '12px',
-          border: '1px solid #ff6b6b',
-          borderRadius: '6px',
-          backgroundColor: '#ffe0e0',
-          color: '#d63031',
-          fontSize: '13px'
-        }}>
-          ⚠️ Invalid component data format
-        </div>
-      );
+      return null;
+    }
+  }
+  
+  // If payload is an array of strings, parse each element safely
+  if (Array.isArray(payload)) {
+    try {
+      parsedPayload = payload.map(item => {
+        if (typeof item === 'string') {
+          return JSON.parse(item);
+        }
+        return item;
+      }).find(item => item && typeof item === 'object' && item.component) || null;
+    } catch (error) {
+      console.error('[GenUIRenderer] Failed to parse array payload:', error);
+      return null;
     }
   }
 
   // Validate parsed payload
   if (!parsedPayload || typeof parsedPayload !== 'object') {
     console.warn('[GenUIRenderer] Invalid payload type:', typeof parsedPayload, parsedPayload);
-    return (
-      <div style={{
-        padding: '12px',
-        border: '1px solid #ffa502',
-        borderRadius: '6px',
-        backgroundColor: '#fff5e6',
-        color: '#d63031',
-        fontSize: '13px'
-      }}>
-        ⚠️ Invalid component data received
-      </div>
-    );
+    return null;
   }
 
   if (!parsedPayload.component) {
     console.warn('[GenUIRenderer] Payload missing component property:', parsedPayload);
-    return (
-      <div style={{
-        padding: '12px',
-        border: '1px solid #ffa502',
-        borderRadius: '6px',
-        backgroundColor: '#fff5e6',
-        color: '#d63031',
-        fontSize: '13px'
-      }}>
-        ⚠️ Component type not specified
-      </div>
-    );
+    return null;
   }
 
   const Component = componentMap[parsedPayload.component];

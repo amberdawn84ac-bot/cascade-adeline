@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { createDataStreamResponse } from 'ai';
 import { HumanMessage } from '@langchain/core/messages';
 import { adelineBrainRunnable } from '@/lib/langgraph';
 import { getSessionUser } from '@/lib/auth';
@@ -33,15 +32,15 @@ export async function POST(req: NextRequest) {
 
     // Run the LangGraph Brain to get result
     const result = await adelineBrainRunnable.invoke(initialState);
-    const responseContent = result.response_content || "I am processing that request. Give me just a moment.";
     
-    // Create streaming response with GenUI payload
-    const stream = streamText({
-      model: openai('gpt-4o'),
-      prompt: responseContent,
+    return createDataStreamResponse({
+      execute: dataStream => {
+        if (result.genUIPayload) {
+          dataStream.writeData(result.genUIPayload);
+        }
+        dataStream.writeText(result.response_content || "Processing...");
+      }
     });
-
-    return stream.toTextStreamResponse();
     
   } catch (error) {
     console.error('Chat API error:', error);

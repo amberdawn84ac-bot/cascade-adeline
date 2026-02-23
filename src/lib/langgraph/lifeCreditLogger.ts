@@ -16,6 +16,8 @@ ${JSON.stringify(rules, null, 2)}
 
 Student description: """${prompt}"""
 
+CRITICAL MATH: 1.0 high school credit = 120 hours. A 1-2 hour task (like baking bread) MUST ONLY be awarded 0.01 to 0.02 credits. Never award 0.25 for a single task.
+
 CRITICAL GRADING MATH: 1.0 full high school credit equals approximately 120 hours of dedicated coursework. Therefore, a single 1-hour to 2-hour activity (like baking bread, a museum visit, or a coding session) should only be awarded between 0.01 and 0.02 credits. NEVER award large amounts like 0.25 or 0.5 credits for a single daily task. Estimate the realistic time the activity took in hours, and multiply by 0.008 to get the correct fractional credit.
 
 CREDIT SCALE GUIDE (based on 120 hours = 1.0 credit):
