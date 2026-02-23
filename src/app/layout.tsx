@@ -4,6 +4,7 @@ import {
   Geist_Mono, 
   Inter
 } from "next/font/google";
+import localFont from 'next/font/local';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,6 +20,14 @@ const geistMono = Geist_Mono({
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+});
+
+// Load Emilys Candy locally to avoid Turbopack issues
+const emilysCandy = localFont({
+  src: '../fonts/EmilysCandy-Regular.ttf',
+  variable: "--font-emilys-candy",
+  weight: "400",
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -43,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${emilysCandy.variable} antialiased`}
       >
         {children}
       </body>

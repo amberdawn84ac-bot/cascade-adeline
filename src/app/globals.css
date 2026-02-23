@@ -79,8 +79,8 @@
   --sidebar-accent: oklch(0.97 0.001 106.424);
   --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
   
-  /* Adeline Brand Fonts - Fallback to system fonts */
-  --font-emilys-candy: 'Comic Sans MS', 'Chalkboard SE', 'Bradley Hand', cursive;
+  /* Adeline Brand Fonts - Emilys Candy loaded locally */
+  --font-emilys-candy: 'Emilys Candy', cursive;
   --font-kalam: 'Comic Sans MS', 'Chalkboard SE', 'Bradley Hand', cursive;
   --font-kranky: 'Comic Sans MS', 'Chalkboard SE', 'Bradley Hand', cursive;
   --font-permanent-marker: 'Comic Sans MS', 'Chalkboard SE', 'Bradley Hand', cursive;
