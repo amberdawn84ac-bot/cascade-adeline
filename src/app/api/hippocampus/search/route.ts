@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   >(
     `SELECT id, title, content, source_type, source_url,
             1 - (embedding <=> $1::vector) AS similarity
-     FROM hippocampus_documents
+     FROM hippocampusdocument
      WHERE 1 - (embedding <=> $1::vector) > 0.5
      ORDER BY similarity DESC
      LIMIT 10`,

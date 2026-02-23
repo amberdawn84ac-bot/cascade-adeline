@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       const subtitle = chunk.split(/\s+/).slice(0, 8).join(' ');
       const vectorLiteral = `[${embeddingResult.embeddings[i].join(',')}]`;
       return prisma.$executeRaw`
-        INSERT INTO "HippocampusDocument"
+        INSERT INTO hippocampusdocument
           ("id", "title", "content", "metadata", "source_type", "embedding", "chunk_index", "created_at", "updated_at")
         VALUES
           (
