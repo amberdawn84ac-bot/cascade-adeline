@@ -19,7 +19,8 @@ import {
   Gamepad2,
   ChevronDown,
   ChevronRight,
-  Users
+  Users,
+  DollarSign
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
   { label: 'Library', href: '/library', icon: Library },
+  { label: 'College Prep', href: '/college-prep', icon: GraduationCap },
   { label: 'Family Portal', href: '/parent', icon: Users },
 ];
 
