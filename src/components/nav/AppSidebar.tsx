@@ -47,8 +47,6 @@ const NAV_ITEMS = [
   },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
   { label: 'Library', href: '/library', icon: Library },
-  { label: 'Reading Nook', href: '/reading-nook', icon: Book },
-  { label: 'College Prep', href: '/college-prep', icon: GraduationCap },
   { label: 'Family Portal', href: '/parent', icon: Users },
 ];
 
