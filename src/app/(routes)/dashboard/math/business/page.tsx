@@ -4,6 +4,7 @@ import { TrendingUp, DollarSign, Calculator, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
 import prisma from '@/lib/db';
+import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
 
 export default async function BusinessMathPage() {
   const session = await getSessionUser();
@@ -167,6 +168,13 @@ export default async function BusinessMathPage() {
           ))}
         </div>
       </div>
+
+      {/* ZPD Personalized Recommendations */}
+      <ZPDRecommendations 
+        userId={session.userId} 
+        subjectArea="math" 
+        limit={3} 
+      />
 
       {/* Back Navigation */}
       <div className="text-center">

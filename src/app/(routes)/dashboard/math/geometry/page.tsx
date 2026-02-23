@@ -2,6 +2,8 @@ import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Ruler, Triangle, Square, Circle } from 'lucide-react';
 import Link from 'next/link';
+import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
+import prisma from '@/lib/db';
 
 export default async function GeometryPage() {
   const session = await getSessionUser();
@@ -9,6 +11,18 @@ export default async function GeometryPage() {
   if (!session) {
     redirect('/login');
   }
+
+  // Get adaptive content based on user's grade level
+  const adaptiveContent = await getUserAdaptiveContent(session.userId, 'math', 'geometry');
+  
+  // Get user data for grade level
+  const userData = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { gradeLevel: true }
+  });
+  
+  const attentionSpan = getAttentionSpanForGrade(userData?.gradeLevel || '3');
+  const interactiveType = getInteractiveTypeForGrade(userData?.gradeLevel || '3');
 
   return (
     <div className="space-y-8">
@@ -20,11 +34,14 @@ export default async function GeometryPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-amber-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-              Geometry Workshop
+              {adaptiveContent.title}
             </h1>
             <p className="text-amber-800/70 text-lg">
-              Build and measure! Explore shapes, areas, and volumes
+              {adaptiveContent.description}
             </p>
+            <div className="text-sm text-amber-600 mt-2">
+              Grade Level: {userData?.gradeLevel || 'Default'} • Difficulty: {adaptiveContent.difficulty}
+            </div>
           </div>
         </div>
       </div>
@@ -32,6 +49,19 @@ export default async function GeometryPage() {
       {/* Interactive Shape Builder */}
       <div className="bg-white rounded-[2rem] p-8 border-2 border-amber-100">
         <h2 className="text-2xl font-bold text-amber-900 mb-6">Shape Builder</h2>
+        
+        {/* Adaptive Examples */}
+        <div className="mb-6 p-4 bg-amber-50 rounded-lg">
+          <h3 className="font-bold text-amber-800 mb-2">Examples for Your Grade Level:</h3>
+          <ul className="text-sm text-slate-600 space-y-1">
+            {adaptiveContent.adaptations.examples.map((example, index) => (
+              <li key={index} className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+                {example}
+              </li>
+            ))}
+          </ul>
+        </div>
         
         <div className="grid md:grid-cols-2 gap-8">
           {/* Shape Selection */}
