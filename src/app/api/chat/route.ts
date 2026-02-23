@@ -40,12 +40,12 @@ export async function POST(req: NextRequest) {
       start(controller) {
         // Send GenUI payload first if it exists
         if (result.genUIPayload) {
-          const data = `0:"${JSON.stringify({ type: 'data', data: result.genUIPayload })}"\n`;
+          const data = `0:${JSON.stringify(result.genUIPayload)}\n`;
           controller.enqueue(encoder.encode(data));
         }
         
         // Send the text response
-        const text = `0:"${JSON.stringify({ type: 'text', text: responseContent })}"\n`;
+        const text = `0:${JSON.stringify(responseContent)}\n`;
         controller.enqueue(encoder.encode(text));
         
         controller.close();
