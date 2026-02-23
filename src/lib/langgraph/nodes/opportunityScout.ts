@@ -1,80 +1,65 @@
+import { generateText } from 'ai';
 import { AdelineStateType } from '../state';
+import { loadConfig, buildSystemPrompt } from '@/lib/config';
+import { getModel } from '@/lib/ai-models';
 
+/**
+ * OpportunityScout Node
+ *
+ * Helps students find scholarships, competitions, programs, and resources
+ * that match their interests. Adeline's approach: be specific, give real names,
+ * connect opportunities to what the student is already doing.
+ */
 export async function opportunityScout(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
+  const lastMessage = state.messages[state.messages.length - 1];
+  const content = lastMessage.content as string;
+
   try {
-    // In a real implementation, this would:
-    // 1. Analyze the user's current projects and interests
-    // 2. Search for relevant opportunities (competitions, internships, programs)
-    // 3. Match user skills with opportunity requirements
-    // 4. Generate personalized recommendations
-    
-    const opportunities = [
-      {
-        id: '1',
-        title: 'Regional Science Fair',
-        type: 'Competition',
-        description: 'Showcase your science project and compete for scholarships',
-        deadline: 'March 15, 2024',
-        requirements: 'Grades 9-12, science project, abstract submission',
-        organization: 'Regional Science Fair Association',
-        matchScore: 0.85,
-      },
-      {
-        id: '2', 
-        title: 'Summer Coding Bootcamp',
-        type: 'Program',
-        description: 'Intensive 8-week coding program for high school students',
-        deadline: 'May 1, 2024',
-        requirements: 'Basic programming knowledge, application essay',
-        organization: 'Tech Academy',
-        matchScore: 0.92,
-      },
-      {
-        id: '3',
-        title: 'Young Writers Workshop',
-        type: 'Workshop',
-        description: 'Creative writing workshop with published authors',
-        deadline: 'April 20, 2024',
-        requirements: 'Writing samples, teacher recommendation',
-        organization: 'Literary Guild',
-        matchScore: 0.78,
-      }
-    ];
+    const config = loadConfig();
+    const modelId = config.models.default;
+    const basePrompt = buildSystemPrompt(config);
 
-    const response = `I found ${opportunities.length} opportunities that match your interests:
+    const scoutContext = `\n\nCURRENT MODE: Opportunity Scout
+The student is looking for scholarships, competitions, programs, or external resources.
 
-${opportunities.map((opp, index) => 
-  `${index + 1}. **${opp.title}** (${opp.type})
-   - ${opp.description}
-   - Deadline: ${opp.deadline}
-   - Match: ${Math.round(opp.matchScore * 100)}% fit
-   - ${opp.organization}`
-).join('\n\n')}
+Your approach:
+- Give SPECIFIC, real opportunities by name. Do not invent organizations.
+- If you know the organization or program name, state it. If you're uncertain, say so.
+- Connect the opportunity to what the student is already interested in or working on.
+- Include: type (scholarship/competition/program/grant), rough deadline or cycle, who it's for.
+- If the student is homeschooled, note if the opportunity is homeschool-friendly.
+- End with an action step: "To apply, typically you'll need..."`;
 
-These opportunities align well with your current projects and learning goals. Would you like me to help you prepare applications for any of them?`;
+    const conversationMessages = state.messages.slice(0, -1).map((m) => ({
+      role: m._getType() === 'human' ? ('user' as const) : ('assistant' as const),
+      content: m.content as string,
+    }));
+
+    const { text } = await generateText({
+      model: getModel(modelId),
+      system: basePrompt + scoutContext,
+      messages: [
+        ...conversationMessages,
+        { role: 'user', content },
+      ],
+      maxOutputTokens: 500,
+    });
 
     return {
-      response_content: response,
+      response_content: text,
       metadata: {
         ...state.metadata,
-        opportunityScout: {
-          opportunities_found: opportunities.length,
-          top_match_score: Math.max(...opportunities.map(o => o.matchScore)),
-          timestamp: new Date().toISOString(),
-        },
+        opportunityScout: { model: modelId, timestamp: new Date().toISOString() },
       },
     };
-    
   } catch (error) {
-    console.error('Opportunity Scout error:', error);
+    console.error('[OpportunityScout] Error:', error);
     return {
-      response_content: "I'm having trouble finding opportunities right now, but I'll keep looking for programs that match your interests. Check back soon for new opportunities!",
+      response_content:
+        "I hit a snag searching for opportunities. Try asking again with more detail about your interests or grade level.",
       metadata: {
         ...state.metadata,
-        opportunityScout: {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString(),
-        },
+        opportunityScout: { error: error instanceof Error ? error.message : String(error) },
       },
     };
   }
