@@ -102,9 +102,33 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     return null;
   }
 
-  // Enhanced payload validation
-  if (!payload || typeof payload !== 'object') {
-    console.warn('[GenUIRenderer] Invalid payload type:', typeof payload, payload);
+  // Enhanced payload validation with safe parsing
+  let parsedPayload = payload;
+  
+  // If payload is a string, try to parse it as JSON
+  if (typeof payload === 'string') {
+    try {
+      parsedPayload = JSON.parse(payload);
+    } catch (error) {
+      console.error('[GenUIRenderer] Failed to parse payload string:', error);
+      return (
+        <div style={{
+          padding: '12px',
+          border: '1px solid #ff6b6b',
+          borderRadius: '6px',
+          backgroundColor: '#ffe0e0',
+          color: '#d63031',
+          fontSize: '13px'
+        }}>
+          ⚠️ Invalid component data format
+        </div>
+      );
+    }
+  }
+
+  // Validate parsed payload
+  if (!parsedPayload || typeof parsedPayload !== 'object') {
+    console.warn('[GenUIRenderer] Invalid payload type:', typeof parsedPayload, parsedPayload);
     return (
       <div style={{
         padding: '12px',
@@ -119,8 +143,8 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     );
   }
 
-  if (!payload.component) {
-    console.warn('[GenUIRenderer] Payload missing component property:', payload);
+  if (!parsedPayload.component) {
+    console.warn('[GenUIRenderer] Payload missing component property:', parsedPayload);
     return (
       <div style={{
         padding: '12px',
@@ -135,9 +159,9 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     );
   }
 
-  const Component = componentMap[payload.component];
+  const Component = componentMap[parsedPayload.component];
   if (!Component) {
-    console.warn(`[GenUIRenderer] Unknown GenUI component type: ${payload.component}`);
+    console.warn(`[GenUIRenderer] Unknown GenUI component type: ${parsedPayload.component}`);
     return (
       <div style={{
         padding: '16px',
@@ -151,7 +175,7 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
           🚫 Unknown Component
         </div>
         <div>
-          Component type: <code>{payload.component}</code>
+          Component type: <code>{parsedPayload.component}</code>
         </div>
         <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
           Available components: {Object.keys(componentMap).join(', ')}
@@ -160,7 +184,7 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     );
   }
 
-  const borderColor = INTENT_BORDER_COLORS[payload.component] || '#BD6809';
+  const borderColor = INTENT_BORDER_COLORS[parsedPayload.component] || '#BD6809';
 
   return (
     <ErrorBoundary
@@ -207,9 +231,9 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
           }}>
-            {payload.component}
+            {parsedPayload.component}
           </div>
-          <Component {...(payload.props || {})} />
+          <Component {...(parsedPayload.props || {})} />
         </motion.div>
       </>
     </ErrorBoundary>

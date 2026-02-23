@@ -178,20 +178,23 @@ async function mapActivityToCredits(activityDetails: {
 Activity: ${activityDetails.activityName}
 Description: ${activityDetails.description}
 
+CRITICAL MATH: 1.0 high school credit = 120 hours. A 1-2 hour task (like baking bread) MUST ONLY be awarded 0.01 to 0.02 credits. Never award 0.25 for a single daily task.
+
 Return a JSON object with:
 {
   "activityType": "community_service|creative_arts|stem|language_arts|physical_education|leadership",
   "subjectArea": "Mathematics|Science|English|History|Art|Music|PE|Technology|Social Studies",
-  "baseCredits": 0.25,
+  "baseCredits": 0.016,
   "multiplier": 1.0,
   "concepts": ["concept1", "concept2"]
 }
 
 Guidelines:
-- Base credits: 0.125 to 0.5 based on educational value
+- Base credits: 0.005 to 0.05 based on educational value and time
 - Multiplier: 0.8 to 1.5 based on complexity and effort
 - Concepts: 1-3 relevant educational concepts
 - Consider real-world learning value
+- Estimate realistic time spent and calculate credits accordingly
 
 Return ONLY valid JSON.`,
     temperature: 0.3,

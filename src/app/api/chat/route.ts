@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const result = await adelineBrainRunnable.invoke(initialState);
     const responseContent = result.response_content || "I am processing that request. Give me just a moment.";
     
-    // Use Vercel AI SDK streamText with proper metadata handling
+    // Use Vercel AI SDK streamText with proper metadata
     const stream = await streamText({
       model: {} as any, // Placeholder since we're not using AI SDK for generation
       messages: [{ role: 'assistant', content: responseContent }],
@@ -43,24 +43,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create a custom response that includes genUIPayload in the metadata
-    return new Response(
-      JSON.stringify({
-        content: responseContent,
-        genUIPayload: result.genUIPayload,
-        metadata: {
-          ...result.metadata,
-          genUIPayload: result.genUIPayload, // Include genUIPayload in metadata for frontend access
-        }
-      }),
-      {
-        headers: { 
-          'Content-Type': 'application/json',
-          // Add custom headers to indicate this contains GenUI metadata
-          'X-GenUI-Payload': result.genUIPayload ? 'true' : 'false'
-        }
-      }
-    );
+    // Create response with GenUI payload in metadata
+    return stream.toTextStreamResponse();
     
   } catch (error) {
     console.error('Chat API error:', error);
