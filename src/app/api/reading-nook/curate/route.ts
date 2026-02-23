@@ -72,6 +72,20 @@ export async function POST(req: NextRequest) {
       const jsonMatch = responseContent.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         books = JSON.parse(jsonMatch[0]);
+        // Ensure all books have required fields
+        books = books.map((book: any) => ({
+          title: book.title || "Untitled Book",
+          author: book.author || "Unknown Author",
+          description: book.description || "A fascinating book worth exploring.",
+          themes: Array.isArray(book.themes) ? book.themes : ["Literature", "Adventure"],
+          discussionQuestions: Array.isArray(book.discussionQuestions) 
+            ? book.discussionQuestions 
+            : [
+                "What did you find most interesting about this book?",
+                "How would you describe the main character's journey?",
+                "What themes or messages stood out to you?"
+              ]
+        }));
       } else {
         // Fallback: parse line by line for book information
         const lines = responseContent.split('\n').filter(line => line.trim());
@@ -88,6 +102,7 @@ export async function POST(req: NextRequest) {
         }));
       }
     } catch (error) {
+      console.error('Error parsing book recommendations:', error);
       // If parsing fails, return fallback recommendations
       books = [
         {
