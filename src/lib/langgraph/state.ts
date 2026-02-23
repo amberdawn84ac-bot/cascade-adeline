@@ -2,7 +2,7 @@ import { Annotation } from "@langchain/langgraph";
 import { BaseMessage } from "@langchain/core/messages";
 
 // Define the intent enum
-export type Intent = 'CHAT' | 'INVESTIGATE' | 'LOG_CREDIT' | 'REFLECT' | 'GEN_UI' | 'OPPORTUNITY' | 'BRAINSTORM';
+export type Intent = 'CHAT' | 'INVESTIGATE' | 'LOG_CREDIT' | 'REFLECT' | 'GEN_UI' | 'OPPORTUNITY' | 'BRAINSTORM' | 'IMAGE_LOG' | 'VISION';
 
 // Define the main state interface
 export const AdelineState = Annotation.Root({
