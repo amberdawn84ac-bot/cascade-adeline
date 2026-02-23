@@ -55,37 +55,71 @@ export async function POST(req: NextRequest) {
     // Run the LangGraph
     const result = await adelineBrainRunnable.invoke(initialState);
 
-    // Handle different response types
-    if (result.genUIPayload) {
-      // GenUI response - stream both the explanation and the structured GenUI payload
-      const explanation = result.response_content || "I'm here to help! Could you tell me more about what you'd like to learn or explore?";
-      
-      // Create a custom stream that handles both text and GenUI payload
+    // Extract response content and GenUI payload
+    const responseContent = result.response_content || "I'm here to help! Could you tell me more about what you'd like to learn or explore?";
+    const genUIPayload = result.genUIPayload;
+
+    // Create stream with proper Vercel AI SDK format
+    const stream = streamText({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'assistant',
+          content: responseContent,
+        }
+      ],
+      onFinish: () => {
+        // This is called when the stream is complete
+      },
+      onError: (error) => {
+        console.error('Stream error:', error);
+      },
+    });
+
+    // If there's a GenUI payload, we need to modify the stream to include it
+    if (genUIPayload) {
+      // Create a custom stream that includes both text and GenUI metadata
       const encoder = new TextEncoder();
-      const decoder = new TextDecoder();
       
-      const stream = new ReadableStream({
+      const customStream = new ReadableStream({
         async start(controller) {
-          // Send the explanation as text first
-          controller.enqueue(encoder.encode(explanation));
-          
-          // Then send the GenUI payload with special markers
-          if (result.genUIPayload) {
-            const genUIJson = JSON.stringify(result.genUIPayload);
-            controller.enqueue(encoder.encode(`\n\n[GENUI_START]\n${genUIJson}\n[GENUI_END]`));
+          try {
+            // Get the original stream reader
+            const reader = stream.textStream.getReader();
+            
+            // Read and forward all chunks from the original stream
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              if (value) {
+                controller.enqueue(value);
+              }
+            }
+            
+            // After the text stream is complete, add the GenUI payload as metadata
+            const genUIMetadata = {
+              type: 'genui',
+              payload: genUIPayload,
+              timestamp: new Date().toISOString(),
+            };
+            
+            // Send the GenUI metadata as a special chunk
+            controller.enqueue(encoder.encode(`\n\n[GENUI_METADATA]\n${JSON.stringify(genUIMetadata)}\n`));
+            
+            controller.close();
+          } catch (error) {
+            console.error('Custom stream error:', error);
+            controller.error(error);
           }
-          
-          controller.close();
         },
       });
       
-      return new Response(stream);
-    } else {
-      // Text-only response
-      const responseContent = result.response_content || "I'm here to help! Could you tell me more about what you'd like to learn or explore?";
-      
-      return new Response(responseContent);
+      return new Response(customStream);
     }
+
+    // Return the original stream for text-only responses
+    return stream.toTextStreamResponse();
 
   } catch (error) {
     console.error('Chat API error:', error);
