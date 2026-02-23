@@ -143,6 +143,18 @@ function getBaseContent(contentType: string, topic: string): Omit<AdaptiveConten
         concepts: ['cells', 'ecosystems', 'life-cycles', 'adaptation']
       }
     },
+    reading: {
+      ela: {
+        title: "Deep Dives",
+        description: "Explore literary analysis and creative writing",
+        concepts: ['literature', 'writing', 'analysis', 'creativity']
+      },
+      'story-workshop': {
+        title: "Story Workshop",
+        description: "Develop creative writing and storytelling skills",
+        concepts: ['storytelling', 'characters', 'plot', 'dialogue']
+      }
+    },
     arcade: {
       coding: {
         title: "Coding Lab",
@@ -195,6 +207,8 @@ function adaptContentForGrade(
     return adaptArcadeContent(gradeBand, topic);
   } else if (contentType === 'history') {
     return adaptHistoryContent(gradeBand, topic);
+  } else if (contentType === 'reading') {
+    return adaptReadingContent(gradeBand, topic);
   } else {
     return adaptAcademicContent(gradeBand, topic);
   }
@@ -253,6 +267,35 @@ function adaptHistoryContent(gradeBand: keyof GradeLevelConfig, topic: string): 
     adaptations.vocabulary = ['historiography', 'revisionism', 'propaganda', 'contextual-analysis', 'source-criticism'];
     adaptations.examples = ['Analyze historical narratives', 'Research historical interpretation', 'Study historical methodology'];
     adaptations.challenges = ['Challenge historical narratives', 'Research historical revisionism', 'Analyze historical bias'];
+  }
+  
+  return adaptations;
+}
+
+function adaptReadingContent(gradeBand: keyof GradeLevelConfig, topic: string): AdaptiveContent['adaptations'] {
+  const adaptations = {
+    vocabulary: [] as string[],
+    concepts: [] as string[],
+    examples: [] as string[],
+    challenges: [] as string[]
+  };
+  
+  if (gradeBand === 'k2') {
+    adaptations.vocabulary = ['story', 'character', 'happy', 'sad', 'adventure'];
+    adaptations.examples = ['Write about your favorite animal', 'Create a story about a magical tree', 'Tell a story about a lost toy'];
+    adaptations.challenges = ['Can you write a story with 3 sentences?', 'Draw a picture for your story', 'Share your story with a friend'];
+  } else if (gradeBand === '35') {
+    adaptations.vocabulary = ['plot', 'setting', 'dialogue', 'narrator', 'conflict'];
+    adaptations.examples = ['Write a story about a space adventure', 'Create a mystery story', 'Write about a day in the life of your pet'];
+    adaptations.challenges = ['Write a story with a clear beginning, middle, and end', 'Create dialogue between two characters', 'Describe a magical setting'];
+  } else if (gradeBand === '68') {
+    adaptations.vocabulary = ['protagonist', 'antagonist', 'foreshadowing', 'metaphor', 'theme'];
+    adaptations.examples = ['Write a short story with a moral lesson', 'Create a historical fiction piece', 'Develop a story with multiple perspectives'];
+    adaptations.challenges = ['Write a story using literary devices', 'Create a complex character arc', 'Develop a story with symbolic elements'];
+  } else {
+    adaptations.vocabulary = ['archetype', 'allegory', 'stream-of-consciousness', 'existentialism', 'narrative-structure'];
+    adaptations.examples = ['Write a satirical piece on modern society', 'Create an experimental fiction piece', 'Develop a story exploring philosophical themes'];
+    adaptations.challenges = ['Write a story using postmodern techniques', 'Create a narrative with unreliable narrator', 'Develop a piece exploring existential questions'];
   }
   
   return adaptations;
