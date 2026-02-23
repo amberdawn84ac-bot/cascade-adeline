@@ -79,6 +79,12 @@ Remember: Knowledge without love is nothing. Every child has a calling.`;
     
   } catch (error) {
     console.error('Mentor error:', error);
+    console.error('Mentor error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+      userId: state.userId
+    });
     return {
       response_content: "I'm here to help you learn! While I'm having trouble accessing some of my tools right now, I'm still ready to support your learning journey. What would you like to explore together?",
       metadata: {

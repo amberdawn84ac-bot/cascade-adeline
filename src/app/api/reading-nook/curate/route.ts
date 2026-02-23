@@ -58,7 +58,9 @@ export async function POST(req: NextRequest) {
     };
 
     // Run the LangGraph
+    console.log('Starting LangGraph invocation for book curation...');
     const result = await adelineBrainRunnable.invoke(initialState);
+    console.log('LangGraph completed successfully');
 
     // Parse the response to extract book recommendations
     const responseContent = result.response_content;
@@ -108,9 +110,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ books: validatedBooks });
   } catch (error) {
     console.error('Book curation API error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid request format', details: error.errors }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
