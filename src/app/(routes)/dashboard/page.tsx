@@ -16,6 +16,7 @@ import {
 import Link from 'next/link';
 import { MissionBriefing } from '@/components/ui/quests/MissionBriefing';
 import KnowledgeHerbarium from '@/components/dashboard/KnowledgeHerbarium';
+import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
 
 async function getDashboardData(userId: string) {
   // Fetch standards progress grouped by subject

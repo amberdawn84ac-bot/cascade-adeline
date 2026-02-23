@@ -1,8 +1,10 @@
 import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { ScrollText, Clock, BookOpen, Eye, AlertTriangle } from 'lucide-react';
+import { Clock, Users, BookOpen, Search } from 'lucide-react';
 import { Timeline } from '@/components/gen-ui/Timeline';
+import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
 import prisma from '@/lib/db';
+import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
 
 export default async function HistoryPage() {
   const session = await getSessionUser();
@@ -10,6 +12,18 @@ export default async function HistoryPage() {
   if (!session) {
     redirect('/login');
   }
+
+  // Get adaptive content based on user's grade level
+  const adaptiveContent = await getUserAdaptiveContent(session.userId, 'history', 'timeline');
+  
+  // Get user data for grade level
+  const userData = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { gradeLevel: true }
+  });
+  
+  const attentionSpan = getAttentionSpanForGrade(userData?.gradeLevel || '3');
+  const interactiveType = getInteractiveTypeForGrade(userData?.gradeLevel || '3');
 
   // Fetch timeline entries from database
   const timelineEntries = await prisma.timelineEntry.findMany({
@@ -80,11 +94,14 @@ export default async function HistoryPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-indigo-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-              Interactive History Timeline
+              {adaptiveContent.title}
             </h1>
             <p className="text-indigo-800/70 text-lg">
-              Explore primary sources and uncover the truth of the past
+              {adaptiveContent.description}
             </p>
+            <div className="text-sm text-indigo-600 mt-2">
+              Grade Level: {userData?.gradeLevel || 'Default'} • Difficulty: {adaptiveContent.difficulty}
+            </div>
           </div>
         </div>
       </div>

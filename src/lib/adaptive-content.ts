@@ -88,7 +88,7 @@ export function getGradeBand(gradeLevel: string): keyof GradeLevelConfig {
 }
 
 export function getAdaptiveContent(
-  contentType: 'math' | 'science' | 'reading' | 'history',
+  contentType: 'math' | 'science' | 'reading' | 'history' | 'arcade',
   gradeLevel: string,
   topic: string
 ): AdaptiveContent {
@@ -101,7 +101,7 @@ export function getAdaptiveContent(
   // Adapt based on grade level
   return {
     ...baseContent,
-    adaptations: adaptContentForGrade(baseContent, gradeBand, config),
+    adaptations: adaptContentForGrade(baseContent, gradeBand, config, contentType, topic),
     gradeAppropriate: true,
     difficulty: getDifficultyForGrade(gradeBand)
   };
@@ -142,6 +142,30 @@ function getBaseContent(contentType: string, topic: string): Omit<AdaptiveConten
         description: "Explore living organisms and cells",
         concepts: ['cells', 'ecosystems', 'life-cycles', 'adaptation']
       }
+    },
+    arcade: {
+      coding: {
+        title: "Coding Lab",
+        description: "Learn programming through interactive projects",
+        concepts: ['programming', 'logic', 'problem-solving', 'creativity']
+      },
+      'game-design': {
+        title: "Game Design Studio",
+        description: "Design and create your own games",
+        concepts: ['design', 'storytelling', 'mechanics', 'user-experience']
+      },
+      'logic-puzzles': {
+        title: "Logic Circuits",
+        description: "Solve puzzles and build logical thinking",
+        concepts: ['logic', 'circuits', 'problem-solving', 'critical-thinking']
+      }
+    },
+    history: {
+      timeline: {
+        title: "Interactive History Timeline",
+        description: "Explore historical events with primary sources",
+        concepts: ['history', 'primary-sources', 'critical-analysis', 'chronology']
+      }
     }
   };
   
@@ -155,8 +179,86 @@ function getBaseContent(contentType: string, topic: string): Omit<AdaptiveConten
 function adaptContentForGrade(
   baseContent: any,
   gradeBand: keyof GradeLevelConfig,
-  config: GradeLevelConfig[keyof GradeLevelConfig]
+  config: GradeLevelConfig[keyof GradeLevelConfig],
+  contentType: string,
+  topic: string
 ): AdaptiveContent['adaptations'] {
+  const adaptations = {
+    vocabulary: [] as string[],
+    concepts: [] as string[],
+    examples: [] as string[],
+    challenges: [] as string[]
+  };
+  
+  // Adapt based on content type
+  if (contentType === 'arcade') {
+    return adaptArcadeContent(gradeBand, topic);
+  } else if (contentType === 'history') {
+    return adaptHistoryContent(gradeBand, topic);
+  } else {
+    return adaptAcademicContent(gradeBand, topic);
+  }
+}
+
+function adaptArcadeContent(gradeBand: keyof GradeLevelConfig, topic: string): AdaptiveContent['adaptations'] {
+  const adaptations = {
+    vocabulary: [] as string[],
+    concepts: [] as string[],
+    examples: [] as string[],
+    challenges: [] as string[]
+  };
+  
+  if (gradeBand === 'k2') {
+    adaptations.vocabulary = ['click', 'drag', 'play', 'fun', 'game'];
+    adaptations.examples = ['Drag and drop shapes', 'Click to make sounds', 'Play memory games'];
+    adaptations.challenges = ['Can you match the colors?', 'Build a simple puzzle', 'Create a pattern'];
+  } else if (gradeBand === '35') {
+    adaptations.vocabulary = ['code', 'script', 'debug', 'design', 'character'];
+    adaptations.examples = ['Create simple animations', 'Design a game character', 'Write basic code'];
+    adaptations.challenges = ['Build a simple game', 'Create a story game', 'Debug a simple program'];
+  } else if (gradeBand === '68') {
+    adaptations.vocabulary = ['algorithm', 'function', 'variable', 'framework', 'logic-gates'];
+    adaptations.examples = ['Create interactive stories', 'Build puzzle games', 'Design game mechanics'];
+    adaptations.challenges = ['Create a platformer game', 'Build logic circuits', 'Design game levels'];
+  } else {
+    adaptations.vocabulary = ['artificial-intelligence', 'machine-learning', 'physics-engine', 'networking', 'algorithms'];
+    adaptations.examples = ['Create AI opponents', 'Build multiplayer games', 'Design complex systems'];
+    adaptations.challenges = ['Create an AI game', 'Build a game engine', 'Design networked gameplay'];
+  }
+  
+  return adaptations;
+}
+
+function adaptHistoryContent(gradeBand: keyof GradeLevelConfig, topic: string): AdaptiveContent['adaptations'] {
+  const adaptations = {
+    vocabulary: [] as string[],
+    concepts: [] as string[],
+    examples: [] as string[],
+    challenges: [] as string[]
+  };
+  
+  if (gradeBand === 'k2') {
+    adaptations.vocabulary = ['past', 'old', 'story', 'family', 'time'];
+    adaptations.examples = ['Family photo stories', 'Classroom timeline', 'Story of your town'];
+    adaptations.challenges = ['Draw your family history', 'Tell a story about yesterday', 'Make a picture timeline'];
+  } else if (gradeBand === '35') {
+    adaptations.vocabulary = ['timeline', 'evidence', 'source', 'community', 'decade'];
+    adaptations.examples = ['Local history research', 'Family interviews', 'Historical artifacts'];
+    adaptations.challenges = ['Research your town history', 'Interview a grandparent', 'Create a family timeline'];
+  } else if (gradeBand === '68') {
+    adaptations.vocabulary = ['primary-source', 'bias', 'perspective', 'chronology', 'historical-analysis'];
+    adaptations.examples = ['Analyze historical documents', 'Compare historical accounts', 'Research historical debates'];
+    adaptations.challenges = ['Analyze conflicting sources', 'Research historical controversy', 'Create historical argument'];
+  } else {
+    adaptations.vocabulary = ['historiography', 'revisionism', 'propaganda', 'contextual-analysis', 'source-criticism'];
+    adaptations.examples = ['Analyze historical narratives', 'Research historical interpretation', 'Study historical methodology'];
+    adaptations.challenges = ['Challenge historical narratives', 'Research historical revisionism', 'Analyze historical bias'];
+  }
+  
+  return adaptations;
+}
+
+function adaptAcademicContent(gradeBand: keyof GradeLevelConfig, topic: string): AdaptiveContent['adaptations'] {
   const adaptations = {
     vocabulary: [] as string[],
     concepts: [] as string[],
@@ -182,16 +284,6 @@ function adaptContentForGrade(
     adaptations.examples = ['Invest in real estate', 'Start a company', 'Analyze economic trends'];
     adaptations.challenges = ['Create investment portfolio', 'Develop business strategy', 'Conduct market research'];
   }
-  
-  // Filter concepts based on grade-appropriate content
-  adaptations.concepts = baseContent.concepts.filter((concept: string) => {
-    if (gradeBand === 'k2') {
-      return ['counting', 'shapes', 'plants', 'animals'].includes(concept.toLowerCase());
-    } else if (gradeBand === '35') {
-      return !['calculus', 'quantum-physics', 'biochemistry'].includes(concept.toLowerCase());
-    }
-    return true;
-  });
   
   return adaptations;
 }
