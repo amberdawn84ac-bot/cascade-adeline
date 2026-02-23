@@ -54,6 +54,12 @@ export const AdelineState = Annotation.Root({
     default: () => "",
   }),
   
+  // GenUI payload for UI components
+  genUIPayload: Annotation<any>({
+    reducer: (left: any, right: any) => right,
+    default: () => null,
+  }),
+  
   // Metadata for tracking
   metadata: Annotation<Record<string, any>>({
     reducer: (left: Record<string, any>, right: Record<string, any>) => ({ ...left, ...right }),

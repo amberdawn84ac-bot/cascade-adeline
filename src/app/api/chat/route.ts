@@ -1,27 +1,10 @@
 import { NextRequest } from 'next/server';
-import { streamText, createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+import { streamText } from 'ai';
 import { HumanMessage } from '@langchain/core/messages';
 import { adelineBrainRunnable } from '@/lib/langgraph';
 import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
-
-/**
- * Wrap a plain text response in the UI message stream protocol
- * so the client's useChat always receives a consistent format.
- */
-function textAsUIStream(text: string, meta?: Record<string, unknown>): Response {
-  const stream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      if (meta) writer.write({ type: 'start', messageMetadata: meta });
-      writer.write({ type: 'text-start', id: 'msg' });
-      writer.write({ type: 'text-delta', id: 'msg', delta: text });
-      writer.write({ type: 'text-end', id: 'msg' });
-      writer.write({ type: 'finish', finishReason: 'stop', ...(meta ? { messageMetadata: meta } : {}) });
-    },
-  });
-  return createUIMessageStreamResponse({ stream });
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,6 +45,7 @@ export async function POST(req: NextRequest) {
       credit_entry: null,
       learning_gaps: [],
       response_content: '',
+      genUIPayload: null,
       metadata: {
         timestamp: new Date().toISOString(),
         user_role: user.role,
@@ -71,14 +55,37 @@ export async function POST(req: NextRequest) {
     // Run the LangGraph
     const result = await adelineBrainRunnable.invoke(initialState);
 
-    // Extract response content
-    const responseContent = result.response_content || "I'm here to help! Could you tell me more about what you'd like to learn or explore?";
-
-    // Return response as UI stream
-    return textAsUIStream(responseContent, {
-      intent: result.intent,
-      metadata: result.metadata,
-    });
+    // Handle different response types
+    if (result.genUIPayload) {
+      // GenUI response - stream both the explanation and the structured GenUI payload
+      const explanation = result.response_content || "I'm here to help! Could you tell me more about what you'd like to learn or explore?";
+      
+      // Create a custom stream that handles both text and GenUI payload
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+      
+      const stream = new ReadableStream({
+        async start(controller) {
+          // Send the explanation as text first
+          controller.enqueue(encoder.encode(explanation));
+          
+          // Then send the GenUI payload with special markers
+          if (result.genUIPayload) {
+            const genUIJson = JSON.stringify(result.genUIPayload);
+            controller.enqueue(encoder.encode(`\n\n[GENUI_START]\n${genUIJson}\n[GENUI_END]`));
+          }
+          
+          controller.close();
+        },
+      });
+      
+      return new Response(stream);
+    } else {
+      // Text-only response
+      const responseContent = result.response_content || "I'm here to help! Could you tell me more about what you'd like to learn or explore?";
+      
+      return new Response(responseContent);
+    }
 
   } catch (error) {
     console.error('Chat API error:', error);
