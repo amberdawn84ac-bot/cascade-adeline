@@ -2,6 +2,8 @@ import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { TrendingUp, DollarSign, Calculator, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
+import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
+import prisma from '@/lib/db';
 
 export default async function BusinessMathPage() {
   const session = await getSessionUser();
@@ -9,6 +11,18 @@ export default async function BusinessMathPage() {
   if (!session) {
     redirect('/login');
   }
+
+  // Get adaptive content based on user's grade level
+  const adaptiveContent = await getUserAdaptiveContent(session.userId, 'math', 'business');
+  
+  // Get user data for grade level
+  const userData = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { gradeLevel: true }
+  });
+  
+  const attentionSpan = getAttentionSpanForGrade(userData?.gradeLevel || '3');
+  const interactiveType = getInteractiveTypeForGrade(userData?.gradeLevel || '3');
 
   return (
     <div className="space-y-8">
@@ -20,11 +34,14 @@ export default async function BusinessMathPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-amber-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-              Business Math
+              {adaptiveContent.title}
             </h1>
             <p className="text-amber-800/70 text-lg">
-              Run a virtual business and learn real-world math skills
+              {adaptiveContent.description}
             </p>
+            <div className="text-sm text-amber-600 mt-2">
+              Grade Level: {userData?.gradeLevel || 'Default'} • Difficulty: {adaptiveContent.difficulty}
+            </div>
           </div>
         </div>
       </div>
@@ -32,6 +49,19 @@ export default async function BusinessMathPage() {
       {/* Business Simulation */}
       <div className="bg-white rounded-[2rem] p-8 border-2 border-amber-100">
         <h2 className="text-2xl font-bold text-amber-900 mb-6">Your Virtual Lemonade Stand</h2>
+        
+        {/* Adaptive Examples */}
+        <div className="mb-6 p-4 bg-amber-50 rounded-lg">
+          <h3 className="font-bold text-amber-800 mb-2">Examples for Your Grade Level:</h3>
+          <ul className="text-sm text-slate-600 space-y-1">
+            {adaptiveContent.adaptations.examples.map((example, index) => (
+              <li key={index} className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+                {example}
+              </li>
+            ))}
+          </ul>
+        </div>
         
         <div className="grid md:grid-cols-2 gap-8">
           {/* Business Stats */}
@@ -110,18 +140,29 @@ export default async function BusinessMathPage() {
       <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-[2rem] p-8 border border-amber-100">
         <h2 className="text-2xl font-bold text-amber-900 mb-6">Math Skills You'll Learn</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { skill: "Profit Calculation", desc: "Revenue - Costs = Profit" },
-            { skill: "Percentages", desc: "Markup, discounts, profit margins" },
-            { skill: "Budgeting", desc: "Planning expenses and revenue" },
-            { skill: "Scaling", desc: "Growing your business mathematically" }
-          ].map((item, index) => (
+          {adaptiveContent.adaptations.concepts.map((concept, index) => (
             <div key={index} className="text-center p-4 bg-white rounded-xl">
               <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center text-amber-700 font-bold mx-auto mb-3">
                 {index + 1}
               </div>
-              <h3 className="font-bold text-slate-800 mb-2">{item.skill}</h3>
-              <p className="text-sm text-slate-600">{item.desc}</p>
+              <h3 className="font-bold text-slate-800 mb-2">{concept}</h3>
+              <p className="text-sm text-slate-600">Grade-appropriate learning</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Adaptive Challenges */}
+      <div className="bg-white rounded-[2rem] p-8 border border-amber-100">
+        <h2 className="text-2xl font-bold text-amber-900 mb-6">Challenges for Your Level</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {adaptiveContent.adaptations.challenges.map((challenge, index) => (
+            <div key={index} className="p-6 bg-amber-50 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">
+              <div className="w-8 h-8 bg-amber-600 text-white rounded-full flex items-center justify-center font-bold mb-3">
+                {index + 1}
+              </div>
+              <h3 className="font-bold text-amber-800 mb-2">Challenge {index + 1}</h3>
+              <p className="text-sm text-slate-600">{challenge}</p>
             </div>
           ))}
         </div>
