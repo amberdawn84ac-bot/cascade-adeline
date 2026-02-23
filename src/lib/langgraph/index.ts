@@ -4,6 +4,8 @@ import { router } from "./nodes/router";
 import { investigator } from "./nodes/investigator";
 import { registrar } from "./nodes/registrar";
 import { mentor } from "./nodes/mentor";
+import { opportunityScout } from "./nodes/opportunityScout";
+import { projectBrainstormer } from "./nodes/projectBrainstormer";
 
 // Conditional routing function
 function routeIntent(state: AdelineStateType): string {
@@ -18,6 +20,10 @@ function routeIntent(state: AdelineStateType): string {
       return 'mentor';
     case 'GEN_UI':
       return 'mentor'; // For now, route to mentor for GenUI requests
+    case 'OPPORTUNITY':
+      return 'opportunityScout';
+    case 'BRAINSTORM':
+      return 'projectBrainstormer';
     case 'CHAT':
     default:
       return 'mentor';
@@ -31,6 +37,8 @@ export const adelineBrain = new StateGraph(AdelineState)
   .addNode("investigator", investigator)
   .addNode("registrar", registrar)
   .addNode("mentor", mentor)
+  .addNode("opportunityScout", opportunityScout)
+  .addNode("projectBrainstormer", projectBrainstormer)
   
   // Add edges
   .addEdge(START, "router")
@@ -41,11 +49,15 @@ export const adelineBrain = new StateGraph(AdelineState)
       investigator: "investigator",
       registrar: "registrar",
       mentor: "mentor",
+      opportunityScout: "opportunityScout",
+      projectBrainstormer: "projectBrainstormer",
     }
   )
   .addEdge("investigator", END)
   .addEdge("registrar", END)
   .addEdge("mentor", END)
+  .addEdge("opportunityScout", END)
+  .addEdge("projectBrainstormer", END)
   .compile();
 
 // Export the runnable

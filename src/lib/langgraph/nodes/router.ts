@@ -48,6 +48,24 @@ export async function router(state: AdelineStateType): Promise<Partial<AdelineSt
     intent = 'GEN_UI';
   }
   
+  // Opportunity patterns
+  if (content.toLowerCase().includes('opportunity') ||
+      content.toLowerCase().includes('scholarship') ||
+      content.toLowerCase().includes('internship') ||
+      content.toLowerCase().includes('competition') ||
+      content.toLowerCase().includes('program')) {
+    intent = 'OPPORTUNITY';
+  }
+  
+  // Brainstorming patterns
+  if (content.toLowerCase().includes('brainstorm') ||
+      content.toLowerCase().includes('project idea') ||
+      content.toLowerCase().includes('what should I') ||
+      content.toLowerCase().includes('help me create') ||
+      content.toLowerCase().includes('suggest a')) {
+    intent = 'BRAINSTORM';
+  }
+  
   return {
     intent: intent as any,
     metadata: {
