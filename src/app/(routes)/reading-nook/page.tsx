@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Book, MessageCircle, ArrowLeft, Send, Star } from 'lucide-react';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 interface BookRecommendation {
   title: string;

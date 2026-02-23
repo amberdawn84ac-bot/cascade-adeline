@@ -22,6 +22,7 @@
     "@ai-sdk/openai": "^3.0.26",
     "@ai-sdk/react": "^1.1.12",
     "@langchain/langgraph": "^1.1.4",
+    "@nanostores/react": "github:ai/react",
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
     "@react-pdf/renderer": "^4.3.0",
