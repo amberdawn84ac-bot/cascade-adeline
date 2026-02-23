@@ -46,82 +46,96 @@ If you cannot confidently map, return {"matchedRuleKey": null}.
     if (cleanText.startsWith('```')) {
       cleanText = cleanText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
     }
+    
+    console.log('[lifeCreditLogger] LLM response:', cleanText);
     const parsed = JSON.parse(cleanText);
-    if (!parsed || !parsed.matchedRuleKey) return null;
+    console.log('[lifeCreditLogger] Parsed result:', parsed);
+    
+    if (!parsed || !parsed.matchedRuleKey) {
+      console.log('[lifeCreditLogger] No matched rule key found');
+      return null;
+    }
     return parsed;
   } catch (err) {
-    console.warn('lifeCreditLogger JSON parse failed', err);
+    console.warn('[lifeCreditLogger] JSON parse failed:', err);
+    console.warn('[lifeCreditLogger] Raw text was:', text);
     return null;
   }
 }
 
 export async function lifeCreditLogger(state: AdelineGraphState): Promise<AdelineGraphState> {
-  const config = loadConfig();
-  const rules = config.life_to_credit_rules;
-  const modelId = config.models.default;
+  try {
+    console.log('[lifeCreditLogger] Processing activity:', state.prompt);
+    const config = loadConfig();
+    const rules = config.life_to_credit_rules;
+    const modelId = config.models.default;
 
-  const llmResult = await llmMatchLifeRule(state.prompt, rules, modelId);
+    const llmResult = await llmMatchLifeRule(state.prompt, rules, modelId);
+    console.log('[lifeCreditLogger] LLM result:', llmResult);
 
-  if (!llmResult) {
-    return {
-      ...state,
-      metadata: {
-        ...state.metadata,
-        lifeCreditLogger: { matched: false },
-      },
-    };
-  }
-
-  const mapping: LifeCreditMapping = {
-    activity: llmResult.activityDescription || state.prompt,
-    matchedRuleKey: llmResult.matchedRuleKey,
-    mappedSubjects: Array.isArray(llmResult.mappedSubjects)
-      ? llmResult.mappedSubjects.join(', ')
-      : String(llmResult.mappedSubjects ?? ''),
-    confidence: 1,
-  };
-
-  const transcriptDraft: TranscriptDraft = {
-    activityName: llmResult.activityDescription || state.prompt,
-    mappedSubject: mapping.mappedSubjects,
-    creditsEarned: Number(llmResult.suggestedCredits ?? 0.01) || 0.01,
-    notes: llmResult.extensionSuggestion || `Auto-mapped from life activity: ${state.prompt}`,
-  };
-
-  // Auto-schedule related concepts for spaced repetition review
-  const scheduledConcepts: string[] = [];
-  if (state.userId && Array.isArray(llmResult.mappedSubjects)) {
-    try {
-      // Extract concept keywords from mapped subjects (e.g. "Chemistry: Fermentation" → "Fermentation")
-      const keywords = llmResult.mappedSubjects.map((s: string) => {
-        const parts = s.split(':');
-        return (parts[parts.length - 1] || s).trim().toLowerCase();
-      });
-
-      // Find matching concepts in the knowledge graph
-      const concepts = await prisma.concept.findMany({
-        where: {
-          OR: keywords.map((kw: string) => ({
-            name: { contains: kw, mode: 'insensitive' as const },
-          })),
+    if (!llmResult) {
+      console.log('[lifeCreditLogger] No LLM result, returning unmatched state');
+      return {
+        ...state,
+        metadata: {
+          ...state.metadata,
+          lifeCreditLogger: { matched: false },
         },
-        select: { id: true, name: true },
-      });
-
-      for (const concept of concepts) {
-        await scheduleConceptReview(state.userId, concept.id);
-        scheduledConcepts.push(concept.name);
-      }
-    } catch (err) {
-      console.warn('[lifeCreditLogger] Failed to schedule concept reviews:', err);
+      };
     }
-  }
 
-  // Build a user-friendly response
-  const reviewNote = scheduledConcepts.length > 0
-    ? `\n📚 **Scheduled for review:** ${scheduledConcepts.join(', ')}` : '';
+    const mapping: LifeCreditMapping = {
+      activity: llmResult.activityDescription || state.prompt,
+      matchedRuleKey: llmResult.matchedRuleKey,
+      mappedSubjects: Array.isArray(llmResult.mappedSubjects)
+        ? llmResult.mappedSubjects.join(', ')
+        : String(llmResult.mappedSubjects ?? ''),
+      confidence: 1,
+    };
 
-  const responseContent = `Great work! I've logged your activity:
+    const transcriptDraft: TranscriptDraft = {
+      activityName: llmResult.activityDescription || state.prompt,
+      mappedSubject: mapping.mappedSubjects,
+      creditsEarned: Number(llmResult.suggestedCredits ?? 0.01) || 0.01,
+      notes: llmResult.extensionSuggestion || `Auto-mapped from life activity: ${state.prompt}`,
+    };
+
+    console.log('[lifeCreditLogger] Created transcript draft:', transcriptDraft);
+
+    // Auto-schedule related concepts for spaced repetition review
+    const scheduledConcepts: string[] = [];
+    if (state.userId && Array.isArray(llmResult.mappedSubjects)) {
+      try {
+        // Extract concept keywords from mapped subjects (e.g. "Chemistry: Fermentation" → "Fermentation")
+        const keywords = llmResult.mappedSubjects.map((s: string) => {
+          const parts = s.split(':');
+          return (parts[parts.length - 1] || s).trim().toLowerCase();
+        });
+
+        // Find matching concepts in the knowledge graph
+        const concepts = await prisma.concept.findMany({
+          where: {
+            OR: keywords.map((kw: string) => ({
+              name: { contains: kw, mode: 'insensitive' as const },
+            })),
+          },
+          select: { id: true, name: true },
+        });
+
+        for (const concept of concepts) {
+          await scheduleConceptReview(state.userId, concept.id);
+          scheduledConcepts.push(concept.name);
+        }
+      } catch (err) {
+        console.warn('[lifeCreditLogger] Failed to schedule concept reviews:', err);
+      }
+    }
+
+    // Build a user-friendly response
+    const reviewNote = scheduledConcepts.length > 0
+      ? `\n📚 **Scheduled for review:** ${scheduledConcepts.join(', ')}` : '';
+
+    const responseContent = `Great work! I've logged your activity:
 
 **Activity:** ${transcriptDraft.activityName}
 **Subjects/Skills:** ${transcriptDraft.mappedSubject}
@@ -129,18 +143,32 @@ export async function lifeCreditLogger(state: AdelineGraphState): Promise<Adelin
 ${reviewNote}
 ${llmResult.extensionSuggestion ? `**Extension Idea:** ${llmResult.extensionSuggestion}` : ''}`;
 
-  return {
-    ...state,
-    lifeCredit: mapping,
-    transcriptDraft,
-    responseContent,
-    metadata: {
-      ...state.metadata,
-      lifeCreditLogger: {
-        matched: true,
-        mapping,
-        transcriptDraft,
+    console.log('[lifeCreditLogger] Successfully processed activity');
+    return {
+      ...state,
+      lifeCredit: mapping,
+      transcriptDraft,
+      responseContent,
+      metadata: {
+        ...state.metadata,
+        lifeCreditLogger: {
+          matched: true,
+          mapping,
+          transcriptDraft,
+        },
       },
-    },
-  };
+    };
+  } catch (error) {
+    console.error('[lifeCreditLogger] Unexpected error:', error);
+    return {
+      ...state,
+      metadata: {
+        ...state.metadata,
+        lifeCreditLogger: { 
+          matched: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        } as any,
+      },
+    };
+  }
 }
