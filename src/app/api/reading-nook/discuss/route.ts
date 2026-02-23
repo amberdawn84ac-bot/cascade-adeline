@@ -13,7 +13,12 @@ export async function POST(req: NextRequest) {
     let bookAuthor = 'Unknown Author';
     
     if (welcomeMessage && welcomeMessage.content) {
-      const match = welcomeMessage.content.match(/Welcome to the discussion circle for \*(.*?)\* by (.*?)\./);
+      // Handle both string and array content formats
+      const content = typeof welcomeMessage.content === 'string' 
+        ? welcomeMessage.content 
+        : welcomeMessage.content.map(c => c.text || '').join('');
+      
+      const match = content.match(/Welcome to the discussion circle for \*(.*?)\* by (.*?)\./);
       if (match) {
         bookTitle = match[1];
         bookAuthor = match[2];
