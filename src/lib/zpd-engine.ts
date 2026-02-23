@@ -18,11 +18,26 @@ export interface BKTParams {
   pG: number;  // P(G) — guess rate
 }
 
+export interface AdaptiveBKTParams extends BKTParams {
+  studentLearningRate: number;
+  conceptDifficulty: number;
+  historicalPerformance: number[];
+  confidenceInterval: number;
+}
+
 const DEFAULT_BKT: BKTParams = {
   pL: 0.1,   // low prior — assume student doesn't know yet
   pT: 0.15,  // moderate learning rate per opportunity
   pS: 0.05,  // low slip rate
   pG: 0.25,  // moderate guess rate
+};
+
+const DEFAULT_ADAPTIVE_BKT: AdaptiveBKTParams = {
+  ...DEFAULT_BKT,
+  studentLearningRate: 0.15,
+  conceptDifficulty: 0.5,
+  historicalPerformance: [],
+  confidenceInterval: 0.1,
 };
 
 /**
@@ -53,8 +68,83 @@ export function bktUpdate(params: BKTParams, correct: boolean): number {
 }
 
 /**
- * Get BKT params from mastery history, or return defaults.
+ * Calibrate BKT parameters based on student history and concept characteristics.
+ * This implements adaptive parameter tuning for personalized learning.
  */
+export async function calibrateBKTParams(
+  userId: string, 
+  conceptId: string
+): Promise<AdaptiveBKTParams> {
+  // Get student's historical performance across all concepts
+  const studentHistory = await prisma.userConceptMastery.findMany({
+    where: { userId },
+    include: { concept: true },
+    orderBy: { lastPracticed: 'desc' },
+    take: 50, // Last 50 interactions for pattern recognition
+  });
+
+  // Get concept-specific difficulty based on global performance
+  const conceptStats = await prisma.userConceptMastery.aggregate({
+    where: { conceptId },
+    _avg: { masteryLevel: true },
+    _count: { id: true },
+  });
+
+  // Calculate student learning rate from historical improvement patterns
+  const historicalPerformance = studentHistory.map(record => {
+    const history = record.history as any;
+    return history?.entries?.slice(-5) || []; // Last 5 attempts per concept
+  }).flat();
+
+  const avgImprovement = historicalPerformance.length > 1 
+    ? (historicalPerformance[historicalPerformance.length - 1]?.newLevel || 0) -
+      (historicalPerformance[0]?.previousLevel || 0)
+    : 0;
+
+  const studentLearningRate = Math.max(0.05, Math.min(0.5, avgImprovement + 0.15));
+
+  // Calculate concept difficulty (inverse of average mastery)
+  const globalAvgMastery = conceptStats._avg.masteryLevel || 0.5;
+  const conceptDifficulty = 1 - globalAvgMastery;
+
+  // Adjust parameters based on student and concept characteristics
+  const adaptiveParams: AdaptiveBKTParams = {
+    ...DEFAULT_ADAPTIVE_BKT,
+    studentLearningRate,
+    conceptDifficulty,
+    historicalPerformance: historicalPerformance.map(h => h.newLevel || 0),
+    confidenceInterval: Math.max(0.05, 1 - (historicalPerformance.length * 0.1)),
+  };
+
+  // Adaptive parameter adjustment:
+  // - Slower learners get higher learning rate (more support needed)
+  // - Harder concepts get higher slip rate (more likely to make mistakes)
+  // - Fast learners get lower guess rate (more confident)
+  adaptiveParams.pT = studentLearningRate;
+  adaptiveParams.pS = 0.05 + (conceptDifficulty * 0.15); // 5-20% slip rate
+  adaptiveParams.pG = Math.max(0.1, 0.25 - (studentLearningRate * 0.3)); // 10-25% guess rate
+
+  return adaptiveParams;
+}
+
+/**
+ * Enhanced BKT update using adaptive parameters.
+ */
+export function adaptiveBKTUpdate(params: AdaptiveBKTParams, correct: boolean): AdaptiveBKTParams {
+  const newPL = bktUpdate(params, correct);
+  
+  // Update confidence interval based on prediction accuracy
+  const predictionAccuracy = correct ? params.pL : (1 - params.pL);
+  const confidenceAdjustment = Math.abs(0.5 - predictionAccuracy) * 0.1;
+  const newConfidenceInterval = Math.max(0.05, params.confidenceInterval - confidenceAdjustment);
+
+  return {
+    ...params,
+    pL: newPL,
+    confidenceInterval: newConfidenceInterval,
+    historicalPerformance: [...params.historicalPerformance.slice(-19), correct ? 1 : 0],
+  };
+}
 function getBKTFromHistory(history: unknown): BKTParams {
   if (history && typeof history === 'object' && !Array.isArray(history)) {
     const h = history as Record<string, unknown>;
@@ -262,9 +352,9 @@ export async function getZPDConcepts(
 }
 
 /**
- * Update a user's mastery level for a concept using BKT.
+ * Update a user's mastery level for a concept using adaptive BKT.
  * The `correct` flag drives BKT update; `delta` is kept for backward compat.
- * BKT params are persisted in the history JSON field.
+ * Adaptive BKT params are calibrated per student and concept.
  */
 export async function updateMastery(
   userId: string,
@@ -278,20 +368,24 @@ export async function updateMastery(
 
   const currentLevel = existing?.masteryLevel ?? 0;
 
-  // Get current BKT params
-  const bktParams = getBKTFromHistory(existing?.history);
+  // Get or calibrate adaptive BKT params
+  let adaptiveParams: AdaptiveBKTParams;
+  if (existing?.history && typeof existing.history === 'object' && (existing.history as any).adaptiveBkt) {
+    adaptiveParams = (existing.history as any).adaptiveBkt as AdaptiveBKTParams;
+  } else {
+    adaptiveParams = await calibrateBKTParams(userId, conceptId);
+  }
 
   // Determine if this was a correct observation
-  // If evidence.correct is explicitly set, use it; otherwise infer from delta sign
   const correct = evidence?.correct ?? (delta > 0);
 
-  // Run BKT update
-  const newPL = bktUpdate(bktParams, correct);
+  // Run adaptive BKT update
+  const updatedParams = adaptiveBKTUpdate(adaptiveParams, correct);
 
-  // Blend BKT probability with delta-based update (BKT takes priority)
-  const bktLevel = newPL;
+  // Blend adaptive BKT probability with delta-based update (BKT takes priority)
+  const bktLevel = updatedParams.pL;
   const deltaLevel = Math.max(0, Math.min(1, currentLevel + delta));
-  // Use BKT as primary signal, delta as secondary (80/20 blend)
+  // Use adaptive BKT as primary signal, delta as secondary (80/20 blend)
   const newLevel = Math.max(0, Math.min(1, 0.8 * bktLevel + 0.2 * deltaLevel));
 
   const historyEntry = {
@@ -300,7 +394,7 @@ export async function updateMastery(
     newLevel,
     delta,
     correct,
-    bkt: { pL: newPL, pT: bktParams.pT, pS: bktParams.pS, pG: bktParams.pG },
+    adaptiveBkt: updatedParams,
     ...(evidence ?? {}),
   };
 
@@ -313,12 +407,20 @@ export async function updateMastery(
       conceptId,
       masteryLevel: newLevel,
       lastPracticed: new Date(),
-      history: { entries: [historyEntry], bkt: { pL: newPL, pT: bktParams.pT, pS: bktParams.pS, pG: bktParams.pG } } as any,
+      history: { 
+        entries: [historyEntry], 
+        adaptiveBkt: updatedParams,
+        bkt: { pL: updatedParams.pL, pT: updatedParams.pT, pS: updatedParams.pS, pG: updatedParams.pG }
+      } as any,
     },
     update: {
       masteryLevel: newLevel,
       lastPracticed: new Date(),
-      history: { entries: [...(existingHistory as any[]), historyEntry], bkt: { pL: newPL, pT: bktParams.pT, pS: bktParams.pS, pG: bktParams.pG } } as any,
+      history: { 
+        entries: [...(existingHistory as any[]), historyEntry], 
+        adaptiveBkt: updatedParams,
+        bkt: { pL: updatedParams.pL, pT: updatedParams.pT, pS: updatedParams.pS, pG: updatedParams.pG }
+      } as any,
     },
   });
 }
