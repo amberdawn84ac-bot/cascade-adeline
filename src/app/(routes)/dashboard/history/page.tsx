@@ -1,6 +1,7 @@
 import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Clock, Users, BookOpen, Search, ScrollText, Eye, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 import { Timeline } from '@/components/gen-ui/Timeline';
 import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
 import prisma from '@/lib/db';
@@ -108,35 +109,50 @@ export default async function HistoryPage() {
 
       {/* Feature Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-amber-100 rounded-xl w-fit text-amber-700">
-            <BookOpen size={24} />
+        <Link href="/library" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg">
+            <div className="mb-4 p-3 bg-amber-100 rounded-xl w-fit text-amber-700">
+              <BookOpen size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Primary Sources</h3>
+            <p className="text-slate-600 text-sm">
+              Read actual documents, letters, and records from historical events instead of textbook summaries.
+            </p>
+            <div className="mt-4 text-indigo-600 font-semibold text-sm group-hover:text-indigo-700">
+              Explore Library →
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Primary Sources</h3>
-          <p className="text-slate-600 text-sm">
-            Read actual documents, letters, and records from historical events instead of textbook summaries.
-          </p>
-        </div>
+        </Link>
 
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700">
-            <Eye size={24} />
+        <Link href="/dashboard/history/analysis" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg">
+            <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700">
+              <Eye size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Critical Analysis</h3>
+            <p className="text-slate-600 text-sm">
+              Compare what you're taught with what primary sources actually reveal about historical events.
+            </p>
+            <div className="mt-4 text-purple-600 font-semibold text-sm group-hover:text-purple-700">
+              Start Analysis →
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Critical Analysis</h3>
-          <p className="text-slate-600 text-sm">
-            Compare what you're taught with what primary sources actually reveal about historical events.
-          </p>
-        </div>
+        </Link>
 
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-red-100 rounded-xl w-fit text-red-700">
-            <AlertTriangle size={24} />
+        <Link href="/dashboard/history/investigation" className="group block">
+          <div className="bg-white p-6 rounded-[2rem] border-2 border-indigo-100 hover:border-indigo-300 transition-all hover:shadow-lg">
+            <div className="mb-4 p-3 bg-red-100 rounded-xl w-fit text-red-700">
+              <AlertTriangle size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Follow the Money</h3>
+            <p className="text-slate-600 text-sm">
+              Understand who profits from how history is presented and why certain narratives are promoted.
+            </p>
+            <div className="mt-4 text-red-600 font-semibold text-sm group-hover:text-red-700">
+              Start Investigation →
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Follow the Money</h3>
-          <p className="text-slate-600 text-sm">
-            Understand who profits from how history is presented and why certain narratives are promoted.
-          </p>
-        </div>
+        </Link>
       </div>
 
       {/* Interactive Timeline */}
@@ -210,12 +226,18 @@ export default async function HistoryPage() {
           This is a collaborative timeline. Contribute primary sources you discover and help uncover the truth about history.
         </p>
         <div className="flex gap-4">
-          <button className="bg-white text-purple-600 px-6 py-3 rounded-xl font-bold hover:bg-purple-50 transition-colors">
+          <Link 
+            href="/library" 
+            className="bg-white text-purple-600 px-6 py-3 rounded-xl font-bold hover:bg-purple-50 transition-colors inline-block"
+          >
             Add Primary Source
-          </button>
-          <button className="bg-purple-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-800 transition-colors">
+          </Link>
+          <Link 
+            href="/dashboard/history/guidelines" 
+            className="bg-purple-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-800 transition-colors inline-block"
+          >
             Research Guidelines
-          </button>
+          </Link>
         </div>
       </div>
     </div>
