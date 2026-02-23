@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { messages } = body;
 
     // Get the last assistant message to extract book info
-    const welcomeMessage = messages.find(m => m.role === 'assistant');
+    const welcomeMessage = messages.find((m: any) => m.role === 'assistant');
     let bookTitle = 'Unknown Book';
     let bookAuthor = 'Unknown Author';
     
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       // Handle both string and array content formats
       const content = typeof welcomeMessage.content === 'string' 
         ? welcomeMessage.content 
-        : welcomeMessage.content.map(c => c.text || '').join('');
+        : welcomeMessage.content.map((c: any) => c.text || '').join('');
       
       const match = content.match(/Welcome to the discussion circle for \*(.*?)\* by (.*?)\./);
       if (match) {
@@ -42,7 +42,7 @@ Respond as the book club facilitator, not as an AI assistant.`;
       model: openai('gpt-4'),
       messages: [
         { role: 'system', content: systemPrompt },
-        ...messages.filter(m => m.role !== 'system')
+        ...messages.filter((m: any) => m.role !== 'system')
       ],
       temperature: 0.7,
     });

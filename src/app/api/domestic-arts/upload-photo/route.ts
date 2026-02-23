@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         request_type: 'domestic_arts_photo_analysis',
         projectId,
       },
-    };
+    } as any;
 
     // Run the LangGraph for vision analysis
     const result = await adelineBrainRunnable.invoke(initialState);
