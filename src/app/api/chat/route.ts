@@ -1,23 +1,10 @@
 import { NextRequest } from 'next/server';
-import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+import { streamText } from 'ai';
 import { HumanMessage } from '@langchain/core/messages';
 import { adelineBrainRunnable } from '@/lib/langgraph';
 import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
-
-function textAsUIStream(text: string, meta?: Record<string, unknown>): Response {
-  const stream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      if (meta) writer.write({ type: 'start', messageMetadata: meta });
-      writer.write({ type: 'text-start', id: 'msg' });
-      writer.write({ type: 'text-delta', id: 'msg', delta: text });
-      writer.write({ type: 'text-end', id: 'msg' });
-      writer.write({ type: 'finish', finishReason: 'stop', ...(meta ? { messageMetadata: meta } : {}) });
-    },
-  });
-  return createUIMessageStreamResponse({ stream });
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,17 +30,19 @@ export async function POST(req: NextRequest) {
       metadata: { timestamp: new Date().toISOString(), user_role: user.role },
     };
 
-    // Run the LangGraph Brain
+    // Run the LangGraph Brain to get result
     const result = await adelineBrainRunnable.invoke(initialState);
     const responseContent = result.response_content || "I am processing that request. Give me just a moment.";
     
-    // Merge GenUI payload into metadata if it exists
-    const finalMetadata = {
-      ...result.metadata,
-      ...(result.genUIPayload ? { genUIPayload: result.genUIPayload } : {})
-    };
+    // Create a simple text response with GenUI payload in metadata
+    return new Response(JSON.stringify({
+      content: responseContent,
+      genUIPayload: result.genUIPayload,
+      metadata: result.metadata
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
     
-    return textAsUIStream(responseContent, finalMetadata);
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response('Internal server error', { status: 500 });

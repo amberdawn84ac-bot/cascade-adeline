@@ -153,7 +153,30 @@ export default function ChatPage() {
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
     if (!lastAssistant) return;
     const meta = (lastAssistant as any).metadata;
-    if (meta?.genUIPayload) setGenUIPayload(meta.genUIPayload);
+    
+    // Safely extract and validate genUIPayload
+    if (meta?.genUIPayload) {
+      try {
+        // If it's a string, parse it as JSON
+        const payload = typeof meta.genUIPayload === 'string' 
+          ? JSON.parse(meta.genUIPayload) 
+          : meta.genUIPayload;
+        
+        // Validate payload structure
+        if (payload && typeof payload === 'object' && payload.component) {
+          setGenUIPayload(payload);
+        } else {
+          console.warn('Invalid genUIPayload structure:', payload);
+          setGenUIPayload(null);
+        }
+      } catch (error) {
+        console.error('Failed to parse genUIPayload:', error);
+        setGenUIPayload(null);
+      }
+    } else {
+      setGenUIPayload(null);
+    }
+    
     if (meta?.gapNudge) setGapNudge(String(meta.gapNudge));
     if (meta?.intent) setDetectedIntent(meta.intent);
   }, [messages]);
