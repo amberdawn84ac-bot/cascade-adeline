@@ -19,7 +19,7 @@ export default async function ArcadePage() {
             <Gamepad2 size={32} />
           </div>
           <h1 className="text-3xl font-bold text-violet-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-            The Arcade
+            Game Arcade
           </h1>
         </div>
         <p className="text-violet-800/70 text-lg max-w-2xl">

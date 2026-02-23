@@ -66,7 +66,7 @@ async function getDashboardData(userId: string) {
 const ROOMS = [
   {
     id: 'science',
-    title: 'The Laboratory',
+    title: 'Science Lab',
     subtitle: 'Life Sciences & Chemistry',
     icon: FlaskConical,
     color: 'bg-emerald-500/10',
@@ -76,7 +76,7 @@ const ROOMS = [
   },
   {
     id: 'math',
-    title: 'The Counting House',
+    title: 'Math Hub',
     subtitle: 'Applied Math & Business',
     icon: Calculator,
     color: 'bg-amber-500/10',
@@ -86,7 +86,7 @@ const ROOMS = [
   },
   {
     id: 'ela',
-    title: 'The Scriptorium',
+    title: 'Deep Dives',
     subtitle: 'Rhetoric & Communication',
     icon: Feather,
     color: 'bg-rose-500/10',
@@ -96,7 +96,7 @@ const ROOMS = [
   },
   {
     id: 'history',
-    title: 'The Great Archive',
+    title: 'History Zone',
     subtitle: 'History & Discernment',
     icon: ScrollText,
     color: 'bg-indigo-500/10',
@@ -106,7 +106,7 @@ const ROOMS = [
   },
   {
     id: 'arcade',
-    title: 'The Arcade',
+    title: 'Game Arcade',
     subtitle: 'Games & Coding',
     icon: Gamepad2,
     color: 'bg-violet-500/10',

@@ -33,11 +33,11 @@ const NAV_ITEMS = [
     href: '/dashboard', 
     icon: Home,
     children: [
-      { label: 'The Laboratory', href: '/dashboard/science', icon: FlaskConical },
-      { label: 'The Counting House', href: '/dashboard/math', icon: Calculator },
-      { label: 'The Scriptorium', href: '/dashboard/ela', icon: Feather },
-      { label: 'The Great Archive', href: '/dashboard/history', icon: ScrollText },
-      { label: 'The Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
+      { label: 'Science Lab', href: '/dashboard/science', icon: FlaskConical },
+      { label: 'Math Hub', href: '/dashboard/math', icon: Calculator },
+      { label: 'Deep Dives', href: '/dashboard/ela', icon: Feather },
+      { label: 'History Zone', href: '/dashboard/history', icon: ScrollText },
+      { label: 'Game Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
     ]
   },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
@@ -108,7 +108,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                 Dear Adeline
               </span>
               <span className="text-[10px] font-black uppercase tracking-widest text-[#BD6809] mt-1">
-                Academy
+                Learning Hub
               </span>
             </div>
           </div>
