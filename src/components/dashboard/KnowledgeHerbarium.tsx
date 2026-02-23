@@ -6,8 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { BookOpen, TrendingUp, Award, Download, FileText } from 'lucide-react';
-import prisma from '@/lib/db';
-import { getSessionUser } from '@/lib/auth';
 
 // Graduation Requirements (in Credits)
 const GRADUATION_REQS: Record<string, number> = {
@@ -46,27 +44,18 @@ export default function KnowledgeHerbarium({ userId }: KnowledgeHerbariumProps) 
     try {
       setLoading(true);
       
-      // Fetch approved transcript entries
-      const entries = await prisma.transcriptEntry.findMany({
-        where: {
-          userId: userId,
-          approvedById: { not: null }, // Only approved entries
-        },
-        select: {
-          mappedSubject: true,
-          creditsEarned: true,
-          notes: true,
-          dateCompleted: true,
-        },
-        orderBy: {
-          dateCompleted: 'desc',
-        },
-      });
+      // Fetch transcript entries via API
+      const response = await fetch('/api/transcript/entries');
+      if (!response.ok) {
+        throw new Error('Failed to fetch transcript entries');
+      }
+      
+      const entries = await response.json();
 
       // Calculate progress by subject
       const progressMap = new Map<string, number>();
       
-      entries.forEach((entry) => {
+      entries.forEach((entry: any) => {
         const subject = entry.mappedSubject || 'Elective';
         const credits = Number(entry.creditsEarned);
         progressMap.set(subject, (progressMap.get(subject) || 0) + credits);
@@ -85,12 +74,12 @@ export default function KnowledgeHerbarium({ userId }: KnowledgeHerbariumProps) 
 
       // Extract recent standards from notes
       const standards: string[] = [];
-      entries.slice(0, 5).forEach(entry => {
+      entries.slice(0, 5).forEach((entry: any) => {
         if (entry.notes) {
           // Try to extract standards from notes (this would depend on your data format)
           const standardMatches = entry.notes.match(/(?:Standard|CCSS|NGSS)[\s:]*([A-Z\-\.\d]+)/gi);
           if (standardMatches) {
-            standards.push(...standardMatches.map(s => s.trim()));
+            standards.push(...standardMatches.map((s: string) => s.trim()));
           }
         }
       });
