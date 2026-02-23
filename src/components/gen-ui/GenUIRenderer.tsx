@@ -34,19 +34,53 @@ const INTENT_BORDER_COLORS: Record<string, string> = {
 
 function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) {
   const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const handleError = (error: ErrorEvent) => {
       console.error('GenUIRenderer ErrorBoundary caught an error:', error);
       setHasError(true);
+      setError(error.error || new Error(String(error.message)));
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('GenUIRenderer ErrorBoundary caught unhandled rejection:', event);
+      setHasError(true);
+      setError(new Error(String(event.reason)));
     };
 
     window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   if (hasError) {
-    return <>{fallback}</>;
+    return (
+      <div style={{
+        padding: '16px',
+        border: '1px solid #ff6b6b',
+        borderRadius: '8px',
+        backgroundColor: '#ffe0e0',
+        color: '#d63031',
+        fontSize: '14px',
+        fontFamily: 'monospace'
+      }}>
+        <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+          ⚠️ Component Rendering Error
+        </div>
+        <div style={{ marginBottom: '8px' }}>
+          {error?.message || 'An unknown error occurred while rendering this component.'}
+        </div>
+        <div style={{ fontSize: '12px', opacity: 0.7 }}>
+          Please try again or contact support if this persists.
+        </div>
+        {fallback}
+      </div>
+    );
   }
 
   return <>{children}</>;
@@ -63,17 +97,47 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     }
   }, [payload?.component]);
 
-  if (!payload) return null;
-
-  // Validate payload structure
-  if (!payload || typeof payload !== 'object' || !payload.component) {
-    console.warn('Invalid GenUI payload:', payload);
+  if (!payload) {
+    console.log('[GenUIRenderer] No payload provided, returning null');
     return null;
+  }
+
+  // Enhanced payload validation
+  if (!payload || typeof payload !== 'object') {
+    console.warn('[GenUIRenderer] Invalid payload type:', typeof payload, payload);
+    return (
+      <div style={{
+        padding: '12px',
+        border: '1px solid #ffa502',
+        borderRadius: '6px',
+        backgroundColor: '#fff5e6',
+        color: '#d63031',
+        fontSize: '13px'
+      }}>
+        ⚠️ Invalid component data received
+      </div>
+    );
+  }
+
+  if (!payload.component) {
+    console.warn('[GenUIRenderer] Payload missing component property:', payload);
+    return (
+      <div style={{
+        padding: '12px',
+        border: '1px solid #ffa502',
+        borderRadius: '6px',
+        backgroundColor: '#fff5e6',
+        color: '#d63031',
+        fontSize: '13px'
+      }}>
+        ⚠️ Component type not specified
+      </div>
+    );
   }
 
   const Component = componentMap[payload.component];
   if (!Component) {
-    console.warn(`Unknown GenUI component type: ${payload.component}`);
+    console.warn(`[GenUIRenderer] Unknown GenUI component type: ${payload.component}`);
     return (
       <div style={{
         padding: '16px',
@@ -83,7 +147,15 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
         color: '#d63031',
         fontSize: '14px'
       }}>
-        Unknown component type: {payload.component}
+        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+          🚫 Unknown Component
+        </div>
+        <div>
+          Component type: <code>{payload.component}</code>
+        </div>
+        <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
+          Available components: {Object.keys(componentMap).join(', ')}
+        </div>
       </div>
     );
   }
@@ -94,38 +166,50 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     <ErrorBoundary
       fallback={
         <div style={{
-          padding: '16px',
+          padding: '12px',
           border: '1px solid #ff6b6b',
-          borderRadius: '8px',
+          borderRadius: '6px',
           backgroundColor: '#ffe0e0',
           color: '#d63031',
-          fontSize: '14px'
+          fontSize: '13px'
         }}>
-          Failed to render {payload.component}. The component might be malformed.
+          ⚠️ Content rendering failed
         </div>
       }
     >
       <>
         {showConfetti && (
           <Confetti
-            numberOfPieces={50}
+            width={window.innerWidth}
+            height={window.innerHeight}
             recycle={false}
-            colors={['#BD6809', '#FFD700', '#9A3F4A', '#2F4731']}
+            numberOfPieces={100}
           />
         )}
         <motion.div
-          data-genui-type={payload.component}
-          initial={{ opacity: 0, scale: 0.95, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
           style={{
-            borderLeft: `4px solid ${borderColor}`,
-            borderRadius: 16,
-            overflow: 'hidden',
-            boxShadow: '0 12px 28px rgba(0,0,0,0.08)',
+            border: `2px solid ${borderColor}`,
+            borderRadius: '12px',
+            padding: '16px',
+            margin: '16px 0',
+            backgroundColor: '#FFFEF7',
+            boxShadow: `0 4px 12px ${borderColor}20`,
           }}
         >
-          <Component {...payload.props} />
+          <div style={{
+            fontSize: '12px',
+            fontWeight: '600',
+            color: borderColor,
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            {payload.component}
+          </div>
+          <Component {...(payload.props || {})} />
         </motion.div>
       </>
     </ErrorBoundary>

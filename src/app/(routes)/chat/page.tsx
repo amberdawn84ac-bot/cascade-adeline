@@ -47,6 +47,33 @@ export default function ChatPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, setInput, append, error } = useChat({
     api: '/api/chat',
     body: {},
+    // Custom handling for the response to extract GenUI metadata
+    onResponse: async (response) => {
+      try {
+        const data = await response.json();
+        
+        // Check if response contains GenUI payload
+        if (data.genUIPayload || data.metadata?.genUIPayload) {
+          // Store the GenUI payload in a way that can be accessed by the message
+          const genUIPayload = data.genUIPayload || data.metadata?.genUIPayload;
+          
+          // Add the payload to the last message's metadata
+          if (messages.length > 0) {
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage.role === 'assistant') {
+              // Attach the GenUI payload to the message
+              (lastMessage as any).genUIPayload = genUIPayload;
+              (lastMessage as any).metadata = {
+                ...data.metadata,
+                genUIPayload
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse chat response:', error);
+      }
+    },
   });
   const [gapNudge, setGapNudge] = useState<string | null>(null);
   const [genUIPayload, setGenUIPayload] = useState<any | null>(null);
@@ -152,25 +179,37 @@ export default function ChatPage() {
   useEffect(() => {
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
     if (!lastAssistant) return;
-    const meta = (lastAssistant as any).metadata;
+    
+    // Try multiple sources for metadata
+    const meta = (lastAssistant as any).metadata || 
+                 (lastAssistant as any).data || 
+                 (lastAssistant as any).annotations ||
+                 {};
+    
+    // Also check for direct genUIPayload attachment
+    const directPayload = (lastAssistant as any).genUIPayload;
+    
+    console.log('[ChatPage] Extracting metadata:', { meta, directPayload });
     
     // Safely extract and validate genUIPayload
-    if (meta?.genUIPayload) {
+    const payloadSource = directPayload || meta?.genUIPayload || meta?.genuiPayload;
+    if (payloadSource) {
       try {
         // If it's a string, parse it as JSON
-        const payload = typeof meta.genUIPayload === 'string' 
-          ? JSON.parse(meta.genUIPayload) 
-          : meta.genUIPayload;
+        const payload = typeof payloadSource === 'string' 
+          ? JSON.parse(payloadSource) 
+          : payloadSource;
         
         // Validate payload structure
         if (payload && typeof payload === 'object' && payload.component) {
+          console.log('[ChatPage] Valid GenUI payload found:', payload.component);
           setGenUIPayload(payload);
         } else {
-          console.warn('Invalid genUIPayload structure:', payload);
+          console.warn('[ChatPage] Invalid genUIPayload structure:', payload);
           setGenUIPayload(null);
         }
       } catch (error) {
-        console.error('Failed to parse genUIPayload:', error);
+        console.error('[ChatPage] Failed to parse genUIPayload:', error);
         setGenUIPayload(null);
       }
     } else {

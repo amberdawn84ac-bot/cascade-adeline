@@ -3,63 +3,146 @@ import { Calendar, Circle } from 'lucide-react';
 
 interface TimelineProps {
   content: string;
+  title?: string;
+  events?: Array<{ date: string; event: string }>;
 }
 
-export function Timeline({ content }: TimelineProps) {
-  // Simple parser to extract year/date and event text
-  // Expected format: "- 1776: Declaration of Independence" or similar list items
-  const items = content.split('\n')
-    .filter(line => line.trim().startsWith('-') || line.trim().match(/^\d/))
-    .map(line => {
-      const cleanLine = line.replace(/^-\s*/, '').trim();
-      const match = cleanLine.match(/^(\d{4}(?:-\d{4})?|.*?:\s*)(.*)/);
-      
-      if (match) {
-        return {
-          date: match[1].replace(/:$/, '').trim(),
-          event: match[2].trim()
-        };
-      }
-      return { date: '', event: cleanLine };
-    })
-    .filter(item => item.event.length > 0);
-
+export function Timeline({ content, title, events: propEvents }: TimelineProps) {
+  console.log('[Timeline] Props received:', { content, title, events: propEvents });
+  
+  // Use provided events or parse from content
+  let parsedEvents = propEvents || [];
+  
+  if (!propEvents && content) {
+    // Enhanced parser to extract year/date and event text
+    // Expected format: "- 1776: Declaration of Independence" or similar list items
+    parsedEvents = content.split('\n')
+      .filter(line => {
+        const trimmedLine = line.trim();
+        return trimmedLine.startsWith('-') || 
+               trimmedLine.match(/^\d/) || 
+               trimmedLine.includes(':');
+      })
+      .map(line => {
+        const cleanLine = line.replace(/^-\s*/, '').trim();
+        
+        // Try multiple date formats
+        let match = cleanLine.match(/^(\d{4}(?:-\d{4})?|.*?:\s*)(.*)/);
+        
+        if (!match) {
+          // Try format like "1776 - Declaration of Independence"
+          match = cleanLine.match(/^(\d{4})\s*[-—–]\s*(.*)/);
+        }
+        
+        if (!match) {
+          // Try format like "Declaration of Independence (1776)"
+          match = cleanLine.match(/^(.*)\s*\((\d{4}(?:-\d{4})?)\)\s*$/);
+          if (match) {
+            // Swap groups for this format
+            match = [match[0], match[2], match[1]];
+          }
+        }
+        
+        if (match) {
+          const date = match[1].replace(/:$/, '').trim();
+          const event = match[2].trim();
+          return { date: date || 'Unknown', event: event || cleanLine };
+        }
+        
+        // Fallback: treat entire line as event with no date
+        return { date: 'Overview', event: cleanLine };
+      })
+      .filter(item => item.event && item.event.length > 0);
+  }
+  
   // Fallback if parsing fails or content isn't a list
-  const displayItems = items.length > 0 ? items : [{ date: 'Overview', event: content }];
+  const displayEvents = parsedEvents.length > 0 
+    ? parsedEvents 
+    : content 
+      ? [{ date: 'Overview', event: content }]
+      : [{ date: 'No Data', event: 'No timeline events available' }];
+
+  console.log('[Timeline] Display events:', displayEvents);
 
   return (
-    <div className="bg-white p-6 md:p-8">
-      <div className="flex items-center gap-3 mb-8 border-b border-[#E7DAC3] pb-4">
-        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-700">
-          <Calendar size={24} />
-        </div>
-        <h3 className="text-xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-          Historical Timeline
+    <div style={{ padding: '16px 0' }}>
+      {title && (
+        <h3 style={{ 
+          fontSize: '18px', 
+          fontWeight: '600', 
+          marginBottom: '16px',
+          color: '#2F4731'
+        }}>
+          {title}
         </h3>
-      </div>
-
-      <div className="relative border-l-2 border-indigo-100 ml-3 md:ml-4 space-y-8 md:space-y-12">
-        {displayItems.map((item, idx) => (
-          <motion.div 
-            key={idx}
+      )}
+      
+      <div style={{ position: 'relative', paddingLeft: '20px' }}>
+        {/* Timeline line */}
+        <div style={{
+          position: 'absolute',
+          left: '8px',
+          top: 0,
+          bottom: 0,
+          width: '2px',
+          backgroundColor: '#6366F1',
+          borderRadius: '1px'
+        }} />
+        
+        {/* Timeline events */}
+        {displayEvents.map((item: any, index: number) => (
+          <motion.div
+            key={index}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className="relative pl-8 md:pl-12"
+            transition={{ delay: index * 0.1, duration: 0.3 }}
+            style={{ 
+              marginBottom: index < displayEvents.length - 1 ? '20px' : '0',
+              position: 'relative'
+            }}
           >
-            {/* Dot */}
-            <div className="absolute -left-[9px] top-1 bg-white border-2 border-indigo-400 rounded-full w-4 h-4 flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
+            {/* Timeline dot */}
+            <div style={{
+              position: 'absolute',
+              left: '-16px',
+              top: '4px',
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              backgroundColor: '#6366F1',
+              border: '3px solid #FFFEF7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Circle size={6} fill="#FFFEF7" color="#6366F1" />
             </div>
-
-            {/* Content */}
-            <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-4">
-              <span className="font-bold text-indigo-600 font-mono text-lg md:text-xl md:w-32 flex-shrink-0">
+            
+            {/* Event content */}
+            <div style={{
+              backgroundColor: '#F8F9FA',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              border: '1px solid #E9ECEF'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                marginBottom: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#6366F1'
+              }}>
+                <Calendar size={14} style={{ marginRight: '6px' }} />
                 {item.date}
-              </span>
-              <p className="text-[#4B3424] leading-relaxed text-base md:text-lg">
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                lineHeight: '1.4',
+                color: '#2F4731'
+              }}>
                 {item.event}
-              </p>
+              </div>
             </div>
           </motion.div>
         ))}
