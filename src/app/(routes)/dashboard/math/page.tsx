@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation';
 import { Calculator, TrendingUp, PieChart, Ruler } from 'lucide-react';
 import { DottedArrow } from '@/components/illustrations';
 import Link from 'next/link';
+import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
+import prisma from '@/lib/db';
+import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
 
 export default async function MathPage() {
   const session = await getSessionUser();
@@ -10,6 +13,16 @@ export default async function MathPage() {
   if (!session) {
     redirect('/login');
   }
+
+  // Get user data for grade level
+  const userData = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { gradeLevel: true }
+  });
+  
+  const gradeLevel = userData?.gradeLevel || '3';
+  const attentionSpan = getAttentionSpanForGrade(gradeLevel);
+  const interactiveType = getInteractiveTypeForGrade(gradeLevel);
 
   return (
     <div className="space-y-8">
@@ -22,11 +35,14 @@ export default async function MathPage() {
           <h1 className="text-3xl font-bold text-amber-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
             Math Hub
           </h1>
+          <p className="text-amber-800/70 text-lg">
+            Grade {gradeLevel} Math Activities • {attentionSpan}-min sessions • {interactiveType} interactions
+          </p>
+          <p className="text-amber-800/70 text-lg max-w-2xl">
+            Welcome to the world of numbers! Here you can master mathematical concepts through
+            real-world applications, problem-solving, and business simulations.
+          </p>
         </div>
-        <p className="text-amber-800/70 text-lg max-w-2xl">
-          Welcome to the world of numbers! Here you can master mathematical concepts through
-          real-world applications, problem-solving, and business simulations.
-        </p>
       </div>
 
       {/* Activities Grid */}

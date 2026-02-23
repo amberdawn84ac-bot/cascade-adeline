@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation';
 import { Feather, BookOpen, PenTool, MessageSquare, FileText } from 'lucide-react';
 import { DottedArrow } from '@/components/illustrations';
 import Link from 'next/link';
+import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
+import prisma from '@/lib/db';
+import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
 
 export default async function ElaPage() {
   const session = await getSessionUser();
@@ -10,6 +13,18 @@ export default async function ElaPage() {
   if (!session) {
     redirect('/login');
   }
+
+  // Get adaptive content based on user's grade level
+  const adaptiveContent = await getUserAdaptiveContent(session.userId, 'reading', 'ela');
+  
+  // Get user data for grade level
+  const userData = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { gradeLevel: true }
+  });
+  
+  const attentionSpan = getAttentionSpanForGrade(userData?.gradeLevel || '3');
+  const interactiveType = getInteractiveTypeForGrade(userData?.gradeLevel || '3');
 
   return (
     <div className="space-y-8">
