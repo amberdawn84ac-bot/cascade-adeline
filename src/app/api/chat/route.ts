@@ -1,10 +1,24 @@
 import { NextRequest } from 'next/server';
-import { streamText } from 'ai';
+import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
 import { HumanMessage } from '@langchain/core/messages';
 import { adelineBrainRunnable } from '@/lib/langgraph';
 import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
+
+function textAsUIStream(text: string, meta?: Record<string, unknown>): Response {
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      if (meta) writer.write({ type: 'start', messageMetadata: meta });
+      writer.write({ type: 'text-start', id: 'msg' });
+      writer.write({ type: 'text-delta', id: 'msg', delta: text });
+      writer.write({ type: 'text-end', id: 'msg' });
+      writer.write({ type: 'finish', finishReason: 'stop', ...(meta ? { messageMetadata: meta } : {}) });
+    }
+  });
+  
+  return createUIMessageStreamResponse({ stream });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,67 +73,12 @@ export async function POST(req: NextRequest) {
     const responseContent = result.response_content || "I'm here to help! Could you tell me more about what you'd like to learn or explore?";
     const genUIPayload = result.genUIPayload;
 
-    // Create stream with proper Vercel AI SDK format
-    const stream = streamText({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'assistant',
-          content: responseContent,
-        }
-      ],
-      onFinish: () => {
-        // This is called when the stream is complete
-      },
-      onError: (error) => {
-        console.error('Stream error:', error);
-      },
+    // Return the stream with GenUI metadata if present
+    return textAsUIStream(responseContent, {
+      intent: result.intent,
+      metadata: result.metadata,
+      genUIPayload: genUIPayload,
     });
-
-    // If there's a GenUI payload, we need to modify the stream to include it
-    if (genUIPayload) {
-      // Create a custom stream that includes both text and GenUI metadata
-      const encoder = new TextEncoder();
-      
-      const customStream = new ReadableStream({
-        async start(controller) {
-          try {
-            // Get the original stream reader
-            const reader = stream.textStream.getReader();
-            
-            // Read and forward all chunks from the original stream
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              
-              if (value) {
-                controller.enqueue(value);
-              }
-            }
-            
-            // After the text stream is complete, add the GenUI payload as metadata
-            const genUIMetadata = {
-              type: 'genui',
-              payload: genUIPayload,
-              timestamp: new Date().toISOString(),
-            };
-            
-            // Send the GenUI metadata as a special chunk
-            controller.enqueue(encoder.encode(`\n\n[GENUI_METADATA]\n${JSON.stringify(genUIMetadata)}\n`));
-            
-            controller.close();
-          } catch (error) {
-            console.error('Custom stream error:', error);
-            controller.error(error);
-          }
-        },
-      });
-      
-      return new Response(customStream);
-    }
-
-    // Return the original stream for text-only responses
-    return stream.toTextStreamResponse();
 
   } catch (error) {
     console.error('Chat API error:', error);
