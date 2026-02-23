@@ -1,5 +1,8 @@
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { AdelineStateType } from "../state";
+import { generateText } from 'ai';
+import { getModel } from '@/lib/ai-models';
+import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import prisma from "@/lib/db";
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
@@ -7,6 +10,9 @@ export async function mentor(state: AdelineStateType): Promise<Partial<AdelineSt
   const content = lastMessage.content as string;
   
   try {
+    // Load Adeline's configuration
+    const config = loadConfig();
+    
     // Check for learning gaps before responding
     const learningGaps = await prisma.learningGap.findMany({
       where: {
@@ -25,42 +31,47 @@ export async function mentor(state: AdelineStateType): Promise<Partial<AdelineSt
       gap.concept.name.toLowerCase().includes(content.toLowerCase())
     );
     
-    let response = "";
-    
+    // Build context for the AI
+    let studentContext = '';
     if (relevantGaps.length > 0) {
-      // Use Socratic questioning to address learning gaps
-      response = `I notice you're asking about ${relevantGaps.map(g => g.concept.name).join(', ')}. Let me help you explore this with some thoughtful questions:\n\n`;
-      
-      relevantGaps.forEach((gap, index) => {
-        response += `**Regarding ${gap.concept.name}:**\n`;
-        response += `• What do you already know about this topic?\n`;
-        response += `• What part feels confusing or challenging?\n`;
-        response += `• Can you think of a real-world example where this might apply?\n\n`;
-      });
-      
-      response += `Take your time to think about these questions. Understanding your current thinking will help me guide you better!`;
-    } else {
-      // General mentorship response
-      response = `That's a great question! I'm here to help you learn and grow.
-
-As your learning mentor, I want to understand your thinking better:
-
-1. **What's your initial take on this?** - Your first thoughts are valuable starting points
-2. **What have you tried so far?** - Previous attempts help us build on what you know
-3. **What specifically would you like to explore?** - We can dive deeper into any part that interests you
-
-Remember, learning is a journey, and every question helps you move forward. I'm here to guide you with thoughtful questions and support your unique learning path!`;
+      studentContext = `Student has ${learningGaps.length} unaddressed learning gaps. Relevant gaps for this question: ${relevantGaps.map(g => g.concept.name).join(', ')}.`;
     }
+    
+    // Build the system prompt with Adeline's voice and rules
+    const systemPrompt = buildSystemPrompt(config, studentContext);
+    
+    // Create the mentor-specific prompt
+    const mentorPrompt = `The student asked: "${content}"
+
+${relevantGaps.length > 0 ? `I notice this connects to their learning gaps in: ${relevantGaps.map(g => g.concept.name).join(', ')}. This is a perfect opportunity for Socratic mentoring.` : 'This is a general learning question.'}
+
+As Adeline the mentor, respond with:
+1. Warm, conversational tone - never formulaic or theatrical
+2. Socratic questioning that guides their thinking
+3. Connection to their unique calling and worth
+4. If relevant to learning gaps: thoughtful questions to explore those concepts
+5. Never say "That's a great question!" or similar formulaic phrases
+
+Remember: Knowledge without love is nothing. Every child has a calling.`;
+
+    // Generate the response using AI
+    const { text } = await generateText({
+      model: getModel(config.models.default),
+      system: systemPrompt,
+      prompt: mentorPrompt,
+      temperature: 0.7,
+    });
     
     return {
       learning_gaps: learningGaps,
-      response_content: response,
+      response_content: text || "I'm here to help you learn and grow. Tell me more about what you're exploring.",
       metadata: {
         ...state.metadata,
         mentor: {
           learning_gaps_found: learningGaps.length,
           relevant_gaps: relevantGaps.length,
           socratic_approach: relevantGaps.length > 0,
+          ai_generated: true,
           timestamp: new Date().toISOString(),
         },
       },

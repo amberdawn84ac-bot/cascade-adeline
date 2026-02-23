@@ -1,5 +1,8 @@
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { AdelineStateType } from "../state";
+import { generateText } from 'ai';
+import { getModel } from '@/lib/ai-models';
+import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import prisma from "@/lib/db";
 
 export async function investigator(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
@@ -7,8 +10,13 @@ export async function investigator(state: AdelineStateType): Promise<Partial<Ade
   const content = lastMessage.content as string;
   
   try {
-    // Search HippocampusDocument table using vector search
-    // For now, we'll do a simple text search since we don't have vector search set up yet
+    // Load Adeline's configuration
+    const config = loadConfig();
+    
+    // Use Claude for investigations as specified in config
+    const investigationModel = getModel(config.models.investigation);
+    
+    // Search for relevant documents and investigations
     let documents: any[] = [];
     try {
       documents = await prisma.hippocampusDocument.findMany({
@@ -43,7 +51,43 @@ export async function investigator(state: AdelineStateType): Promise<Partial<Ade
       console.warn('Investigation search failed:', invError);
     }
     
-    // Combine and format results
+    // Build the system prompt with Adeline's voice and investigation focus
+    const systemPrompt = buildSystemPrompt(config, `Student is investigating: "${content}"`);
+    
+    // Create the investigation-specific prompt
+    const investigatorPrompt = `The student is investigating: "${content}"
+
+I found ${documents.length} documents and ${investigations.length} related investigations in our database.
+
+Available sources:
+${documents.map((doc: any, index: number) => 
+  `${index + 1}. ${doc.title} (${doc.sourceType}): ${doc.content.substring(0, 200)}...`
+).join('\n\n')}
+
+${investigations.map((inv: any, index: number) => 
+  `Investigation ${index + 1}: ${inv.title}\n${inv.summary}\nSources: ${inv.sources.length}`
+).join('\n\n')}
+
+As Adeline the investigator, I need to:
+1. Apply the "follow the money" principle - who profits from this?
+2. Center human suffering caused by corporate exploitation, not generic environmental talking points
+3. Prioritize primary sources over mainstream summaries
+4. Guide the student to evaluate evidence and form their own conclusions
+5. Never dictate what to believe - teach discernment
+
+Remember: Always ask "Who profits from me believing this?" and trace funding, incentives, regulatory capture.
+
+Provide an investigative analysis that helps the student think critically about this topic.`;
+
+    // Generate the investigation response using Claude
+    const { text } = await generateText({
+      model: investigationModel,
+      system: systemPrompt,
+      prompt: investigatorPrompt,
+      temperature: 0.5,
+    });
+    
+    // Combine and format results for metadata
     const sources = [
       ...documents.map((doc: any) => ({
         type: 'document',
@@ -65,39 +109,18 @@ export async function investigator(state: AdelineStateType): Promise<Partial<Ade
       ),
     ];
     
-    // Generate response based on findings
-    let response = "I've searched for information about your query. ";
-    
-    if (sources.length === 0) {
-      // For timeline requests, provide a helpful fallback response
-      if (content.toLowerCase().includes('timeline') || content.toLowerCase().includes('civil war')) {
-        response = `I understand you're interested in a timeline of the Civil War. While I don't have specific timeline data in our database yet, I can help you investigate this topic further. 
-
-Would you like me to:
-1. Help you research key events of the Civil War
-2. Create a study plan for learning about this period
-3. Find primary sources about specific battles or events
-
-What specific aspect of the Civil War would you like to explore?`;
-      } else {
-        response += "I couldn't find any specific information about that topic in our database. Would you like me to help you investigate this further?";
-      }
-    } else {
-      response += `I found ${sources.length} relevant sources:\n\n`;
-      sources.forEach((source, index) => {
-        response += `${index + 1}. **${source.title}**\n`;
-        response += `   ${source.content.substring(0, 200)}...\n\n`;
-      });
-    }
-    
     return {
       investigation_sources: sources,
-      response_content: response,
+      response_content: text || `I found ${sources.length} relevant sources for your investigation. Let's explore what we've discovered and apply some critical thinking to understand who might benefit from this information.`,
       metadata: {
         ...state.metadata,
         investigator: {
           sources_found: sources.length,
+          documents_found: documents.length,
+          investigations_found: investigations.length,
           search_query: content,
+          ai_generated: true,
+          model_used: config.models.investigation,
           timestamp: new Date().toISOString(),
         },
       },
@@ -106,7 +129,7 @@ What specific aspect of the Civil War would you like to explore?`;
   } catch (error) {
     console.error('Investigator error:', error);
     return {
-      response_content: "I'm having trouble accessing our investigation database right now. Let me help you with a general response instead. For Civil War timeline requests, I'd be happy to help you research key events and create a structured timeline together.",
+      response_content: "I'm having trouble accessing our investigation database right now. Let me help you with a general approach to investigating this topic. Remember to always ask: 'Who profits from this information?' and follow the money to understand the real motivations behind what you're studying.",
       metadata: {
         ...state.metadata,
         investigator: {

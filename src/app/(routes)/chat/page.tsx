@@ -174,19 +174,36 @@ export default function ChatPage() {
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
     if (!lastAssistant) return;
     
-    // Try multiple sources for metadata
-    const meta = (lastAssistant as any).metadata || 
-                 (lastAssistant as any).data || 
-                 (lastAssistant as any).annotations ||
-                 {};
+    // Handle AI SDK v6 annotations array format
+    const annotations = (lastAssistant as any).annotations || [];
+    let genUIPayloadData = null;
+    let gapNudgeData = null;
+    let intentData = null;
     
-    // Also check for direct genUIPayload attachment
+    // Iterate through annotations array to find data
+    if (Array.isArray(annotations)) {
+      annotations.forEach((annotation: any) => {
+        if (annotation?.genUIPayload) genUIPayloadData = annotation.genUIPayload;
+        if (annotation?.gapNudge) gapNudgeData = annotation.gapNudge;
+        if (annotation?.intent) intentData = annotation.intent;
+      });
+    }
+    
+    // Also check for direct attachments and metadata as fallback
+    const meta = (lastAssistant as any).metadata || (lastAssistant as any).data || {};
     const directPayload = (lastAssistant as any).genUIPayload;
     
-    console.log('[ChatPage] Extracting metadata:', { meta, directPayload });
+    console.log('[ChatPage] Extracting metadata:', { 
+      annotations, 
+      genUIPayloadData, 
+      gapNudgeData, 
+      intentData, 
+      meta, 
+      directPayload 
+    });
     
     // Safely extract and validate genUIPayload
-    const payloadSource = directPayload || meta?.genUIPayload || meta?.genuiPayload;
+    const payloadSource = directPayload || genUIPayloadData || meta?.genUIPayload || meta?.genuiPayload;
     if (payloadSource) {
       try {
         // If it's a string, parse it as JSON
@@ -210,8 +227,8 @@ export default function ChatPage() {
       setGenUIPayload(null);
     }
     
-    if (meta?.gapNudge) setGapNudge(String(meta.gapNudge));
-    if (meta?.intent) setDetectedIntent(meta.intent);
+    if (gapNudgeData || meta?.gapNudge) setGapNudge(String(gapNudgeData || meta.gapNudge));
+    if (intentData || meta?.intent) setDetectedIntent(intentData || meta.intent);
   }, [messages]);
 
   // Show tips after 5 seconds of loading
@@ -244,13 +261,17 @@ export default function ChatPage() {
               {isUser ? (
                 <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Kalam, "Comic Sans MS", system-ui' }}>{getMessageText(m)}</div>
               ) : (
-                <SketchnoteRenderer content={getMessageText(m)} mode={gapNudge ? 'SKETCHNOTE' : 'CHAT'} genUIPayload={genUIPayload || undefined} />
+                <SketchnoteRenderer 
+                  content={getMessageText(m)} 
+                  mode={detectedIntent && ['INVESTIGATE', 'LIFE_LOG', 'BRAINSTORM', 'REFLECT', 'ASSESS', 'ANALOGY'].includes(detectedIntent) ? 'SKETCHNOTE' : 'CHAT'} 
+                  genUIPayload={genUIPayload || undefined} 
+                />
               )}
             </div>
           </div>
         );
       }),
-    [messages, genUIPayload, gapNudge],
+    [messages, genUIPayload, detectedIntent],
   );
 
   return (

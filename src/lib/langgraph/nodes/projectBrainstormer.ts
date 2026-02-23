@@ -1,71 +1,85 @@
 import { AdelineStateType } from '../state';
+import { generateText } from 'ai';
+import { getModel } from '@/lib/ai-models';
+import { loadConfig, buildSystemPrompt } from '@/lib/config';
 
 export async function projectBrainstormer(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
   try {
-    // In a real implementation, this would:
-    // 1. Analyze the user's project idea or interests
-    // 2. Generate creative project suggestions
-    // 3. Provide step-by-step guidance
-    // 4. Include resource recommendations
+    // Load Adeline's configuration
+    const config = loadConfig();
     
     const lastMessage = state.messages[state.messages.length - 1];
     const content = lastMessage.content as string;
     
-    // Simple project idea extraction
-    const projectIdeas = [
-      {
-        title: 'Interactive Story App',
-        description: 'Create a choose-your-own-adventure mobile app with multiple story paths',
-        skills: ['Mobile Development', 'Storytelling', 'UI Design'],
-        difficulty: 'Intermediate',
-        estimatedTime: '4-6 weeks',
-        resources: ['React Native', 'Figma', 'Canva'],
-      },
-      {
-        title: 'Community Garden Project',
-        description: 'Start a sustainable garden in your community and document the process',
-        skills: ['Gardening', 'Photography', 'Community Organizing'],
-        difficulty: 'Beginner',
-        estimatedTime: '2-3 months',
-        resources: ['Local Nursery', 'Camera', 'Social Media'],
-      },
-      {
-        title: 'Science YouTube Channel',
-        description: 'Create educational science videos explaining complex concepts simply',
-        skills: ['Video Production', 'Science Communication', 'Video Editing'],
-        difficulty: 'Intermediate',
-        estimatedTime: '6-8 weeks',
-        resources: ['Camera', 'Editing Software', 'Animation Tools'],
-      },
-      {
-        title: 'Personal Finance Tracker',
-        description: 'Build an app to track personal finances and learn budgeting skills',
-        skills: ['Web Development', 'Data Analysis', 'Financial Planning'],
-        difficulty: 'Advanced',
-        estimatedTime: '8-10 weeks',
-        resources: ['React', 'Charts.js', 'Plaid API'],
+    // Build the system prompt with Adeline's voice and rules
+    const systemPrompt = buildSystemPrompt(config);
+    
+    // Create the project brainstorming-specific prompt
+    const brainstormPrompt = `The student is interested in: "${content}"
+
+As Adeline the project guide, I need to help them brainstorm meaningful projects that:
+1. Have a PURPOSE - help someone, solve a real problem, or beautify the world
+2. Are not busywork - every project must matter
+3. Connect to their unique calling and worth
+4. Include a service component when possible
+5. Are appropriate for their age and skill level
+
+Key brainstorming question from config: "${config.pedagogy.prompt_on_brainstorm}"
+
+If their idea sounds like busywork, redirect with: "${config.pedagogy.redirect_busywork}"
+
+Generate 3-4 project ideas that:
+- Directly relate to their stated interests
+- Have clear real-world impact
+- Include specific next steps
+- Estimate realistic timeframes
+- Suggest required skills/resources
+- Connect to educational value
+
+Remember: Reject busywork. Every project must serve someone or solve something real.
+
+Format each project as:
+**Project Title**
+- Description: [what it is and who it helps]
+- Skills: [list key skills they'll develop]
+- Timeframe: [realistic estimate]
+- Impact: [who benefits and how]
+- Next Steps: [2-3 concrete first steps]`;
+
+    // Generate the project ideas using AI
+    const { text } = await generateText({
+      model: getModel(config.models.default),
+      system: systemPrompt,
+      prompt: brainstormPrompt,
+      temperature: 0.8,
+    });
+
+    // Generate a GenUI payload for the MissionBriefing component
+    const genUIPayload = {
+      component: 'MissionBriefing',
+      props: {
+        title: 'Project Ideas',
+        objective: 'Explore meaningful projects that serve others and develop your skills',
+        steps: [
+          'Choose a project that excites you and helps others',
+          'Break it down into manageable steps',
+          'Identify skills you want to develop',
+          'Plan how you\'ll deliver value to others',
+          'Document your learning journey'
+        ],
+        riskNote: 'Remember: every project must have a real purpose - no busywork allowed!'
       }
-    ];
-
-    const response = `Based on your interest in "${content}", here are some project ideas to explore:
-
-${projectIdeas.map((idea, index) => 
-  `${index + 1}. **${idea.title}**
-   - ${idea.description}
-   - Skills: ${idea.skills.join(', ')}
-   - Difficulty: ${idea.difficulty}
-   - Time: ${idea.estimatedTime}
-   - Resources: ${idea.resources.join(', ')}
-`).join('\n\n')}
-
-Which project sounds most interesting to you? I can help you break it down into manageable steps and create a timeline for completion.`;
+    };
 
     return {
-      response_content: response,
+      response_content: text || `I'd love to help you brainstorm some meaningful projects! Based on your interest in "${content}", let's explore some ideas that could make a real difference while helping you learn and grow.`,
+      genUIPayload,
       metadata: {
         ...state.metadata,
         projectBrainstormer: {
-          ideas_generated: projectIdeas.length,
+          student_interest: content,
+          ideas_generated: 3, // Estimated from response
+          ai_generated: true,
           timestamp: new Date().toISOString(),
         },
       },
@@ -74,7 +88,7 @@ Which project sounds most interesting to you? I can help you break it down into 
   } catch (error) {
     console.error('Project Brainstormer error:', error);
     return {
-      response_content: "I'm having trouble generating project ideas right now. Let's try a different approach - what subjects are you most interested in exploring?",
+      response_content: "I'm having trouble generating project ideas right now. Let's try a different approach - what subjects are you most interested in exploring? We can work together to find a project that matters.",
       metadata: {
         ...state.metadata,
         projectBrainstormer: {
