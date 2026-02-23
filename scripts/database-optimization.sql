@@ -82,16 +82,16 @@ WHERE credits_earned > 0;
 
 -- Index for document type filtering
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_hippocampus_docs_source_type 
-ON hippocampus_documents (source_type);
+ON hippocampusdocument (source_type);
 
 -- Index for subject-based document retrieval
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_hippocampus_docs_subject 
-ON hippocampus_documents (subject_area) 
+ON hippocampusdocument (subject_area) 
 WHERE subject_area IS NOT NULL;
 
 -- Composite index for search optimization
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_hippocampus_docs_search 
-ON hippocampus_documents (source_type, subject_area, created_at DESC);
+ON hippocampusdocument (source_type, subject_area, created_at DESC);
 
 -- ==========================================
 -- USER ACTIVITY & SESSIONS OPTIMIZATION
@@ -151,7 +151,7 @@ ANALYZE concept_prerequisites;
 ANALYZE concepts;
 ANALYZE concept_reviews;
 ANALYZE transcript_entries;
-ANALYZE hippocampus_documents;
+ANALYZE hippocampusdocument;
 ANALYZE user_activities;
 ANALYZE user_sessions;
 ANALYZE learning_analytics;
@@ -176,7 +176,7 @@ FROM pg_stat_user_indexes
 WHERE schemaname = 'public'
     AND tablename IN (
         'user_concept_mastery', 'concept_prerequisites', 'concepts',
-        'concept_reviews', 'transcript_entries', 'hippocampus_documents'
+        'concept_reviews', 'transcript_entries', 'hippocampusdocument'
     )
 ORDER BY idx_scan DESC;
 */
