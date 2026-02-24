@@ -1,4 +1,4 @@
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
+import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 import { AdelineStateType } from "../state";
 import { ChatOpenAI } from "@langchain/openai";
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
@@ -58,8 +58,8 @@ Please evaluate this activity and return the JSON object.`;
     // Use LangChain with structured output
     const chain = model.withStructuredOutput(CreditEvaluationSchema);
     const result = await chain.invoke([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: humanPrompt }
+      new SystemMessage(systemPrompt),
+      new HumanMessage(humanPrompt)
     ]);
 
     // Create the transcript entry
