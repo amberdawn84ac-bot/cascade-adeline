@@ -38,7 +38,9 @@ export async function mentor(state: AdelineStateType): Promise<Partial<AdelineSt
     }
     
     // Build the system prompt with Adeline's voice and rules
-    const systemPrompt = buildSystemPrompt(config, studentContext);
+    const gradeLevelContext = `You are speaking to a student in grade ${state.gradeLevel}. Adjust your vocabulary, the complexity of your analogies, and the depth of your explanations to be developmentally appropriate for this level while still operating within their Zone of Proximal Development.`;
+    
+    const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}`);
     
     // Create the mentor-specific prompt
     const mentorPrompt = `The student asked: "${content}"

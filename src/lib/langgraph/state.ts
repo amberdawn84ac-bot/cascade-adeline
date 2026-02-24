@@ -18,6 +18,12 @@ export const AdelineState = Annotation.Root({
     default: () => "",
   }),
   
+  // Student grade level for age-appropriate responses
+  gradeLevel: Annotation<string>({
+    reducer: (left: string, right: string) => right,
+    default: () => "",
+  }),
+  
   // Intent classification
   intent: Annotation<Intent>({
     reducer: (left: Intent, right: Intent) => right,

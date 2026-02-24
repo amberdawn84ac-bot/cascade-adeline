@@ -5,7 +5,7 @@ import { getModel } from '../ai-models';
 import { scheduleConceptReview } from '../spaced-repetition';
 import prisma from '../db';
 
-async function llmMatchLifeRule(prompt: string, rules: Record<string, string>, modelId: string) {
+async function llmMatchLifeRule(prompt: string, rules: Record<string, string>, modelId: string, gradeLevel: string) {
   const { text } = await generateText({
     model: getModel(modelId),
     temperature: 0,
@@ -15,6 +15,10 @@ Here are the available rules as JSON key/value pairs (key = life activity, value
 ${JSON.stringify(rules, null, 2)}
 
 Student description: """${prompt}"""
+
+Student grade level: ${gradeLevel}
+
+GRADE-APPROPRIATE MAPPING: Select educational standards and subject mappings that are appropriate for a student in grade ${gradeLevel}. Consider the developmental stage and curriculum standards for this grade level when mapping subjects and skills.
 
 CRITICAL MATH: 1.0 high school credit = 120 hours. A 1-2 hour task (like baking bread) MUST ONLY be awarded 0.01 to 0.02 credits. Never award 0.25 for a single task.
 
@@ -72,7 +76,7 @@ export async function lifeCreditLogger(state: AdelineGraphState): Promise<Adelin
     const rules = config.life_to_credit_rules;
     const modelId = config.models.default;
 
-    const llmResult = await llmMatchLifeRule(state.prompt, rules, modelId);
+    const llmResult = await llmMatchLifeRule(state.prompt, rules, modelId, state.gradeLevel || '3');
     console.log('[lifeCreditLogger] LLM result:', llmResult);
 
     if (!llmResult) {
