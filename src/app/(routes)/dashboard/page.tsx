@@ -11,14 +11,19 @@ import {
   Clock,
   Trophy,
   ArrowRight,
-  Gamepad2
+  Gamepad2,
+  Users,
+  BookOpen,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { MissionBriefing } from '@/components/ui/quests/MissionBriefing';
 import KnowledgeHerbarium from '@/components/dashboard/KnowledgeHerbarium';
 import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
 
-async function getDashboardData(userId: string) {
+async function getStudentDashboardData(userId: string) {
   // Fetch standards progress grouped by subject
   const progress = await prisma.studentStandardProgress.findMany({
     where: { userId },
@@ -63,6 +68,49 @@ async function getDashboardData(userId: string) {
   });
 
   return { roomStats, zpdRecommendation: zpd[0] || null, opportunity };
+}
+
+async function getParentDashboardData(userId: string) {
+  // Get children linked to this parent
+  const children = await prisma.user.findMany({
+    where: { parentId: userId },
+    include: {
+      transcriptEntries: {
+        orderBy: { dateCompleted: 'desc' },
+        take: 5
+      },
+      studentStandardProgress: {
+        include: { standard: true },
+        take: 10
+      }
+    }
+  });
+
+  // Calculate overall stats for all children
+  const totalCredits = children.reduce((sum, child) => 
+    sum + child.transcriptEntries.reduce((childSum, entry) => childSum + entry.creditsEarned, 0), 0
+  );
+
+  const recentActivities = children.flatMap(child => 
+    child.transcriptEntries.map(entry => ({
+      studentName: child.name,
+      activity: entry.activityName,
+      credits: entry.creditsEarned,
+      date: entry.dateCompleted,
+      subject: entry.mappedSubject
+    }))
+  ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+
+  return { children, totalCredits, recentActivities };
+}
+
+async function getTeacherDashboardData(userId: string) {
+  // For now, return mock data - would be expanded based on teacher's classes
+  return {
+    totalStudents: 0,
+    averageProgress: 0,
+    recentSubmissions: []
+  };
 }
 
 const ROOMS = [
@@ -118,15 +166,8 @@ const ROOMS = [
   },
 ];
 
-export default async function DashboardPage() {
-  const session = await getSessionUser();
-  
-  if (!session) {
-    redirect('/login');
-  }
-
-  const { roomStats, zpdRecommendation, opportunity } = await getDashboardData(session.userId);
-
+// Student Dashboard Component
+function StudentDashboard({ roomStats, zpdRecommendation, opportunity }: any) {
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -190,7 +231,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Knowledge Herbarium */}
-      <KnowledgeHerbarium userId={session.userId} />
+      <KnowledgeHerbarium userId="current-user" />
 
       {/* Recent Activity & Quick Actions */}
       <div className="grid md:grid-cols-3 gap-8">
@@ -234,4 +275,157 @@ export default async function DashboardPage() {
       </div>
     </div>
   );
+}
+
+// Parent Dashboard Component
+function ParentDashboard({ children, totalCredits, recentActivities }: any) {
+  return (
+    <div className="space-y-10">
+      {/* Header */}
+      <header className="space-y-2">
+        <h1 className="text-4xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+          Parent Dashboard
+        </h1>
+        <p className="text-[#2F4731]/60 font-medium text-lg">
+          Monitor your children's learning progress and achievements.
+        </p>
+      </header>
+
+      {/* Overview Cards */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <Users className="text-[#BD6809]" />
+            <h3 className="text-lg font-bold text-[#2F4731]">Children</h3>
+          </div>
+          <p className="text-3xl font-bold text-[#2F4731]">{children.length}</p>
+          <p className="text-[#2F4731]/60 text-sm">Active learners</p>
+        </div>
+
+        <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <Trophy className="text-[#BD6809]" />
+            <h3 className="text-lg font-bold text-[#2F4731]">Total Credits</h3>
+          </div>
+          <p className="text-3xl font-bold text-[#2F4731]">{totalCredits.toFixed(2)}</p>
+          <p className="text-[#2F4731]/60 text-sm">Across all children</p>
+        </div>
+
+        <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <TrendingUp className="text-[#BD6809]" />
+            <h3 className="text-lg font-bold text-[#2F4731]">Engagement</h3>
+          </div>
+          <p className="text-3xl font-bold text-[#2F4731]">High</p>
+          <p className="text-[#2F4731]/60 text-sm">Activity level</p>
+        </div>
+      </div>
+
+      {/* Children List */}
+      <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 shadow-sm">
+        <h3 className="text-xl font-bold text-[#2F4731] mb-6" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+          Your Children
+        </h3>
+        <div className="space-y-4">
+          {children.map((child: any) => (
+            <div key={child.id} className="flex items-center justify-between p-4 bg-[#FFFEF7] rounded-xl border border-[#E7DAC3]">
+              <div>
+                <h4 className="font-bold text-[#2F4731]">{child.name}</h4>
+                <p className="text-sm text-[#2F4731]/60">Grade {child.gradeLevel || 'Not set'}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[#BD6809]">
+                  {child.transcriptEntries.reduce((sum: number, entry: any) => sum + entry.creditsEarned, 0).toFixed(2)} credits
+                </p>
+                <p className="text-xs text-[#2F4731]/60">Total earned</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Activities */}
+      <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 shadow-sm">
+        <h3 className="text-xl font-bold text-[#2F4731] mb-6" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+          Recent Activities
+        </h3>
+        <div className="space-y-4">
+          {recentActivities.map((activity: any, index: number) => (
+            <div key={index} className="flex items-center justify-between p-4 bg-[#FFFEF7] rounded-xl border border-[#E7DAC3]">
+              <div>
+                <p className="font-medium text-[#2F4731]">{activity.studentName}: {activity.activity}</p>
+                <p className="text-sm text-[#2F4731]/60">{activity.subject} • {new Date(activity.date).toLocaleDateString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[#BD6809]">+{activity.credits.toFixed(3)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Teacher Dashboard Component  
+function TeacherDashboard({ totalStudents, averageProgress, recentSubmissions }: any) {
+  return (
+    <div className="space-y-10">
+      {/* Header */}
+      <header className="space-y-2">
+        <h1 className="text-4xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+          Teacher Dashboard
+        </h1>
+        <p className="text-[#2F4731]/60 font-medium text-lg">
+          Manage curriculum and monitor student progress.
+        </p>
+      </header>
+
+      <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 shadow-sm">
+        <div className="text-center py-12">
+          <BookOpen className="w-16 h-16 text-[#BD6809] mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-[#2F4731] mb-2">Teacher Tools Coming Soon</h3>
+          <p className="text-[#2F4731]/60">
+            Classroom management and curriculum tools will be available here.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default async function DashboardPage() {
+  const session = await getSessionUser();
+  
+  if (!session) {
+    redirect('/login');
+  }
+
+  // Get user role from database
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { role: true }
+  });
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  // Render dashboard based on role
+  switch (user.role) {
+    case 'STUDENT': {
+      const { roomStats, zpdRecommendation, opportunity } = await getStudentDashboardData(session.userId);
+      return <StudentDashboard roomStats={roomStats} zpdRecommendation={zpdRecommendation} opportunity={opportunity} />;
+    }
+    case 'PARENT': {
+      const { children, totalCredits, recentActivities } = await getParentDashboardData(session.userId);
+      return <ParentDashboard children={children} totalCredits={totalCredits} recentActivities={recentActivities} />;
+    }
+    case 'TEACHER': {
+      const { totalStudents, averageProgress, recentSubmissions } = await getTeacherDashboardData(session.userId);
+      return <TeacherDashboard totalStudents={totalStudents} averageProgress={averageProgress} recentSubmissions={recentSubmissions} />;
+    }
+    default:
+      redirect('/login');
+  }
 }
