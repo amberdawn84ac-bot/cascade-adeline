@@ -1,7 +1,6 @@
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
+import { ChatOpenAI } from "@langchain/openai";
 import { AdelineStateType } from "../state";
-import { generateText } from 'ai';
-import { getModel } from '@/lib/ai-models';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import prisma from "@/lib/db";
 
@@ -68,13 +67,19 @@ As Adeline the mentor, respond with:
 
 Remember: Knowledge without love is nothing. Every child has a calling.`;
 
-    // Generate the response using AI
-    const { text } = await generateText({
-      model: getModel(config.models.default),
-      system: systemPrompt,
-      prompt: mentorPrompt,
+    // Generate the response using LangChain
+    const model = new ChatOpenAI({
+      modelName: config.models.default,
       temperature: 0.7,
     });
+    
+    const response = await model.invoke([
+      new HumanMessage({ content: mentorPrompt })
+    ], {
+      system: systemPrompt,
+    });
+    
+    const text = response.content as string;
     
     return {
       learning_gaps: learningGaps,

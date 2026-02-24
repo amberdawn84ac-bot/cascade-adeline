@@ -1,6 +1,6 @@
 import { AdelineStateType } from '../state';
-import { generateText } from 'ai';
-import { getModel } from '@/lib/ai-models';
+import { ChatOpenAI } from '@langchain/openai';
+import { HumanMessage } from '@langchain/core/messages';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 
 export async function opportunityScout(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
@@ -50,13 +50,19 @@ IMPORTANT:
 
 Format the response clearly and conversationally, not as a sterile list.`;
 
-    // Generate the opportunities using AI
-    const { text } = await generateText({
-      model: getModel(config.models.default),
-      system: systemPrompt,
-      prompt: scoutPrompt,
+    // Generate the opportunities using LangChain
+    const model = new ChatOpenAI({
+      modelName: config.models.default,
       temperature: 0.7,
     });
+    
+    const response = await model.invoke([
+      new HumanMessage({ content: scoutPrompt })
+    ], {
+      system: systemPrompt,
+    });
+    
+    const text = response.content as string;
 
     // Generate a GenUI payload for the ProjectImpactCard component
     const genUIPayload = {

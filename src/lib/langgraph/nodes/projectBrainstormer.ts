@@ -1,6 +1,6 @@
 import { AdelineStateType } from '../state';
-import { generateText } from 'ai';
-import { getModel } from '@/lib/ai-models';
+import { ChatOpenAI } from '@langchain/openai';
+import { HumanMessage } from '@langchain/core/messages';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 
 export async function projectBrainstormer(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
@@ -46,13 +46,19 @@ Format each project as:
 - Impact: [who benefits and how]
 - Next Steps: [2-3 concrete first steps]`;
 
-    // Generate the project ideas using AI
-    const { text } = await generateText({
-      model: getModel(config.models.default),
-      system: systemPrompt,
-      prompt: brainstormPrompt,
-      temperature: 0.8,
+    // Generate the project ideas using LangChain
+    const model = new ChatOpenAI({
+      modelName: config.models.default,
+      temperature: 0.7,
     });
+    
+    const response = await model.invoke([
+      new HumanMessage({ content: brainstormPrompt })
+    ], {
+      system: systemPrompt,
+    });
+    
+    const text = response.content as string;
 
     // Generate a GenUI payload for the MissionBriefing component
     const genUIPayload = {
