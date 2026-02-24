@@ -74,8 +74,24 @@ export async function POST(req: NextRequest) {
       },
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat API error:', error);
-    return new Response('Internal server error', { status: 500 });
+    
+    // Stream the actual error message to the frontend so we can debug it
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        const errorMessage = error.message || "Unknown error occurred";
+        controller.enqueue(encoder.encode(`0:${JSON.stringify("SYSTEM CRASH: " + errorMessage)}\n`));
+        controller.close();
+      }
+    });
+    
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1'
+      }
+    });
   }
 }
