@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server';
-import { createDataStreamResponse } from 'ai';
+import { streamText } from 'ai';
 import { HumanMessage } from '@langchain/core/messages';
 import { adelineBrainRunnable } from '@/lib/langgraph';
 import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
+import { getModel } from '@/lib/ai-models';
 import prisma from '@/lib/db';
 
 export async function POST(req: NextRequest) {
@@ -43,14 +44,13 @@ export async function POST(req: NextRequest) {
     // Run the LangGraph Brain to get result
     const result = await adelineBrainRunnable.invoke(initialState);
     
-    return createDataStreamResponse({
-      execute: dataStream => {
-        if (result.genUIPayload) {
-          dataStream.writeData(result.genUIPayload);
-        }
-        dataStream.writeText(result.response_content || "Processing...");
-      }
+    const response = streamText({
+      model: getModel('gpt-4o-mini'),
+      prompt: result.response_content || "Processing...",
+      temperature: 0.7,
     });
+    
+    return response.toTextStreamResponse();
     
   } catch (error) {
     console.error('Chat API error:', error);
