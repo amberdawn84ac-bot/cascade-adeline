@@ -1,4 +1,4 @@
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
+import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { AdelineStateType } from "../state";
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
@@ -71,13 +71,13 @@ Remember: Knowledge without love is nothing. Every child has a calling.`;
     const model = new ChatOpenAI({
       modelName: config.models.default,
       temperature: 0.7,
+      openAIApiKey: process.env.OPENAI_API_KEY,
     });
     
     const response = await model.invoke([
-      new HumanMessage({ content: mentorPrompt })
-    ], {
-      system: systemPrompt,
-    });
+      new SystemMessage(systemPrompt),
+      new HumanMessage(mentorPrompt)
+    ]);
     
     const text = response.content as string;
     

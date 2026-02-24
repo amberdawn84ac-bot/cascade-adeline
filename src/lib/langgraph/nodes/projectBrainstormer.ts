@@ -1,6 +1,6 @@
 import { AdelineStateType } from '../state';
 import { ChatOpenAI } from '@langchain/openai';
-import { HumanMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 
 export async function projectBrainstormer(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
@@ -50,13 +50,13 @@ Format each project as:
     const model = new ChatOpenAI({
       modelName: config.models.default,
       temperature: 0.7,
+      openAIApiKey: process.env.OPENAI_API_KEY,
     });
     
     const response = await model.invoke([
-      new HumanMessage({ content: brainstormPrompt })
-    ], {
-      system: systemPrompt,
-    });
+      new SystemMessage(systemPrompt),
+      new HumanMessage(brainstormPrompt)
+    ]);
     
     const text = response.content as string;
 

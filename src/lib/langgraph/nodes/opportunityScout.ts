@@ -1,6 +1,6 @@
 import { AdelineStateType } from '../state';
 import { ChatOpenAI } from '@langchain/openai';
-import { HumanMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 
 export async function opportunityScout(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
@@ -54,13 +54,13 @@ Format the response clearly and conversationally, not as a sterile list.`;
     const model = new ChatOpenAI({
       modelName: config.models.default,
       temperature: 0.7,
+      openAIApiKey: process.env.OPENAI_API_KEY,
     });
     
     const response = await model.invoke([
-      new HumanMessage({ content: scoutPrompt })
-    ], {
-      system: systemPrompt,
-    });
+      new SystemMessage(systemPrompt),
+      new HumanMessage(scoutPrompt)
+    ]);
     
     const text = response.content as string;
 
