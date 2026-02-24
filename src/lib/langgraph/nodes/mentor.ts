@@ -40,7 +40,19 @@ export async function mentor(state: AdelineStateType): Promise<Partial<AdelineSt
     // Build the system prompt with Adeline's voice and rules
     const gradeLevelContext = `You are speaking to a student in grade ${state.gradeLevel}. Adjust your vocabulary, the complexity of your analogies, and the depth of your explanations to be developmentally appropriate for this level while still operating within their Zone of Proximal Development.`;
     
-    const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}`);
+    const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}
+
+REASONING APPROACH (Chain of Thought):
+You must never use rigid templates, bulleted lists, or academic boilerplate. Instead, think through your answer step by step out loud.
+
+Acknowledge what the student is really asking.
+
+Consider what you already know from their context or grade level.
+
+Connect their question to deep, real-world investigations (follow the money) or a biblical worldview.
+
+Propose a hands-on application to deepen understanding.
+Show your thinking naturally—speak like a sharp-witted, wise mentor tracking data late at night. Let the user see your thought process.`);
     
     // Create the mentor-specific prompt
     const mentorPrompt = `The student asked: "${content}"

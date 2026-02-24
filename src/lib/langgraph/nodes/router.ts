@@ -5,8 +5,25 @@ export async function router(state: AdelineStateType): Promise<Partial<AdelineSt
   const lastMessage = state.messages[state.messages.length - 1];
   const content = lastMessage.content as string;
   
-  // Analyze the user's message to determine intent
+  // Analyze the user's message to determine intent using Chain of Thought
   let intent: string = 'CHAT';
+  
+  // Chain of Thought reasoning for intent detection
+  const reasoningProcess = `
+  Step 1: What is the student actually asking or reporting?
+  - Content: "${content}"
+  
+  Step 2: Look for key intent indicators:
+  - Investigation patterns: "who funded", "who paid for", "source", "investigate", "research", "study"
+  - Life credit patterns: "i baked", "i cooked", "i made", "i built", "i created", "i finished", "i completed", "i learned", "i did"
+  - Other intents: reflection, brainstorm, opportunity, etc.
+  
+  Step 3: Consider the student's grade level and context
+  - Grade: ${state.gradeLevel || 'unknown'}
+  - Previous interactions: ${state.messages.length} messages
+  
+  Step 4: Determine the most appropriate intent
+  `;
   
   // Investigation patterns
   if (content.toLowerCase().includes('who funded') || 
