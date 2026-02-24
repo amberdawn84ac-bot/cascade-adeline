@@ -44,7 +44,7 @@ function getMessageText(message: { content?: string; parts?: Array<{ type?: stri
 }
 
 export default function ChatPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput, append, error } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error, append, setInput } = useChat({
     api: '/api/chat',
     body: {},
     // Custom handling for the response to extract GenUI metadata
@@ -82,6 +82,17 @@ export default function ChatPage() {
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() && !pendingImageUrl && !audioBase64) return;
+    const body: Record<string, string> = {};
+    if (pendingImageUrl) body.imageUrl = pendingImageUrl;
+    if (audioBase64) body.audioBase64 = audioBase64;
+    handleSubmit(e, { body });
+    clearImage();
+    clearAudio();
+  };
 
   const startRecording = async () => {
     try {
@@ -152,17 +163,6 @@ export default function ChatPage() {
     setImagePreview(null);
     setPendingImageUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() && !pendingImageUrl && !audioBase64) return;
-    const body: Record<string, string> = {};
-    if (pendingImageUrl) body.imageUrl = pendingImageUrl;
-    if (audioBase64) body.audioBase64 = audioBase64;
-    handleSubmit(e, { body });
-    clearImage();
-    clearAudio();
   };
 
   useEffect(() => {
@@ -375,7 +375,7 @@ export default function ChatPage() {
       </main>
 
       <form
-        onSubmit={handleFormSubmit}
+        onSubmit={handleSubmit}
         style={{
           position: 'sticky',
           bottom: 0,
@@ -482,7 +482,7 @@ export default function ChatPage() {
           </button>
           <input
             value={input}
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
             placeholder={imagePreview ? 'Describe what you made (optional)...' : 'Share what you explored today...'}
             style={{
               flex: 1,
