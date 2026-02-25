@@ -1,8 +1,9 @@
-import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
+import { loadConfig } from "../config";
 import { AdelineStateType } from "../state";
-import { loadConfig, buildSystemPrompt } from '@/lib/config';
-import prisma from "@/lib/db";
+import { genUIPlanner } from "../genUIPlanner";
+import prisma from "../db";
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
   const lastMessage = state.messages[state.messages.length - 1];
@@ -100,9 +101,21 @@ Remember: Knowledge without love is nothing. Every child has a calling.`;
     
     const text = response.content as string;
     
+    // Check if GenUI component is needed (e.g., for timeline requests)
+    let genUIPayload = null;
+    if (state.intent === 'GEN_UI' || content.toLowerCase().includes('timeline')) {
+      try {
+        genUIPayload = await genUIPlanner(content, state.gradeLevel || '3');
+        console.log('[Mentor] GenUI payload generated:', genUIPayload);
+      } catch (error) {
+        console.warn('[Mentor] Failed to generate GenUI payload:', error);
+      }
+    }
+    
     return {
       learning_gaps: learningGaps,
       response_content: text || "I'm here to help you learn and grow. Tell me more about what you're exploring.",
+      genUIPayload,
       metadata: {
         ...state.metadata,
         mentor: {

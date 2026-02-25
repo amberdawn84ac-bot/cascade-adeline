@@ -8,12 +8,16 @@ export async function router(state: AdelineStateType): Promise<Partial<AdelineSt
   // Analyze the user's message to determine intent using Chain of Thought
   let intent: string = 'CHAT';
   
+  // CRITICAL: If the user asks for a timeline, historical facts, or general knowledge, the intent MUST be CHAT or INVESTIGATE. 
+  // ONLY output BRAINSTORM if the user explicitly asks for project ideas, hands-on activities, or ways to practice a skill.
+  
   // Chain of Thought reasoning for intent detection
   const reasoningProcess = `
   Step 1: What is the student actually asking or reporting?
   - Content: "${content}"
   
   Step 2: Look for key intent indicators:
+  - Timeline/Historical patterns: "timeline", "history", "civil war", "when did", "what happened", "historical"
   - Investigation patterns: "who funded", "who paid for", "source", "investigate", "research", "study"
   - Life credit patterns: "i baked", "i cooked", "i made", "i built", "i created", "i finished", "i completed", "i learned", "i did"
   - Other intents: reflection, brainstorm, opportunity, etc.
@@ -24,6 +28,16 @@ export async function router(state: AdelineStateType): Promise<Partial<AdelineSt
   
   Step 4: Determine the most appropriate intent
   `;
+  
+  // Timeline and Historical patterns (NEW - PRIORITY 1)
+  if (content.toLowerCase().includes('timeline') ||
+      content.toLowerCase().includes('history') ||
+      content.toLowerCase().includes('civil war') ||
+      content.toLowerCase().includes('when did') ||
+      content.toLowerCase().includes('what happened') ||
+      content.toLowerCase().includes('historical')) {
+    intent = content.toLowerCase().includes('timeline') ? 'GEN_UI' : 'CHAT';
+  }
   
   // Investigation patterns
   if (content.toLowerCase().includes('who funded') || 
@@ -74,7 +88,7 @@ export async function router(state: AdelineStateType): Promise<Partial<AdelineSt
     intent = 'OPPORTUNITY';
   }
   
-  // Brainstorming patterns
+  // Brainstorming patterns (RESTRICTED - only explicit project requests)
   if (content.toLowerCase().includes('brainstorm') ||
       content.toLowerCase().includes('project idea') ||
       content.toLowerCase().includes('what should I') ||
