@@ -89,8 +89,10 @@ Remember: Knowledge without love is nothing. Every child has a calling.`;
     
     // Check if GenUI component is needed (e.g., for timeline requests)
     let genUIPayload = null;
+    console.log('[Mentor] Checking GenUI - intent:', state.intent, 'content:', content);
     if (state.intent === 'GEN_UI' || content.toLowerCase().includes('timeline')) {
       try {
+        console.log('[Mentor] Attempting to generate GenUI payload...');
         // Create a state object for genUIPlanner
         const genUIState = {
           prompt: content,
@@ -105,6 +107,8 @@ Remember: Knowledge without love is nothing. Every child has a calling.`;
       } catch (error) {
         console.warn('[Mentor] Failed to generate GenUI payload:', error);
       }
+    } else {
+      console.log('[Mentor] No GenUI needed - intent:', state.intent, 'timeline check:', content.toLowerCase().includes('timeline'));
     }
     
     return {
