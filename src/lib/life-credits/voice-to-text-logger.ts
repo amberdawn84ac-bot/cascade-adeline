@@ -205,13 +205,13 @@ Return ONLY valid JSON.`,
     return {
       activityType: parsed.activityType || 'creative_arts',
       subjectArea: parsed.subjectArea || 'Art',
-      baseCredits: typeof parsed.baseCredits === 'number' ? parsed.baseCredits : 0.25,
+      baseCredits: typeof parsed.baseCredits === 'number' ? parsed.baseCredits : 0.01,
       multiplier: typeof parsed.multiplier === 'number' ? parsed.multiplier : 1.0,
       concepts: Array.isArray(parsed.concepts) ? parsed.concepts : [],
       totalCredits: calculateTotalCredits({
         activityType: parsed.activityType || 'creative_arts',
         subjectArea: parsed.subjectArea || 'Art',
-        baseCredits: typeof parsed.baseCredits === 'number' ? parsed.baseCredits : 0.25,
+        baseCredits: typeof parsed.baseCredits === 'number' ? parsed.baseCredits : 0.01,
         multiplier: typeof parsed.multiplier === 'number' ? parsed.multiplier : 1.0,
         concepts: Array.isArray(parsed.concepts) ? parsed.concepts : [],
         totalCredits: 0, // Will be calculated
@@ -222,10 +222,10 @@ Return ONLY valid JSON.`,
     return {
       activityType: 'creative_arts',
       subjectArea: 'Art',
-      baseCredits: 0.25,
+      baseCredits: 0.01,
       multiplier: 1.0,
       concepts: [],
-      totalCredits: 0.25,
+      totalCredits: 0.01,
     };
   }
 }

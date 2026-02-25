@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import React from 'react';
 import { 
   Home, 
   MessageCircle, 
@@ -59,17 +60,47 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
+  
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard']);
+
+  // Check user role on mount
+  React.useEffect(() => {
+    const checkUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Get user role from database or metadata
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        setUserRole((profile as any)?.role || 'student');
+      }
+    };
+    
+    checkUserRole();
+  }, [supabase]);
+
+  // Filter nav items based on user role
+  const filteredNavItems = NAV_ITEMS.filter(item => {
+    if (item.label === 'Family Portal') {
+      return userRole === 'parent' || userRole === 'admin';
+    }
+    return true;
+  });
 
   const toggleExpand = (label: string) => {
     setExpandedItems(prev => 
       prev.includes(label) ? prev.filter(i => i !== label) : [...prev, label]
     );
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
   };
 
   return (
@@ -122,7 +153,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
 
           {/* Nav Links */}
           <nav className="flex-1 space-y-2">
-            {NAV_ITEMS.map((item) => {
+            {filteredNavItems.map((item) => {
               const isActive = pathname === item.href;
               const isExpanded = expandedItems.includes(item.label);
               const hasChildren = item.children && item.children.length > 0;
