@@ -33,25 +33,34 @@ async function visionAnalyzerWrapper(state: AdelineStateType): Promise<Partial<A
 // Conditional routing function
 function routeIntent(state: AdelineStateType): string {
   const intent = state.intent;
+  console.log('[LangGraph] routeIntent called with intent:', intent);
   
   switch (intent) {
     case 'INVESTIGATE':
+      console.log('[LangGraph] Routing to investigator');
       return 'investigator';
     case 'LOG_CREDIT':
+      console.log('[LangGraph] Routing to registrar');
       return 'registrar';
     case 'REFLECT':
+      console.log('[LangGraph] Routing to mentor');
       return 'mentor';
     case 'GEN_UI':
+      console.log('[LangGraph] Routing to mentor for GEN_UI');
       return 'mentor'; // FIXED: GenUI should go to mentor for component generation
     case 'OPPORTUNITY':
+      console.log('[LangGraph] Routing to opportunityScout');
       return 'opportunityScout';
     case 'BRAINSTORM':
+      console.log('[LangGraph] Routing to projectBrainstormer');
       return 'projectBrainstormer';
     case 'IMAGE_LOG':
     case 'VISION':
+      console.log('[LangGraph] Routing to visionAnalyzer');
       return 'visionAnalyzer';
     case 'CHAT':
     default:
+      console.log('[LangGraph] Routing to mentor (default/CHAT)');
       return 'mentor';
   }
 }
