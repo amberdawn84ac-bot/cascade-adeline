@@ -51,6 +51,10 @@ export default function ChatPage() {
     onFinish: async (message) => {
       try {
         console.log('[ChatPage] Message received:', message);
+        console.log('[ChatPage] Message keys:', Object.keys(message || {}));
+        console.log('[ChatPage] Message genUIPayload:', (message as any).genUIPayload);
+        console.log('[ChatPage] Message metadata:', (message as any).metadata);
+        
         // The message.content contains the response text
         // Check if there's GenUI payload in the message metadata
         if (message && typeof message === 'object') {
@@ -60,6 +64,8 @@ export default function ChatPage() {
           if (genUIPayload) {
             console.log('[ChatPage] GenUI payload found:', genUIPayload);
             setGenUIPayload(genUIPayload);
+          } else {
+            console.log('[ChatPage] No GenUI payload found in message');
           }
           
           if (metadata?.gapNudge) setGapNudge(String(metadata.gapNudge));
