@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   MessageCircle, 
@@ -25,7 +25,6 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { createServerClient } from '@supabase/ssr';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -66,7 +65,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard']);
 
   // Check user role on mount
-  React.useEffect(() => {
+  useEffect(() => {
     const checkUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
