@@ -88,7 +88,6 @@ function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fall
 
 export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
   const [showConfetti, setShowConfetti] = useState(false);
-  const [renderError, setRenderError] = useState(false);
 
   useEffect(() => {
     if (payload?.component === 'TranscriptCard') {
@@ -102,87 +101,59 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     return null;
   }
 
-  // Enhanced payload validation with safe parsing
-  let parsedPayload = payload;
-  
-  // If payload is a string, try to parse it as JSON
-  if (typeof payload === 'string') {
-    try {
-      parsedPayload = JSON.parse(payload);
-    } catch (error) {
-      console.error('[GenUIRenderer] Failed to parse payload string:', error);
-      return null;
-    }
-  }
-  
-  // If payload is an array of strings, parse each element safely
-  if (Array.isArray(payload)) {
-    try {
-      parsedPayload = payload.map(item => {
-        if (typeof item === 'string') {
-          return JSON.parse(item);
-        }
-        return item;
-      }).find(item => item && typeof item === 'object' && item.component) || null;
-    } catch (error) {
-      console.error('[GenUIRenderer] Failed to parse array payload:', error);
-      return null;
-    }
-  }
-
-  // Validate parsed payload
-  if (!parsedPayload || typeof parsedPayload !== 'object') {
-    console.warn('[GenUIRenderer] Invalid payload type:', typeof parsedPayload, parsedPayload);
-    return null;
-  }
-
-  if (!parsedPayload.component) {
-    console.warn('[GenUIRenderer] Payload missing component property:', parsedPayload);
-    return null;
-  }
-
-  const Component = componentMap[parsedPayload.component];
-  if (!Component) {
-    console.warn(`[GenUIRenderer] Unknown GenUI component type: ${parsedPayload.component}`);
-    return (
-      <div style={{
-        padding: '16px',
-        border: '1px solid #ff6b6b',
-        borderRadius: '8px',
-        backgroundColor: '#ffe0e0',
-        color: '#d63031',
-        fontSize: '14px'
-      }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-          🚫 Unknown Component
-        </div>
-        <div>
-          Component type: <code>{parsedPayload.component}</code>
-        </div>
-        <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>
-          Available components: {Object.keys(componentMap).join(', ')}
-        </div>
-      </div>
-    );
-  }
-
-  const borderColor = INTENT_BORDER_COLORS[parsedPayload.component] || '#BD6809';
-
-  return (
-    <ErrorBoundary
-      fallback={
-        <div style={{
-          padding: '12px',
-          border: '1px solid #ff6b6b',
-          borderRadius: '6px',
-          backgroundColor: '#ffe0e0',
-          color: '#d63031',
-          fontSize: '13px'
-        }}>
-          ⚠️ Content rendering failed
-        </div>
+  try {
+    // Enhanced payload validation with safe parsing
+    let parsedPayload = payload;
+    
+    // If payload is a string, try to parse it as JSON
+    if (typeof payload === 'string') {
+      try {
+        parsedPayload = JSON.parse(payload);
+      } catch (error) {
+        console.error('[GenUIRenderer] Failed to parse payload string:', error);
+        return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">Failed to parse UI card data</div>;
       }
-    >
+    }
+    
+    // If payload is an array of strings, parse each element safely
+    if (Array.isArray(parsedPayload)) {
+      try {
+        parsedPayload = parsedPayload.map(item => {
+          if (typeof item === 'string') {
+            return JSON.parse(item);
+          }
+          return item;
+        }).find(item => item && typeof item === 'object' && item.component) || null;
+      } catch (error) {
+        console.error('[GenUIRenderer] Failed to parse array payload:', error);
+        return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">Failed to parse UI card array</div>;
+      }
+    }
+
+    // Validate parsed payload
+    if (!parsedPayload || typeof parsedPayload !== 'object') {
+      console.warn('[GenUIRenderer] Invalid payload type:', typeof parsedPayload, parsedPayload);
+      return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">Invalid UI card format</div>;
+    }
+
+    if (!parsedPayload.component) {
+      console.warn('[GenUIRenderer] Payload missing component property:', parsedPayload);
+      return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">UI card missing component type</div>;
+    }
+
+    const Component = componentMap[parsedPayload.component];
+    if (!Component) {
+      console.warn(`[GenUIRenderer] Unknown GenUI component type: ${parsedPayload.component}`);
+      return (
+        <div className="text-red-500 text-xs border border-red-200 p-2 rounded">
+          Unknown component: {parsedPayload.component}
+        </div>
+      );
+    }
+
+    const borderColor = INTENT_BORDER_COLORS[parsedPayload.component] || '#BD6809';
+
+    return (
       <>
         {showConfetti && (
           <Confetti
@@ -218,6 +189,9 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
           <Component {...(parsedPayload.props || {})} />
         </motion.div>
       </>
-    </ErrorBoundary>
-  );
+    );
+  } catch (error) {
+    console.error('[GenUIRenderer] Fatal error during rendering:', error);
+    return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">Failed to render UI card</div>;
+  }
 }

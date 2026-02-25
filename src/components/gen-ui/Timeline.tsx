@@ -9,90 +9,91 @@ interface TimelineProps {
   events?: Array<{ date: string; event: string }>;
 }
 
-export function Timeline({ content, title, events: propEvents }: TimelineProps) {
+export function Timeline({ content, title, events: propEvents = [] }: TimelineProps) {
   console.log('[Timeline] Props received:', { content, title, events: propEvents });
   
-  // Use provided events or parse from content
-  let parsedEvents = propEvents || [];
-  
-  if (!propEvents && content) {
-    // Enhanced parser to extract year/date and event text
-    // Expected format: "- 1776: Declaration of Independence" or similar list items
-    parsedEvents = content.split('\n')
-      .filter(line => {
-        const trimmedLine = line.trim();
-        return trimmedLine.startsWith('-') || 
-               trimmedLine.match(/^\d/) || 
-               trimmedLine.includes(':');
-      })
-      .map(line => {
-        const cleanLine = line.replace(/^-\s*/, '').trim();
-        
-        // Try multiple date formats
-        let match = cleanLine.match(/^(\d{4}(?:-\d{4})?|.*?:\s*)(.*)/);
-        
-        if (!match) {
-          // Try format like "1776 - Declaration of Independence"
-          match = cleanLine.match(/^(\d{4})\s*[-—–]\s*(.*)/);
-        }
-        
-        if (!match) {
-          // Try format like "Declaration of Independence (1776)"
-          match = cleanLine.match(/^(.*)\s*\((\d{4}(?:-\d{4})?)\)\s*$/);
-          if (match) {
-            // Swap groups for this format
-            match = [match[0], match[2], match[1]];
+  try {
+    // Use provided events or parse from content
+    let parsedEvents = propEvents || [];
+    
+    if (!propEvents && content) {
+      // Enhanced parser to extract year/date and event text
+      // Expected format: "- 1776: Declaration of Independence" or similar list items
+      parsedEvents = content.split('\n')
+        .filter(line => {
+          const trimmedLine = line.trim();
+          return trimmedLine.startsWith('-') || 
+                 trimmedLine.match(/^\d/) || 
+                 trimmedLine.includes(':');
+        })
+        .map(line => {
+          const cleanLine = line.replace(/^-\s*/, '').trim();
+          
+          // Try multiple date formats
+          let match = cleanLine.match(/^(\d{4}(?:-\d{4})?|.*?:\s*)(.*)/);
+          
+          if (!match) {
+            // Try format like "1776 - Declaration of Independence"
+            match = cleanLine.match(/^(\d{4})\s*[-—–]\s*(.*)/);
           }
-        }
-        
-        if (match) {
-          const date = match[1].replace(/:$/, '').trim();
-          const event = match[2].trim();
-          return { date: date || 'Unknown', event: event || cleanLine };
-        }
-        
-        // Fallback: treat entire line as event with no date
-        return { date: 'Overview', event: cleanLine };
-      })
-      .filter(item => item.event && item.event.length > 0);
-  }
-  
-  // Fallback if parsing fails or content isn't a list
-  const displayEvents = parsedEvents.length > 0 
-    ? parsedEvents 
-    : content 
-      ? [{ date: 'Overview', event: content }]
-      : [{ date: 'No Data', event: 'No timeline events available' }];
+          
+          if (!match) {
+            // Try format like "Declaration of Independence (1776)"
+            match = cleanLine.match(/^(.*)\s*\((\d{4}(?:-\d{4})?)\)\s*$/);
+            if (match) {
+              // Swap groups for this format
+              match = [match[0], match[2], match[1]];
+            }
+          }
+          
+          if (match) {
+            const date = match[1].replace(/:$/, '').trim();
+            const event = match[2].trim();
+            return { date: date || 'Unknown', event: event || cleanLine };
+          }
+          
+          // Fallback: treat entire line as event with no date
+          return { date: 'Overview', event: cleanLine };
+        })
+        .filter(item => item.event && item.event.length > 0);
+    }
+    
+    // Fallback if parsing fails or content isn't a list
+    const displayEvents = parsedEvents?.length > 0 
+      ? parsedEvents 
+      : content 
+        ? [{ date: 'Overview', event: content }]
+        : [{ date: 'No Data', event: 'No timeline events available' }];
 
-  console.log('[Timeline] Display events:', displayEvents);
+    console.log('[Timeline] Display events:', displayEvents);
 
-  return (
-    <div style={{ padding: '16px 0' }}>
-      {title && (
-        <h3 style={{ 
-          fontSize: '18px', 
-          fontWeight: '600', 
-          marginBottom: '16px',
-          color: '#2F4731'
-        }}>
-          {title}
-        </h3>
-      )}
-      
-      <div style={{ position: 'relative', paddingLeft: '20px' }}>
-        {/* Timeline line */}
-        <div style={{
-          position: 'absolute',
-          left: '8px',
-          top: 0,
-          bottom: 0,
-          width: '2px',
-          backgroundColor: '#6366F1',
-          borderRadius: '1px'
-        }} />
+    return (
+      <div style={{ padding: '16px 0' }}>
+        {title && (
+          <h3 style={{ 
+            fontSize: '18px', 
+            fontWeight: '600', 
+            marginBottom: '16px',
+            color: '#2F4731'
+          }}>
+            {title}
+          </h3>
+        )}
         
-        {/* Timeline events */}
-        {displayEvents.map((item: any, index: number) => (
+        <div style={{ position: 'relative', paddingLeft: '20px' }}>
+          {/* Timeline line */}
+          <div style={{
+            position: 'absolute',
+            left: '8px',
+            top: 0,
+            bottom: 0,
+            width: '2px',
+            backgroundColor: '#6366F1',
+            borderRadius: '1px'
+          }} />
+          
+          {/* Timeline events */}
+          {displayEvents?.map((item: any, index: number) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, x: -20 }}
@@ -150,5 +151,9 @@ export function Timeline({ content, title, events: propEvents }: TimelineProps) 
         ))}
       </div>
     </div>
-  );
+    );
+  } catch (error) {
+    console.error('[Timeline] Fatal error during rendering:', error);
+    return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">Failed to render Timeline</div>;
+  }
 }
