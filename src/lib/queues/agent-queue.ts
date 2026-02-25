@@ -57,7 +57,6 @@ export enum JobType {
   ZPD_CALCULATION = 'zpd_calculation',
   SPACED_REPETITION = 'spaced_repetition',
   ANALYTICS_PROCESSING = 'analytics_processing',
-  MULTIMODAL_ANALYSIS = 'multimodal_analysis',
 }
 
 /**
@@ -128,13 +127,7 @@ export function createAgentWorker(): Worker {
             result = await processSpacedRepetition(data);
             break;
             
-          case JobType.MULTIMODAL_ANALYSIS:
-            // Process multimodal learning analysis
-            result = await processMultimodalAnalysis(data);
-            break;
-            
           case JobType.ANALYTICS_PROCESSING:
-            // Process analytics and reporting
             result = await processAnalytics(data);
             break;
             
@@ -246,30 +239,6 @@ async function processSpacedRepetition(state: AdelineGraphState): Promise<Adelin
       ...state.metadata,
       processingTime,
       jobType: JobType.SPACED_REPETITION,
-    },
-  };
-}
-
-/**
- * Multimodal analysis processing.
- */
-async function processMultimodalAnalysis(state: AdelineGraphState): Promise<AdelineGraphState> {
-  // This would implement processing for handwriting, speech, and visual analysis
-  // These are CPU-intensive tasks that benefit from background processing
-  
-  const startTime = Date.now();
-  
-  // Simulate processing (replace with actual implementation)
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  const processingTime = Date.now() - startTime;
-  
-  return {
-    ...state,
-    metadata: {
-      ...state.metadata,
-      processingTime,
-      jobType: JobType.MULTIMODAL_ANALYSIS,
     },
   };
 }

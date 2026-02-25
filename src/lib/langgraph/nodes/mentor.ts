@@ -12,6 +12,14 @@ export async function mentor(state: AdelineStateType): Promise<Partial<AdelineSt
     // Load Adeline's configuration
     const config = loadConfig();
     
+    // Get student's learning style from database
+    const student = await prisma.user.findUnique({
+      where: { id: state.userId },
+      select: { learningStyle: true }
+    });
+    
+    const learningStyle = student?.learningStyle || 'general';
+    
     // Check for learning gaps before responding
     const learningGaps = await prisma.learningGap.findMany({
       where: {
@@ -39,7 +47,18 @@ export async function mentor(state: AdelineStateType): Promise<Partial<AdelineSt
     // Build the system prompt with Adeline's voice and rules
     const gradeLevelContext = `You are speaking to a student in grade ${state.gradeLevel}. Adjust your vocabulary, the complexity of your analogies, and the depth of your explanations to be developmentally appropriate for this level while still operating within their Zone of Proximal Development.`;
     
-    const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}
+    const adaptationProtocol = `ADAPTATION PROTOCOL: This student has a [${learningStyle}] learning style.
+
+If Kinesthetic: Minimize text. Suggest hands-on experiments, building projects, or physical activities to explain concepts.
+
+If Visual: Use highly descriptive visual analogies and trigger GenUI cards like Timelines or Investigation Boards frequently.
+
+If Narrative: Frame concepts as stories, historical mysteries, or character journeys.
+
+If Socratic: Do not give them the answer. Ask piercing questions to lead them to discover it themselves.
+Never mention their learning style to them directly; just invisibly adapt your teaching methods to it.`;
+    
+    const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}\n\n${adaptationProtocol}
 
 REASONING APPROACH (Chain of Thought):
 You must never use rigid templates, bulleted lists, or academic boilerplate. Instead, think through your answer step by step out loud.

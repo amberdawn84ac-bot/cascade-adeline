@@ -172,7 +172,7 @@ model User {
   age                Int?
   gradeLevel         String?              @map("grade_level")
   interests          String[]
-  learningStyle      String?
+  learningStyle      String?              @default("general")
   onboardingComplete Boolean              @default(false)
   coppaConsentAt     DateTime?            @map("coppa_consent_at")
   coppaConsentBy     String?              @map("coppa_consent_by") @db.Uuid // parent userId who consented
