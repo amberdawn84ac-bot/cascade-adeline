@@ -37,6 +37,7 @@ export async function router(state: AdelineStateType): Promise<Partial<AdelineSt
       content.toLowerCase().includes('what happened') ||
       content.toLowerCase().includes('historical')) {
     intent = content.toLowerCase().includes('timeline') ? 'GEN_UI' : 'CHAT';
+    console.log('[Router] Timeline/Historical detected - intent:', intent, 'content:', content);
   }
   
   // Investigation patterns
@@ -96,6 +97,8 @@ export async function router(state: AdelineStateType): Promise<Partial<AdelineSt
       content.toLowerCase().includes('suggest a')) {
     intent = 'BRAINSTORM';
   }
+  
+  console.log('[Router] Final intent detected:', intent, 'for content:', content);
   
   return {
     intent: intent as any,
