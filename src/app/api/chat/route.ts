@@ -53,17 +53,18 @@ export async function POST(req: NextRequest) {
       start(controller) {
         const responseText = result.response_content || "I'm here to help you learn and grow!";
         
-        // Stream the response character by character
-        let index = 0;
-        const interval = setInterval(() => {
-          if (index < responseText.length) {
-            controller.enqueue(responseText[index]);
-            index++;
-          } else {
-            clearInterval(interval);
-            controller.close();
-          }
-        }, 10); // 10ms delay between characters for streaming effect
+        // Stream using Vercel Data Stream Protocol format
+        // 0: for text content
+        const textChunk = `0:${JSON.stringify(responseText)}\n`;
+        controller.enqueue(new TextEncoder().encode(textChunk));
+        
+        // If there's a GenUI payload, stream it as data
+        if (result.genUIPayload) {
+          const dataChunk = `2:${JSON.stringify(result.genUIPayload)}\n`;
+          controller.enqueue(new TextEncoder().encode(dataChunk));
+        }
+        
+        controller.close();
       }
     });
     
