@@ -50,6 +50,7 @@ export default function ChatPage() {
     // Custom handling for the response to extract GenUI metadata
     onFinish: async (message) => {
       try {
+        console.log('[ChatPage] Message received:', message);
         // The message.content contains the response text
         // Check if there's GenUI payload in the message metadata
         if (message && typeof message === 'object') {
@@ -67,6 +68,14 @@ export default function ChatPage() {
       } catch (error) {
         console.error('Failed to parse chat response:', error);
       }
+    },
+    onError: (error) => {
+      console.error('[ChatPage] useChat error:', error);
+      console.error('[ChatPage] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
     },
   });
   const [gapNudge, setGapNudge] = useState<string | null>(null);
