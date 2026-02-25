@@ -54,11 +54,12 @@ export default function ChatPage() {
         console.log('[ChatPage] Message keys:', Object.keys(message || {}));
         console.log('[ChatPage] Message genUIPayload:', (message as any).genUIPayload);
         console.log('[ChatPage] Message metadata:', (message as any).metadata);
+        console.log('[ChatPage] Message data:', (message as any).data);
         
         // The message.content contains the response text
-        // Check if there's GenUI payload in the message metadata
+        // Check if there's GenUI payload in the message metadata or data
         if (message && typeof message === 'object') {
-          const genUIPayload = (message as any).genUIPayload;
+          const genUIPayload = (message as any).genUIPayload || (message as any).data?.[0];
           const metadata = (message as any).metadata;
           
           if (genUIPayload) {
@@ -66,6 +67,8 @@ export default function ChatPage() {
             setGenUIPayload(genUIPayload);
           } else {
             console.log('[ChatPage] No GenUI payload found in message');
+            console.log('[ChatPage] Checking message.data:', (message as any).data);
+            console.log('[ChatPage] Checking message.data[0]:', (message as any).data?.[0]);
           }
           
           if (metadata?.gapNudge) setGapNudge(String(metadata.gapNudge));
