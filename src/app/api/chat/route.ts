@@ -58,9 +58,9 @@ export async function POST(req: NextRequest) {
         const textChunk = `0:${JSON.stringify(responseText)}\n`;
         controller.enqueue(new TextEncoder().encode(textChunk));
         
-        // If there's a GenUI payload, stream it as data
+        // If there's a GenUI payload, stream it as data (must be an array)
         if (result.genUIPayload) {
-          const dataChunk = `2:${JSON.stringify(result.genUIPayload)}\n`;
+          const dataChunk = `2:${JSON.stringify([result.genUIPayload])}\n`;
           controller.enqueue(new TextEncoder().encode(dataChunk));
         }
         
