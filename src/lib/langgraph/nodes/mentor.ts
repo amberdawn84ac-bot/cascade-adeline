@@ -7,6 +7,16 @@ import prisma from "../../db";
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
   console.log('[Mentor] NODE CALLED - intent:', state.intent, 'content length:', state.messages?.length);
+  
+  // Test if imports work
+  try {
+    const config = loadConfig();
+    console.log('[Mentor] Config loaded successfully');
+  } catch (error) {
+    console.error('[Mentor] Config loading failed:', error);
+    return { response_content: "Config loading failed", metadata: state.metadata };
+  }
+  
   const lastMessage = state.messages[state.messages.length - 1];
   const content = lastMessage.content as string;
   console.log('[Mentor] Processing content:', content);
