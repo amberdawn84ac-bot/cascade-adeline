@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
       start(controller) {
         const responseText = result.response_content || "I'm here to help you learn and grow!";
         
+        console.log('[API Route] Response text:', responseText);
+        console.log('[API Route] GenUI payload:', result.genUIPayload);
+        
         // Stream using Vercel Data Stream Protocol format
         // 0: for text content
         const textChunk = `0:${JSON.stringify(responseText)}\n`;
@@ -60,8 +63,11 @@ export async function POST(req: NextRequest) {
         
         // If there's a GenUI payload, stream it as data (must be an array)
         if (result.genUIPayload) {
+          console.log('[API Route] Streaming GenUI payload:', result.genUIPayload);
           const dataChunk = `2:${JSON.stringify([result.genUIPayload])}\n`;
           controller.enqueue(new TextEncoder().encode(dataChunk));
+        } else {
+          console.log('[API Route] No GenUI payload to stream');
         }
         
         controller.close();
