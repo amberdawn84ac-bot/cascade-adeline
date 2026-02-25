@@ -1,9 +1,9 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
-import { loadConfig } from "../config";
+import { loadConfig } from "../../config";
 import { AdelineStateType } from "../state";
 import { genUIPlanner } from "../genUIPlanner";
-import prisma from "../db";
+import prisma from "../../db";
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
   const lastMessage = state.messages[state.messages.length - 1];
@@ -59,25 +59,11 @@ If Narrative: Frame concepts as stories, historical mysteries, or character jour
 If Socratic: Do not give them the answer. Ask piercing questions to lead them to discover it themselves.
 Never mention their learning style to them directly; just invisibly adapt your teaching methods to it.`;
     
-    const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}\n\n${adaptationProtocol}
-
-REASONING APPROACH (Chain of Thought):
-You must never use rigid templates, bulleted lists, or academic boilerplate. Instead, think through your answer step by step out loud.
-
-Acknowledge what the student is really asking.
-
-Consider what you already know from their context or grade level.
-
-Connect their question to deep, real-world investigations (follow the money) or a biblical worldview.
-
-Propose a hands-on application to deepen understanding.
-Show your thinking naturally—speak like a sharp-witted, wise mentor tracking data late at night. Let the user see your thought process.`);
+    const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}\n\n${adaptationProtocol}`);
     
     // Create the mentor-specific prompt
-    const mentorPrompt = `The student asked: "${content}"
-
-${relevantGaps.length > 0 ? `I notice this connects to their learning gaps in: ${relevantGaps.map(g => g.concept.name).join(', ')}. This is a perfect opportunity for Socratic mentoring.` : 'This is a general learning question.'}
-
+    const mentorPrompt = `Student message: "${content}"
+    
 As Adeline the mentor, respond with:
 1. Warm, conversational tone - never formulaic or theatrical
 2. Socratic questioning that guides their thinking
@@ -105,7 +91,16 @@ Remember: Knowledge without love is nothing. Every child has a calling.`;
     let genUIPayload = null;
     if (state.intent === 'GEN_UI' || content.toLowerCase().includes('timeline')) {
       try {
-        genUIPayload = await genUIPlanner(content, state.gradeLevel || '3');
+        // Create a state object for genUIPlanner
+        const genUIState = {
+          prompt: content,
+          gradeLevel: state.gradeLevel || '3',
+          intent: state.intent,
+          studentContext: state.studentContext || { detectedGaps: [] },
+          messages: state.messages
+        };
+        const genUIResult = await genUIPlanner(genUIState);
+        genUIPayload = genUIResult.genUIPayload;
         console.log('[Mentor] GenUI payload generated:', genUIPayload);
       } catch (error) {
         console.warn('[Mentor] Failed to generate GenUI payload:', error);
