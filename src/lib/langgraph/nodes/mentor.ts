@@ -6,8 +6,10 @@ import { genUIPlanner } from "../genUIPlanner";
 import prisma from "../../db";
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
+  console.log('[Mentor] NODE CALLED - intent:', state.intent, 'content length:', state.messages?.length);
   const lastMessage = state.messages[state.messages.length - 1];
   const content = lastMessage.content as string;
+  console.log('[Mentor] Processing content:', content);
   
   try {
     // Load Adeline's configuration
