@@ -42,7 +42,7 @@ function routeIntent(state: AdelineStateType): string {
     case 'REFLECT':
       return 'mentor';
     case 'GEN_UI':
-      return 'projectBrainstormer';
+      return 'mentor'; // FIXED: GenUI should go to mentor for component generation
     case 'OPPORTUNITY':
       return 'opportunityScout';
     case 'BRAINSTORM':
