@@ -143,11 +143,12 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
   }
 
   // Priority 5: Timeline detection
-  if (isTimelineCandidate(state.responseContent)) {
+  if (isTimelineCandidate(state.responseContent) || isTimelineCandidate(state.prompt)) {
     return {
       component: 'Timeline',
       props: {
-        content: state.responseContent,
+        content: state.responseContent || state.prompt,
+        title: "Civil War Timeline"
       },
     };
   }

@@ -20,7 +20,8 @@ export async function mentor(state: AdelineStateType): Promise<Partial<AdelineSt
           gradeLevel: state.gradeLevel || '3',
           intent: state.intent,
           studentContext: state.studentContext || { detectedGaps: [] },
-          messages: state.messages
+          messages: state.messages,
+          responseContent: content // Set this for GenUI Planner
         };
         const genUIResult = await genUIPlanner(genUIState);
         genUIPayload = genUIResult.genUIPayload;
