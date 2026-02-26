@@ -87,6 +87,8 @@ function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fall
 }
 
 export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
+  console.log('[GenUIRenderer] GenUIRenderer called with payload:', payload);
+  
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -131,19 +133,11 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     }
 
     // Validate parsed payload
-    if (!parsedPayload || typeof parsedPayload !== 'object') {
-      console.warn('[GenUIRenderer] Invalid payload type:', typeof parsedPayload, parsedPayload);
-      return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">Invalid UI card format</div>;
-    }
-
-    if (!parsedPayload.component) {
-      console.warn('[GenUIRenderer] Payload missing component property:', parsedPayload);
-      return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">UI card missing component type</div>;
-    }
-
     const Component = componentMap[parsedPayload.component];
+    console.log('[GenUIRenderer] Component found:', Component, 'for component name:', parsedPayload.component);
+    
     if (!Component) {
-      console.warn(`[GenUIRenderer] Unknown GenUI component type: ${parsedPayload.component}`);
+      console.error('[GenUIRenderer] Unknown component:', parsedPayload.component);
       return (
         <div className="text-red-500 text-xs border border-red-200 p-2 rounded">
           Unknown component: {parsedPayload.component}
@@ -152,6 +146,16 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     }
 
     const borderColor = INTENT_BORDER_COLORS[parsedPayload.component] || '#BD6809';
+    console.log('[GenUIRenderer] Border color:', borderColor);
+
+    const [showConfetti, setShowConfetti] = useState(false);
+
+    useEffect(() => {
+      if (parsedPayload.component === 'TranscriptCard') {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3000);
+      }
+    }, [parsedPayload.component]);
 
     return (
       <>
