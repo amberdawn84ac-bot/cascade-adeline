@@ -1,15 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { WheatStalk } from '@/components/illustrations';
-import { Lightbulb, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { SketchnoteRenderer } from '@/components/sketchnote/SketchnoteRenderer';
-import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
-import { AdelineTyping } from '@/components/chat/AdelineTyping';
+import { Lightbulb, X, Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import GenUIRenderer from '@/components/gen-ui/GenUIRenderer';
+import QuickPrompts from '@/components/ui/quick-prompts';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import AdelineTyping from '@/components/chat/AdelineTyping';
 import { WaitingTips } from '@/components/chat/WaitingTips';
 import { ErrorDisplay } from '@/components/chat/ErrorDisplay';
+
+// Enhanced console logging to see in terminal
+if (typeof window !== 'undefined') {
+  const originalLog = console.log;
+  console.log = (...args) => {
+    originalLog(...args);
+    // Also log to terminal via fetch
+    if (args[0] && args[0].includes && args[0].includes('[ChatPage]')) {
+      fetch('/api/debug-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ log: args.join(' ') })
+      }).catch(() => {});
+    }
+  };
+}
 
 const CREAM = '#FFFEF7';
 const PALM = '#2F4731';
