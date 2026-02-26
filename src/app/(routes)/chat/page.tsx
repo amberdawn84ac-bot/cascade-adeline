@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Lightbulb, X, Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
-import GenUIRenderer from '@/components/gen-ui/GenUIRenderer';
+import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
 import QuickPrompts from '@/components/ui/quick-prompts';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import AdelineTyping from '@/components/chat/AdelineTyping';
+import { AdelineTyping } from '@/components/chat/AdelineTyping';
 import { WaitingTips } from '@/components/chat/WaitingTips';
 import { ErrorDisplay } from '@/components/chat/ErrorDisplay';
 
