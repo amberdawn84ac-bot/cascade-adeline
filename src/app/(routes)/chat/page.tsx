@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Lightbulb, X, Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
@@ -344,7 +344,7 @@ export default function ChatPage() {
           zIndex: 10,
         }}
       >
-        <WheatStalk size={40} color={PAPAYA} />
+        {/* <WheatStalk size={40} color={PAPAYA} /> */}
         <div>
           <div style={{ fontFamily: '"Emilys Candy", cursive', color: PALM, fontSize: '1.5rem' }}>Dear Adeline</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#4B3424', fontSize: 12 }}>
