@@ -47,14 +47,21 @@ export default function ChatPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, append, setInput } = useChat({
     api: '/api/chat',
     body: {},
+    // Add custom headers to debug the stream
+    headers: {
+      'X-Debug': 'true'
+    },
     // Custom handling for the response to extract GenUI metadata
     onFinish: async (message) => {
       try {
+        console.log('[ChatPage] === MESSAGE FINISHED ===');
         console.log('[ChatPage] Message received:', message);
+        console.log('[ChatPage] Message type:', typeof message);
         console.log('[ChatPage] Message keys:', Object.keys(message || {}));
         console.log('[ChatPage] Message genUIPayload:', (message as any).genUIPayload);
         console.log('[ChatPage] Message metadata:', (message as any).metadata);
         console.log('[ChatPage] Message data:', (message as any).data);
+        console.log('[ChatPage] Full message object:', JSON.stringify(message, null, 2));
         
         // The message.content contains the response text
         // Check if there's GenUI payload in the message metadata or data
@@ -62,20 +69,24 @@ export default function ChatPage() {
           const genUIPayload = (message as any).genUIPayload || (message as any).data?.[0];
           const metadata = (message as any).metadata;
           
+          console.log('[ChatPage] Extracted genUIPayload:', genUIPayload);
+          console.log('[ChatPage] Extracted metadata:', metadata);
+          
           if (genUIPayload) {
-            console.log('[ChatPage] GenUI payload found:', genUIPayload);
+            console.log('[ChatPage] ✅ GenUI payload found! Setting payload:', genUIPayload);
             setGenUIPayload(genUIPayload);
           } else {
-            console.log('[ChatPage] No GenUI payload found in message');
+            console.log('[ChatPage] ❌ No GenUI payload found in message');
             console.log('[ChatPage] Checking message.data:', (message as any).data);
             console.log('[ChatPage] Checking message.data[0]:', (message as any).data?.[0]);
+            console.log('[ChatPage] Checking message.genUIPayload:', (message as any).genUIPayload);
           }
           
           if (metadata?.gapNudge) setGapNudge(String(metadata.gapNudge));
           if (metadata?.intent) setDetectedIntent(metadata.intent);
         }
       } catch (error) {
-        console.error('Failed to parse chat response:', error);
+        console.error('[ChatPage] Error in onFinish:', error);
       }
     },
     onError: (error) => {
