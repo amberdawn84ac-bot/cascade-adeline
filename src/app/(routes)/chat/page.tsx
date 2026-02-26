@@ -82,10 +82,24 @@ export default function ChatPage() {
         console.log('[ChatPage] Full message object:', JSON.stringify(message, null, 2));
         
         // The message.content contains the response text
-        // Check if there's GenUI payload in the message metadata or data
+        // Check if there's GenUI payload in the message metadata, data, or content
         if (message && typeof message === 'object') {
-          const genUIPayload = (message as any).genUIPayload || (message as any).data?.[0];
+          let genUIPayload = (message as any).genUIPayload || (message as any).data?.[0];
           const metadata = (message as any).metadata;
+          
+          // Try to extract GenUI payload from content
+          if (!genUIPayload && message.content) {
+            const content = message.content as string;
+            const genuiMatch = content.match(/\[GENUI:(.+?)\]$/);
+            if (genuiMatch) {
+              try {
+                genUIPayload = JSON.parse(genuiMatch[1]);
+                console.log('[ChatPage] Extracted GenUI from content:', genUIPayload);
+              } catch (e) {
+                console.warn('[ChatPage] Failed to parse GenUI from content:', e);
+              }
+            }
+          }
           
           console.log('[ChatPage] Extracted genUIPayload:', genUIPayload);
           console.log('[ChatPage] Extracted metadata:', metadata);
@@ -367,31 +381,23 @@ export default function ChatPage() {
           />
         )}
         {/* Gap Nudge */}
-        <AnimatePresence>
+        {/* <AnimatePresence>
           {gapNudge && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              style={{
-                background: '#FFFDF5',
-                border: `1px solid ${PAPAYA}`,
-                borderRadius: 16,
-                padding: '12px 16px',
-                display: 'flex',
-                alignItems: 'start',
-                gap: 12,
-                boxShadow: '0 4px 12px rgba(189,104,9,0.1)',
-                marginBottom: 8,
-              }}
+              className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3"
             >
-              <div style={{ 
-                background: `${PAPAYA}20`, 
-                padding: 8, 
-                borderRadius: '50%',
-                color: PAPAYA
-              }}>
-                <Lightbulb size={20} />
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm text-yellow-800">{gapNudge}</span>
+                <button
+                  onClick={() => setGapNudge(null)}
+                  className="ml-auto text-yellow-600 hover:text-yellow-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, color: PALM, fontSize: '0.9rem', marginBottom: 4 }}>
@@ -409,7 +415,7 @@ export default function ChatPage() {
               </button>
             </motion.div>
           )}
-        </AnimatePresence>
+        </AnimatePresence> */}
 
         {renderedMessages}
 

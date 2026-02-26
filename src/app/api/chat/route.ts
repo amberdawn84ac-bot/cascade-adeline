@@ -69,6 +69,11 @@ export async function POST(req: NextRequest) {
           const dataChunk = `2:${JSON.stringify([result.genUIPayload])}\n`;
           console.log('[API Route] Streaming data chunk:', dataChunk.trim());
           controller.enqueue(new TextEncoder().encode(dataChunk));
+          
+          // Also include it in a metadata chunk for useChat compatibility
+          const metadataChunk = `0:${JSON.stringify(" [GENUI:" + JSON.stringify(result.genUIPayload) + "]")}\n`;
+          console.log('[API Route] Streaming metadata chunk:', metadataChunk.trim());
+          controller.enqueue(new TextEncoder().encode(metadataChunk));
         } else {
           console.log('[API Route] No GenUI payload to stream');
         }
