@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { flushSync } from 'react-dom';
 import { useChat } from '@ai-sdk/react';
 import { Lightbulb, X, Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
@@ -11,6 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AdelineTyping } from '@/components/chat/AdelineTyping';
 import { WaitingTips } from '@/components/chat/WaitingTips';
+import { SketchnoteRenderer } from '@/components/sketchnote/SketchnoteRenderer';
+
+type GenUIPayload = {
+  component: string;
+  props: Record<string, any>;
+};
 import { ErrorDisplay } from '@/components/chat/ErrorDisplay';
 
 // Enhanced console logging to see in terminal
@@ -65,62 +72,58 @@ export default function ChatPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, append, setInput } = useChat({
     api: '/api/chat',
     body: {},
-    // Add custom headers to debug the stream
     headers: {
       'X-Debug': 'true'
     },
-    // Custom handling for the response to extract GenUI metadata
     onFinish: async (message) => {
-      try {
-        console.log('[ChatPage] === MESSAGE FINISHED ===');
-        console.log('[ChatPage] Message received:', message);
-        console.log('[ChatPage] Message type:', typeof message);
-        console.log('[ChatPage] Message keys:', Object.keys(message || {}));
-        console.log('[ChatPage] Message genUIPayload:', (message as any).genUIPayload);
-        console.log('[ChatPage] Message metadata:', (message as any).metadata);
-        console.log('[ChatPage] Message data:', (message as any).data);
-        console.log('[ChatPage] Full message object:', JSON.stringify(message, null, 2));
-        
-        // The message.content contains the response text
-        // Check if there's GenUI payload in the message metadata, data, or content
-        if (message && typeof message === 'object') {
-          let genUIPayload = (message as any).genUIPayload || (message as any).data?.[0];
-          const metadata = (message as any).metadata;
-          
-          // Try to extract GenUI payload from content
-          if (!genUIPayload && message.content) {
-            const content = message.content as string;
-            const genuiMatch = content.match(/\[GENUI:(.+?)\]$/);
-            if (genuiMatch) {
-              try {
-                genUIPayload = JSON.parse(genuiMatch[1]);
-                console.log('[ChatPage] Extracted GenUI from content:', genUIPayload);
-              } catch (e) {
-                console.warn('[ChatPage] Failed to parse GenUI from content:', e);
+          try {
+            console.log('[ChatPage] === MESSAGE FINISHED ===');
+
+            let genUIPayload = null;
+            let metadata = null;
+
+            if (message && message.content) {
+              const content = message.content as string;
+              const genuiMatch = content.match(/\[GENUI:(.+?)\]$/);
+              if (genuiMatch) {
+                try {
+                  genUIPayload = JSON.parse(genuiMatch[1]);
+                  console.log('[ChatPage] GenUI payload found! Setting payload:', genUIPayload);
+                  console.log('[ChatPage] About to call setGenUIPayload...');
+                  console.log('[ChatPage] Payload type:', typeof genUIPayload, 'Payload keys:', genUIPayload ? Object.keys(genUIPayload) : 'null');
+                  try {
+                    flushSync(() => {
+                      setGenUIPayload(genUIPayload);
+                    });
+                    console.log('[ChatPage] setGenUIPayload called with flushSync');
+                    // Force render key update
+                    setRenderKey(prev => prev + 1);
+                    console.log('[ChatPage] Render key updated');
+                    // Direct force render
+                    setForceRender(genUIPayload);
+                    console.log('[ChatPage] Force render set');
+                    // Timeout force render
+                    setTimeout(() => {
+                      console.log('[ChatPage] Timeout force render check');
+                      setRenderKey(prev => prev + 1);
+                    }, 100);
+                  } catch (error) {
+                    console.error('[ChatPage] Error setting genUIPayload:', error);
+                  }
+                } catch (e) {
+                  console.warn('[ChatPage] Failed to parse GenUI from content:', e);
+                }
               }
+
+              metadata = (message as any).metadata;
             }
+
+            if (metadata?.gapNudge) setGapNudge(String(metadata.gapNudge));
+            if (metadata?.intent) setDetectedIntent(metadata.intent);
+          } catch (error) {
+            console.error('[ChatPage] Error in onFinish:', error);
           }
-          
-          console.log('[ChatPage] Extracted genUIPayload:', genUIPayload);
-          console.log('[ChatPage] Extracted metadata:', metadata);
-          
-          if (genUIPayload) {
-            console.log('[ChatPage] ✅ GenUI payload found! Setting payload:', genUIPayload);
-            setGenUIPayload(genUIPayload);
-          } else {
-            console.log('[ChatPage] ❌ No GenUI payload found in message');
-            console.log('[ChatPage] Checking message.data:', (message as any).data);
-            console.log('[ChatPage] Checking message.data[0]:', (message as any).data?.[0]);
-            console.log('[ChatPage] Checking message.genUIPayload:', (message as any).genUIPayload);
-          }
-          
-          if (metadata?.gapNudge) setGapNudge(String(metadata.gapNudge));
-          if (metadata?.intent) setDetectedIntent(metadata.intent);
-        }
-      } catch (error) {
-        console.error('[ChatPage] Error in onFinish:', error);
-      }
-    },
+        },
     onError: (error) => {
       console.error('[ChatPage] useChat error:', error);
       console.error('[ChatPage] Error details:', {
@@ -130,10 +133,23 @@ export default function ChatPage() {
       });
     },
   });
+  const [genUIPayload, setGenUIPayload] = useState<GenUIPayload | null>(null);
   const [gapNudge, setGapNudge] = useState<string | null>(null);
-  const [genUIPayload, setGenUIPayload] = useState<any | null>(null);
-  const [detectedIntent, setDetectedIntent] = useState<string | undefined>(undefined);
+  const [detectedIntent, setDetectedIntent] = useState<string | null>(null);
   const [showTips, setShowTips] = useState(false);
+  const [renderKey, setRenderKey] = useState(0);
+  const [directPayload, setDirectPayload] = useState<GenUIPayload | null>(null);
+  const [forceRender, setForceRender] = useState<GenUIPayload | null>(null);
+
+  // Debug genUIPayload state changes
+  useEffect(() => {
+    console.log('[ChatPage] genUIPayload state changed:', genUIPayload);
+    if (genUIPayload) {
+      setRenderKey(prev => prev + 1); // Force re-render
+      setDirectPayload(genUIPayload); // Set direct payload
+    }
+  }, [genUIPayload]);
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -230,66 +246,57 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, genUIPayload]);
 
-  // Extract genUIPayload, gapNudge, and intent from the latest assistant message metadata
+  // Extract genUIPayload, gapNudge, and intent from the latest assistant message
   useEffect(() => {
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
     if (!lastAssistant) return;
     
-    // Handle AI SDK v6 annotations array format
-    const annotations = (lastAssistant as any).annotations || [];
-    let genUIPayloadData = null;
-    let gapNudgeData = null;
-    let intentData = null;
+    let extractedPayload = null;
+    let extractedIntent = null;
+    let extractedNudge = null;
     
-    // Iterate through annotations array to find data
-    if (Array.isArray(annotations)) {
-      annotations.forEach((annotation: any) => {
-        if (annotation?.genUIPayload) genUIPayloadData = annotation.genUIPayload;
-        if (annotation?.gapNudge) gapNudgeData = annotation.gapNudge;
-        if (annotation?.intent) intentData = annotation.intent;
+    // 1. Check message.data array (Vercel Data Stream '2:' chunks end up here)
+    const dataArray = (lastAssistant as any).data || [];
+    if (Array.isArray(dataArray)) {
+      dataArray.forEach((item: any) => {
+        if (item?.genUIPayload) extractedPayload = item.genUIPayload;
+        else if (item?.component) extractedPayload = item; // Direct payload fallback
+        if (item?.intent) extractedIntent = item.intent;
+        if (item?.gapNudge) extractedNudge = item.gapNudge;
       });
     }
     
-    // Also check for direct attachments and metadata as fallback
-    const meta = (lastAssistant as any).metadata || (lastAssistant as any).data || {};
-    const directPayload = (lastAssistant as any).genUIPayload;
+    // 2. Check message.annotations array (Vercel AI SDK v6 fallback)
+    const annotations = (lastAssistant as any).annotations || [];
+    if (Array.isArray(annotations)) {
+      annotations.forEach((annotation: any) => {
+        if (annotation?.genUIPayload) extractedPayload = annotation.genUIPayload;
+        else if (annotation?.component) extractedPayload = annotation;
+        if (annotation?.intent) extractedIntent = annotation.intent;
+        if (annotation?.gapNudge) extractedNudge = annotation.gapNudge;
+      });
+    }
     
-    console.log('[ChatPage] Extracting metadata:', { 
-      annotations, 
-      genUIPayloadData, 
-      gapNudgeData, 
-      intentData, 
-      meta, 
-      directPayload 
-    });
-    
-    // Safely extract and validate genUIPayload
-    const payloadSource = directPayload || genUIPayloadData || meta?.genUIPayload || meta?.genuiPayload;
-    if (payloadSource) {
-      try {
-        // If it's a string, parse it as JSON
-        const payload = typeof payloadSource === 'string' 
-          ? JSON.parse(payloadSource) 
-          : payloadSource;
-        
-        // Validate payload structure
-        if (payload && typeof payload === 'object' && payload.component) {
-          console.log('[ChatPage] Valid GenUI payload found:', payload.component);
-          setGenUIPayload(payload);
-        } else {
-          console.warn('[ChatPage] Invalid genUIPayload structure:', payload);
-          setGenUIPayload(null);
-        }
-      } catch (error) {
-        console.error('[ChatPage] Failed to parse genUIPayload:', error);
-        setGenUIPayload(null);
+    // 3. Fallback to metadata or direct properties
+    const meta = (lastAssistant as any).metadata || {};
+    if (!extractedPayload) {
+      let rawPayload = (lastAssistant as any).genUIPayload || meta.genUIPayload || meta.genuiPayload;
+      if (typeof rawPayload === 'string') {
+        try { rawPayload = JSON.parse(rawPayload); } catch (e) {}
       }
+      extractedPayload = rawPayload;
+    }
+    if (!extractedIntent) extractedIntent = meta.intent || (lastAssistant as any).intent;
+    if (!extractedNudge) extractedNudge = meta.gapNudge || (lastAssistant as any).gapNudge;
+    
+    // Safely validate and set state
+    if (extractedPayload && typeof extractedPayload === 'object' && (extractedPayload.component || extractedPayload.component === 'TIMELINE')) {
+      setGenUIPayload(extractedPayload);
     } else {
       setGenUIPayload(null);
     }
-    
-    if (gapNudgeData || meta?.gapNudge) setGapNudge(String(gapNudgeData || meta.gapNudge));
-    if (intentData || meta?.intent) setDetectedIntent(intentData || meta.intent);
+    if (extractedIntent) setDetectedIntent(extractedIntent);
+    if (extractedNudge) setGapNudge(String(extractedNudge));
   }, [messages]);
 
   // Show tips after 5 seconds of loading
@@ -419,7 +426,9 @@ export default function ChatPage() {
 
         {renderedMessages}
 
-        {genUIPayload && <GenUIRenderer payload={genUIPayload} />}
+        {console.log('[ChatPage] Render - genUIPayload:', genUIPayload, 'directPayload:', directPayload, 'forceRender:', forceRender, 'renderKey:', renderKey)}
+        {forceRender && <GenUIRenderer key={renderKey} payload={forceRender} />}
+        {console.log('[ChatPage] GenUIRenderer should be rendered with forceRender:', forceRender)}
 
         {isLoading && <AdelineTyping intent={detectedIntent} />}
         {isLoading && <WaitingTips show={showTips} />}

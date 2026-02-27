@@ -15,6 +15,7 @@ import {
   InvestigationBoard,
   ProjectImpactCard,
   MissionBriefing,
+  Timeline,
 } from '@/components/gen-ui';
 import { CalloutBox } from './CalloutBox';
 import { HighlightSpan } from './HighlightSpan';
@@ -297,6 +298,9 @@ function renderGenUI(gen?: { component: string; props: Record<string, unknown> }
       return <ProjectImpactCard {...(gen.props as any)} />;
     case 'MissionBriefing':
       return <MissionBriefing {...(gen.props as any)} />;
+    case 'TIMELINE':
+    case 'Timeline': // Handle both cases
+      return <Timeline {...(gen.props as any)} />;
     default:
       return null;
   }

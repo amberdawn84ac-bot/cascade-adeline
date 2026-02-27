@@ -15,22 +15,19 @@ export async function POST(req: NextRequest) {
     const { messages } = body;
     const lastMessage = messages[messages.length - 1];
     const maskedContent = maskPII(lastMessage.content);
-    
-    // Content moderation
     const moderationResult = await moderateContent(lastMessage.content);
+
     if (moderationResult.severity === 'blocked') {
       return new Response('Content violates safety guidelines', { status: 400 });
     }
-    
-    // Fetch student's grade level
+
     const student = await prisma.user.findUnique({
       where: { id: user.userId },
       select: { gradeLevel: true }
     });
-    
-    const gradeLevel = student?.gradeLevel || '3'; // Default to 3rd grade if not set
-    
-    // Setup initial LangGraph state
+
+    const gradeLevel = student?.gradeLevel || '3';
+
     const initialState = {
       messages: [new HumanMessage(maskedContent.masked)],
       userId: user.userId,
@@ -45,61 +42,60 @@ export async function POST(req: NextRequest) {
       metadata: { timestamp: new Date().toISOString(), user_role: user.role, gradeLevel: gradeLevel },
     };
 
-    // Run the LangGraph Brain to get result
     const result = await adelineBrainRunnable.invoke(initialState);
     
-    // Create native ReadableStream for streaming response
+    // 1. Extract and Strip the [GENUI] string if the LLM leaked it into the text
+    let responseText = result.response_content || "I'm here to help you learn and grow!";
+    let payload = result.genUIPayload;
+
+    const genUIMatch = responseText.match(/\[GENUI:(.*?)\]/);
+    if (genUIMatch) {
+      try {
+        payload = JSON.parse(genUIMatch[1]);
+        // Remove the ugly JSON artifact from the text the user sees
+        responseText = responseText.replace(/\[GENUI:.*?\]/, '').trim();
+      } catch (e) {
+        console.error("Failed to parse inline GenUI", e);
+      }
+    }
+    
+    // 2. Stream using strict Vercel AI Protocol
+    const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        const responseText = result.response_content || "I'm here to help you learn and grow!";
-        
-        console.log('[API Route] === STREAM STARTING ===');
-        console.log('[API Route] Response text:', responseText);
-        console.log('[API Route] GenUI payload:', result.genUIPayload);
-        
-        // Stream using Vercel Data Stream Protocol format
-        // 0: for text content
-        const textChunk = `0:${JSON.stringify(responseText)}\n`;
-        console.log('[API Route] Streaming text chunk:', textChunk.trim());
-        controller.enqueue(new TextEncoder().encode(textChunk));
-        
-        // If there's a GenUI payload, stream it as data (must be an array)
-        if (result.genUIPayload) {
-          console.log('[API Route] Streaming GenUI payload:', result.genUIPayload);
-          const dataChunk = `2:${JSON.stringify([result.genUIPayload])}\n`;
-          console.log('[API Route] Streaming data chunk:', dataChunk.trim());
-          controller.enqueue(new TextEncoder().encode(dataChunk));
-          
-          // Also include it in a metadata chunk for useChat compatibility
-          const metadataChunk = `0:${JSON.stringify(" [GENUI:" + JSON.stringify(result.genUIPayload) + "]")}\n`;
-          console.log('[API Route] Streaming metadata chunk:', metadataChunk.trim());
-          controller.enqueue(new TextEncoder().encode(metadataChunk));
-        } else {
-          console.log('[API Route] No GenUI payload to stream');
+        // Send the UI Payload first (Vercel data chunk prefix '2:')
+        if (payload) {
+           const wrappedData = { genUIPayload: payload };
+           controller.enqueue(encoder.encode(`2:${JSON.stringify([wrappedData])}\n`));
         }
-        
-        console.log('[API Route] === STREAM FINISHED ===');
-        controller.close();
+        // Stream text character by character for the typing effect (Vercel text chunk '0:')
+        let index = 0;
+        const interval = setInterval(() => {
+          if (index < responseText.length) {
+            const charChunk = `0:${JSON.stringify(responseText[index])}\n`;
+            controller.enqueue(encoder.encode(charChunk));
+            index++;
+          } else {
+            clearInterval(interval);
+            controller.close();
+          }
+        }, 10);
       }
     });
     
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
         'X-Vercel-AI-Data-Stream': 'v1'
       },
     });
-    
+
   } catch (error: any) {
     console.error('Chat API error:', error);
-    
-    // Stream the actual error message to the frontend so we can debug it
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        const errorMessage = error.message || "Unknown error occurred";
-        controller.enqueue(encoder.encode(`0:${JSON.stringify("SYSTEM CRASH: " + errorMessage)}\n`));
+        controller.enqueue(encoder.encode(`0:${JSON.stringify("SYSTEM CRASH: " + (error.message || "Unknown"))}\n`));
         controller.close();
       }
     });

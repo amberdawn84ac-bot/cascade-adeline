@@ -87,7 +87,7 @@ function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fall
 }
 
 export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
-  console.log('[GenUIRenderer] GenUIRenderer called with payload:', payload);
+  console.log('[GenUIRenderer] 🚀 GenUIRenderer called with payload:', payload);
   
   const [showConfetti, setShowConfetti] = useState(false);
 
