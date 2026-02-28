@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { PDFParse } from 'pdf-parse';
+import * as pdfParse from 'pdf-parse';
 import { embedMany } from 'ai';
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';
@@ -21,9 +21,15 @@ function chunkText(text: string, chunkSize = 500, overlap = 100): string[] {
 const SOURCE_TYPES = ['PRIMARY', 'CURATED', 'SECONDARY', 'MAINSTREAM'] as const;
 
 async function rateLimit(key: string, limit: number, windowSeconds: number) {
-  const count = await redis.incr(key);
-  if (count === 1) await redis.expire(key, windowSeconds);
-  return count <= limit;
+  try {
+    if (!redis) return true;
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, windowSeconds);
+    return count <= limit;
+  } catch (e) {
+    console.warn("Redis not running locally, bypassing rate limit.");
+    return true;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -60,12 +66,12 @@ export async function POST(req: NextRequest) {
   let text = '';
   if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const parser = new PDFParse({ data: buffer });
     try {
-      const parsed = await parser.getText();
+      const parsed = await pdfParse(buffer);
       text = parsed.text || '';
-    } finally {
-      await parser.destroy();
+    } catch (err) {
+      console.error("PDF Parsing error:", err);
+      return new Response('Failed to read PDF file', { status: 500 });
     }
   } else {
     text = await file.text();

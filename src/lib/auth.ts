@@ -26,11 +26,27 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const supaUser = data.user;
   if (!supaUser) return null;
 
-  const user = await prisma.user.findUnique({
+  let user = await prisma.user.findUnique({
     where: { id: supaUser.id },
     select: { role: true, email: true, id: true, accountLockedAt: true, dataDeletionRequestedAt: true },
   });
-  if (!user) return null;
+  
+  // Auto-heal missing Prisma user (The Ghost User fix)
+  if (!user) {
+    try {
+      user = await prisma.user.create({
+        data: {
+          id: supaUser.id,
+          email: supaUser.email || '',
+          role: 'PARENT', // Safe default fallback
+          name: supaUser.email?.split('@')[0] || 'User',
+        }
+      }) as any;
+    } catch (e) {
+      console.error("Failed to auto-heal missing Prisma user:", e);
+      return null;
+    }
+  }
 
   // Hard-lock: reject if account is locked or deletion requested
   if (user.accountLockedAt) return null;
