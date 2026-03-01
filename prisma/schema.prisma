@@ -1,18 +1,591 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
-  engineType = "library"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
   previewFeatures = ["driverAdapters"]
+  engineType      = "library"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model UserMFACredential {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  secret      String
+  backupCodes Json     @map("backup_codes")
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([enabled])
+}
+
+model UserActivity {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  activityType String   @map("activity_type")
+  duration     Int      @default(30)
+  metadata     Json?    @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation("UserActivities", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([activityType])
+}
+
+model CollaborativeSession {
+  id             String        @id @default(uuid()) @db.Uuid
+  hostUserId     String        @map("host_user_id") @db.Uuid
+  participantIds Json          @map("participant_ids")
+  topic          String
+  status         SessionStatus @default(ACTIVE)
+  startTime      DateTime      @default(now()) @map("start_time")
+  endTime        DateTime?     @map("end_time")
+  sharedInsights Json?         @map("shared_insights")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  host           User          @relation("HostedSessions", fields: [hostUserId], references: [id])
+
+  @@index([hostUserId])
+  @@index([status])
+  @@index([startTime])
+}
+
+model User {
+  id                      String                    @id @default(uuid()) @db.Uuid
+  email                   String                    @unique
+  name                    String
+  role                    UserRole
+  parentId                String?                   @db.Uuid
+  avatarUrl               String?
+  age                     Int?
+  gradeLevel              String?                   @map("grade_level")
+  interests               String[]
+  learningStyle           String?                   @default("general")
+  onboardingComplete      Boolean                   @default(false)
+  coppaConsentAt          DateTime?                 @map("coppa_consent_at")
+  coppaConsentBy          String?                   @map("coppa_consent_by") @db.Uuid
+  dataRetentionDays       Int?                      @default(365) @map("data_retention_days")
+  referralCode            String?                   @unique @map("referral_code")
+  referredBy              String?                   @map("referred_by") @db.Uuid
+  messageCount            Int                       @default(0) @map("message_count")
+  messageResetAt          DateTime?                 @map("message_reset_at")
+  dataDeletionRequestedAt DateTime?                 @map("data_deletion_requested_at")
+  accountLockedAt         DateTime?                 @map("account_locked_at")
+  metadata                Json?                     @default("{}")
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @updatedAt @map("updated_at")
+  artifacts               Artifact[]
+  clubsCreated            Club[]                    @relation("ClubCreator")
+  clubs                   ClubMembership[]
+  hostedSessions          CollaborativeSession[]    @relation("HostedSessions")
+  conversationMemory      ConversationMemory[]
+  highlights              Highlight[]
+  learningGaps            LearningGap[]
+  onboardingProgress      OnboardingProgress?
+  opportunities           Opportunity[]             @relation("OpportunityCreator")
+  placementAssessments    PlacementAssessment[]
+  projects                Project[]                 @relation("ProjectCreator")
+  referralsReceived       Referral[]                @relation("Referee")
+  referralsMade           Referral[]                @relation("Referrer")
+  reflections             ReflectionEntry[]
+  reviewSchedules         ReviewSchedule[]
+  standardsProgress       StudentStandardProgress[]
+  subscription            Subscription?
+  approvedEntries         TranscriptEntry[]         @relation("TranscriptApprover")
+  transcriptEntries       TranscriptEntry[]
+  parent                  User?                     @relation("ParentToChild", fields: [parentId], references: [id])
+  children                User[]                    @relation("ParentToChild")
+  userActivities          UserActivity[]            @relation("UserActivities")
+  conceptMastery          UserConceptMastery[]
+  mfaCredential           UserMFACredential?
+  investigations          Investigation[]
+  createdShareLinks       ShareLink[]               @relation("ShareLinkCreator")
+
+  @@index([email])
+  @@index([role])
+  @@index([parentId])
+  @@index([dataDeletionRequestedAt])
+}
+
+model Club {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  description String
+  subject     String?
+  ageRange    String?          @map("age_range")
+  isPublic    Boolean          @default(true) @map("is_public")
+  createdById String           @db.Uuid
+  isActive    Boolean
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  createdBy   User             @relation("ClubCreator", fields: [createdById], references: [id])
+  memberships ClubMembership[]
+  projects    Project[]
+}
+
+model ClubMembership {
+  userId   String   @db.Uuid
+  clubId   String   @db.Uuid
+  role     ClubRole
+  joinedAt DateTime @default(now()) @map("joined_at")
+  club     Club     @relation(fields: [clubId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@id([userId, clubId])
+  @@index([userId])
+  @@index([clubId])
+}
+
+model Project {
+  id             String        @id @default(uuid()) @db.Uuid
+  title          String
+  description    String
+  clubId         String?       @db.Uuid
+  createdById    String        @db.Uuid
+  status         ProjectStatus
+  serviceGoal    String        @map("service_goal")
+  intendedImpact String        @map("intended_impact")
+  actualImpact   String?       @map("actual_impact")
+  curriculumUnit String?       @map("curriculum_unit")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  artifacts      Artifact[]
+  club           Club?         @relation(fields: [clubId], references: [id])
+  createdBy      User          @relation("ProjectCreator", fields: [createdById], references: [id])
+
+  @@index([createdById])
+}
+
+model Artifact {
+  id                String            @id @default(uuid()) @db.Uuid
+  projectId         String            @db.Uuid
+  createdById       String            @db.Uuid
+  title             String
+  type              ArtifactType
+  fileUrl           String?           @map("file_url")
+  description       String
+  isShowcase        Boolean           @default(false) @map("is_showcase")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  createdBy         User              @relation(fields: [createdById], references: [id])
+  project           Project           @relation(fields: [projectId], references: [id])
+  transcriptEntries TranscriptEntry[]
+
+  @@index([createdById])
+}
+
+model Opportunity {
+  id               String          @id @default(uuid()) @db.Uuid
+  title            String
+  type             OpportunityType
+  description      String
+  url              String?
+  deadline         DateTime?
+  ageRange         String?         @map("age_range")
+  matchedInterests String[]        @map("matched_interests")
+  isActive         Boolean         @map("is_active")
+  createdById      String          @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  createdBy        User            @relation("OpportunityCreator", fields: [createdById], references: [id])
+
+  @@index([createdById])
+}
+
+model TranscriptEntry {
+  id                 String    @id @default(uuid()) @db.Uuid
+  metadata           Json?     @default("{}")
+  userId             String?   @db.Uuid
+  activityName       String    @map("activity_name")
+  mappedSubject      String    @map("mapped_subject")
+  creditsEarned      Decimal   @map("credits_earned") @db.Decimal(10, 2)
+  gradeLevel         String?   @map("grade_level")
+  evidenceArtifactId String?   @db.Uuid
+  dateCompleted      DateTime  @map("date_completed")
+  approvedById       String?   @db.Uuid
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  approvedBy         User?     @relation("TranscriptApprover", fields: [approvedById], references: [id])
+  evidenceArtifact   Artifact? @relation(fields: [evidenceArtifactId], references: [id])
+  user               User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([mappedSubject])
+}
+
+model Concept {
+  id              String                 @id @default(uuid()) @db.Uuid
+  name            String
+  description     String
+  subjectArea     String                 @map("subject_area")
+  gradeBand       String?                @map("grade_band")
+  embedding       Unsupported("vector")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+  activities      ConceptActivity[]
+  prerequisites   ConceptPrerequisite[]  @relation("ConceptPrereqs")
+  dependents      ConceptPrerequisite[]  @relation("ConceptDependents")
+  learningGaps    LearningGap[]
+  reviewSchedules ReviewSchedule[]
+  skillMappings   SkillStandardMapping[]
+  userMastery     UserConceptMastery[]
+}
+
+model ConceptPrerequisite {
+  conceptId      String  @db.Uuid
+  prerequisiteId String  @db.Uuid
+  concept        Concept @relation("ConceptPrereqs", fields: [conceptId], references: [id])
+  prerequisite   Concept @relation("ConceptDependents", fields: [prerequisiteId], references: [id])
+
+  @@id([conceptId, prerequisiteId])
+  @@index([conceptId])
+}
+
+model ConceptActivity {
+  id                  String   @id @default(uuid()) @db.Uuid
+  conceptId           String   @db.Uuid
+  activityDescription String   @map("activity_description")
+  creditMapping       String   @map("credit_mapping")
+  suggestedExtension  String   @map("suggested_extension")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  concept             Concept  @relation(fields: [conceptId], references: [id])
+
+  @@index([conceptId])
+}
+
+model TimelineEntry {
+  id             String     @id @default(uuid()) @db.Uuid
+  year           Int
+  title          String
+  description    String
+  worldviewNote  String     @map("worldview_note")
+  sourceType     SourceType @map("source_type")
+  sourceCitation String?    @map("source_citation")
+  curriculumUnit String?    @map("curriculum_unit")
+  tags           String[]
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+}
+
+model HippocampusDocument {
+  id         String                @id @default(uuid()) @db.Uuid
+  title      String
+  content    String
+  metadata   Json
+  sourceType SourceType            @map("source_type")
+  embedding  Unsupported("vector")
+  chunkIndex Int                   @map("chunk_index")
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @updatedAt @map("updated_at")
+
+  @@index([sourceType])
+}
+
+model ConversationMemory {
+  id        String                @id @default(uuid()) @db.Uuid
+  userId    String                @db.Uuid
+  sessionId String                @map("session_id")
+  role      ConversationRole
+  content   String
+  metadata  Json
+  embedding Unsupported("vector")
+  createdAt DateTime              @default(now()) @map("created_at")
+  updatedAt DateTime              @updatedAt @map("updated_at")
+  user      User                  @relation(fields: [userId], references: [id])
+
+  @@index([userId, sessionId])
+  @@index([createdAt])
+}
+
+model LearningGap {
+  id           String              @id @default(uuid()) @db.Uuid
+  userId       String              @db.Uuid
+  conceptId    String              @db.Uuid
+  detectedAt   DateTime            @map("detected_at")
+  severity     LearningGapSeverity
+  addressed    Boolean             @default(false)
+  addressedVia String?             @map("addressed_via")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  concept      Concept             @relation(fields: [conceptId], references: [id])
+  user         User                @relation(fields: [userId], references: [id])
+}
+
+model ReflectionEntry {
+  id              String         @id @default(uuid()) @db.Uuid
+  userId          String         @db.Uuid
+  type            ReflectionType
+  activitySummary String         @map("activity_summary")
+  promptUsed      String         @map("prompt_used")
+  studentResponse String?        @map("student_response")
+  aiFollowUp      String?        @map("ai_follow_up")
+  conceptsTagged  String[]       @map("concepts_tagged")
+  insightScore    Float?         @map("insight_score")
+  metadata        Json?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  user            User           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+}
+
+model ReviewSchedule {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  conceptId      String    @db.Uuid
+  nextReviewAt   DateTime  @map("next_review_at")
+  interval       Float     @default(1)
+  easeFactor     Float     @default(2.5) @map("ease_factor")
+  repetitions    Int       @default(0)
+  lastQuality    Int?      @map("last_quality")
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  concept        Concept   @relation(fields: [conceptId], references: [id])
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, conceptId])
+  @@index([userId, nextReviewAt])
+}
+
+model UserConceptMastery {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  conceptId     String   @db.Uuid
+  masteryLevel  Float    @default(0.0) @map("mastery_level")
+  lastPracticed DateTime @default(now()) @map("last_practiced")
+  history       Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  concept       Concept  @relation(fields: [conceptId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, conceptId])
+  @@index([userId])
+}
+
+model LLMTrace {
+  id            String   @id @default(uuid()) @db.Uuid
+  traceId       String   @map("trace_id")
+  agentNode     String   @map("agent_node")
+  modelId       String   @map("model_id")
+  promptTokens  Int      @default(0) @map("prompt_tokens")
+  outputTokens  Int      @default(0) @map("output_tokens")
+  totalTokens   Int      @default(0) @map("total_tokens")
+  latencyMs     Int      @map("latency_ms")
+  estimatedCost Float    @default(0) @map("estimated_cost")
+  success       Boolean  @default(true)
+  errorMessage  String?  @map("error_message")
+  userId        String?  @db.Uuid
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([traceId])
+  @@index([agentNode])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model Highlight {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  messageId String?  @db.Uuid
+  content   String
+  type      String
+  source    String
+  impact    String?
+  userNote  String?  @map("user_note")
+  intent    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model OnboardingProgress {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @unique @db.Uuid
+  completedSteps String[]  @map("completed_steps")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                   String             @id @default(uuid()) @db.Uuid
+  userId               String             @unique @db.Uuid
+  stripeCustomerId     String             @unique @map("stripe_customer_id")
+  stripeSubscriptionId String             @unique @map("stripe_subscription_id")
+  stripePriceId        String             @map("stripe_price_id")
+  tier                 SubscriptionTier   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd     DateTime           @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  credits              Decimal            @default(0) @db.Decimal(10, 2)
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+}
+
+model Referral {
+  id           String         @id @default(uuid()) @db.Uuid
+  referrerId   String         @map("referrer_id") @db.Uuid
+  refereeId    String         @map("referee_id") @db.Uuid
+  status       ReferralStatus @default(PENDING)
+  creditAmount Decimal        @default(10.00) @map("credit_amount") @db.Decimal(10, 2)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  paidAt       DateTime?      @map("paid_at")
+  creditedAt   DateTime?      @map("credited_at")
+  referee      User           @relation("Referee", fields: [refereeId], references: [id])
+  referrer     User           @relation("Referrer", fields: [referrerId], references: [id])
+
+  @@index([referrerId])
+  @@index([refereeId])
+}
+
+model AIJob {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String?   @db.Uuid
+  sessionId   String    @map("session_id")
+  status      JobStatus @default(PENDING)
+  intent      String?
+  prompt      String
+  result      String?
+  error       String?
+  metadata    Json?
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([sessionId])
+  @@index([status])
+}
+
+model StateStandard {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  standardCode       String                    @map("standard_code")
+  jurisdiction       String
+  subject            String
+  gradeLevel         String                    @map("grade_level")
+  statementText      String                    @map("statement_text")
+  description        String?
+  learningComponents LearningComponent[]
+  skillMappings      SkillStandardMapping[]
+  studentProgress    StudentStandardProgress[]
+
+  @@unique([standardCode, jurisdiction])
+  @@index([jurisdiction, subject])
+  @@index([jurisdiction, gradeLevel])
+}
+
+model LearningComponent {
+  id             String        @id @default(uuid()) @db.Uuid
+  standardId     String        @map("standard_id") @db.Uuid
+  componentText  String        @map("component_text")
+  componentOrder Int?          @map("component_order")
+  standard       StateStandard @relation(fields: [standardId], references: [id], onDelete: Cascade)
+
+  @@index([standardId])
+}
+
+model SkillStandardMapping {
+  id                String            @id @default(uuid()) @db.Uuid
+  conceptId         String            @map("concept_id") @db.Uuid
+  standardId        String            @map("standard_id") @db.Uuid
+  alignmentStrength AlignmentStrength @default(FULL) @map("alignment_strength")
+  notes             String?
+  concept           Concept           @relation(fields: [conceptId], references: [id])
+  standard          StateStandard     @relation(fields: [standardId], references: [id])
+
+  @@unique([conceptId, standardId])
+  @@index([conceptId])
+  @@index([standardId])
+}
+
+model StudentStandardProgress {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  standardId     String        @map("standard_id") @db.Uuid
+  mastery        MasteryLevel  @default(INTRODUCED)
+  sourceType     String?       @map("source_type")
+  sourceId       String?       @map("source_id")
+  evidence       Json?
+  demonstratedAt DateTime      @default(now()) @map("demonstrated_at")
+  standard       StateStandard @relation(fields: [standardId], references: [id])
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, standardId])
+  @@index([userId])
+  @@index([standardId])
+  @@index([userId, mastery])
+}
+
+model PlacementAssessment {
+  id              String           @id @default(uuid()) @db.Uuid
+  userId          String           @map("user_id") @db.Uuid
+  status          AssessmentStatus @default(IN_PROGRESS)
+  currentSubject  String?          @map("current_subject")
+  responses       Json?
+  results         Json?
+  learningProfile Json?            @map("learning_profile")
+  startedAt       DateTime         @default(now()) @map("started_at")
+  completedAt     DateTime?        @map("completed_at")
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId])
+}
+
+model Investigation {
+  id         String                @id @default(cuid())
+  title      String
+  summary    String
+  userId     String                @db.Uuid
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  sources    InvestigationSource[]
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shareLinks ShareLink[]
+
+  @@map("investigations")
+}
+
+model InvestigationSource {
+  id              String        @id @default(cuid())
+  title           String
+  content         String
+  sourceType      SourceType
+  investigationId String
+  createdAt       DateTime      @default(now())
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  @@map("investigation_sources")
+}
+
+model ShareLink {
+  id              String        @id @default(cuid())
+  investigationId String
+  createdBy       String        @db.Uuid
+  expiresAt       DateTime
+  createdAt       DateTime      @default(now())
+  creator         User          @relation("ShareLinkCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  @@map("share_links")
 }
 
 enum UserRole {
@@ -106,484 +679,11 @@ enum ReferralStatus {
   CREDITED
 }
 
-model UserMFACredential {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @unique @map("user_id") @db.Uuid
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  secret       String
-  backupCodes  Json      @map("backup_codes")
-  enabled      Boolean   @default(false)
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  @@index([userId])
-  @@index([enabled])
-}
-
-model UserActivity {
-  id          String   @id @default(uuid()) @db.Uuid
-  user        User     @relation("UserActivities", fields: [userId], references: [id])
-  userId      String   @db.Uuid
-  activityType String   @map("activity_type")
-  duration    Int      @default(30) // in minutes
-  metadata    Json?    @default("{}")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([userId])
-  @@index([createdAt])
-  @@index([activityType])
-}
-
-model CollaborativeSession {
-  id              String   @id @default(uuid()) @db.Uuid
-  hostUserId      String   @map("host_user_id") @db.Uuid
-  participantIds  Json     @map("participant_ids")
-  topic           String
-  status          SessionStatus @default(ACTIVE)
-  startTime       DateTime @default(now()) @map("start_time")
-  endTime         DateTime? @map("end_time")
-  sharedInsights  Json?    @map("shared_insights")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  host User @relation("HostedSessions", fields: [hostUserId], references: [id])
-  
-  @@index([hostUserId])
-  @@index([status])
-  @@index([startTime])
-}
-
 enum SessionStatus {
   ACTIVE
   COMPLETED
   CANCELLED
 }
-
-model User {
-  id                 String               @id @default(uuid()) @db.Uuid
-  email              String               @unique
-  name               String
-  role               UserRole
-  parent             User?                @relation("ParentToChild", fields: [parentId], references: [id])
-  parentId           String?              @db.Uuid
-  children           User[]               @relation("ParentToChild")
-  avatarUrl          String?
-  age                Int?
-  gradeLevel         String?              @map("grade_level")
-  interests          String[]
-  learningStyle      String?              @default("general")
-  onboardingComplete Boolean              @default(false)
-  coppaConsentAt     DateTime?            @map("coppa_consent_at")
-  coppaConsentBy     String?              @map("coppa_consent_by") @db.Uuid // parent userId who consented
-  dataRetentionDays  Int?                 @map("data_retention_days") @default(365)
-  clubs              ClubMembership[]
-  projects           Project[]            @relation("ProjectCreator")
-  artifacts          Artifact[]
-  transcriptEntries  TranscriptEntry[]
-  opportunities      Opportunity[]        @relation("OpportunityCreator")
-  clubsCreated       Club[]               @relation("ClubCreator")
-  approvedEntries    TranscriptEntry[]    @relation("TranscriptApprover")
-  conversationMemory ConversationMemory[]
-  learningGaps       LearningGap[]
-  conceptMastery     UserConceptMastery[]
-  reflections        ReflectionEntry[]
-  standardsProgress  StudentStandardProgress[]
-  placementAssessments PlacementAssessment[]
-  reviewSchedules      ReviewSchedule[]
-  highlights           Highlight[]
-  onboardingProgress   OnboardingProgress?
-  subscription         Subscription?
-  referralCode         String?              @unique @map("referral_code")
-  referredBy           String?              @db.Uuid @map("referred_by")
-  referralsMade        Referral[]           @relation("Referrer")
-  referralsReceived    Referral[]           @relation("Referee")
-  messageCount             Int                  @default(0) @map("message_count")
-  messageResetAt           DateTime?            @map("message_reset_at")
-  dataDeletionRequestedAt  DateTime?            @map("data_deletion_requested_at")
-  accountLockedAt          DateTime?            @map("account_locked_at")
-  investigations          Investigation[]
-  createdShareLinks       ShareLink[]          @relation("ShareLinkCreator")
-  mfaCredential          UserMFACredential?
-  hostedSessions         CollaborativeSession[] @relation("HostedSessions")
-  userActivities         UserActivity[] @relation("UserActivities")
-  metadata            Json?               @default("{}")
-  createdAt                DateTime             @default(now()) @map("created_at")
-  updatedAt                DateTime             @updatedAt @map("updated_at")
-
-  @@index([email])
-  @@index([role])
-  @@index([parentId])
-  @@index([dataDeletionRequestedAt])
-}
-
-model Club {
-  id          String           @id @default(uuid()) @db.Uuid
-  name        String
-  description String
-  subject     String?
-  ageRange    String?          @map("age_range")
-  isPublic    Boolean          @default(true) @map("is_public")
-  createdBy   User             @relation("ClubCreator", fields: [createdById], references: [id])
-  createdById String           @db.Uuid
-  isActive    Boolean
-  memberships ClubMembership[]
-  projects    Project[]
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
-}
-
-model ClubMembership {
-  user     User     @relation(fields: [userId], references: [id])
-  userId   String   @db.Uuid
-  club     Club     @relation(fields: [clubId], references: [id])
-  clubId   String   @db.Uuid
-  role     ClubRole
-  joinedAt DateTime @default(now()) @map("joined_at")
-
-  @@id([userId, clubId])
-  @@index([userId])
-  @@index([clubId])
-}
-
-model Project {
-  id             String        @id @default(uuid()) @db.Uuid
-  title          String
-  description    String
-  club           Club?         @relation(fields: [clubId], references: [id])
-  clubId         String?       @db.Uuid
-  createdBy      User          @relation("ProjectCreator", fields: [createdById], references: [id])
-  createdById    String        @db.Uuid
-  status         ProjectStatus
-  serviceGoal    String        @map("service_goal")
-  intendedImpact String        @map("intended_impact")
-  actualImpact   String?       @map("actual_impact")
-  curriculumUnit String?       @map("curriculum_unit")
-  artifacts      Artifact[]
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-
-  @@index([createdById])
-}
-
-model Artifact {
-  id                String            @id @default(uuid()) @db.Uuid
-  project           Project           @relation(fields: [projectId], references: [id])
-  projectId         String            @db.Uuid
-  createdBy         User              @relation(fields: [createdById], references: [id])
-  createdById       String            @db.Uuid
-  title             String
-  type              ArtifactType
-  fileUrl           String?           @map("file_url")
-  description       String
-  isShowcase        Boolean           @default(false) @map("is_showcase")
-  transcriptEntries TranscriptEntry[]
-  createdAt         DateTime          @default(now()) @map("created_at")
-  updatedAt         DateTime          @updatedAt @map("updated_at")
-
-  @@index([createdById])
-}
-
-model Opportunity {
-  id               String          @id @default(uuid()) @db.Uuid
-  title            String
-  type             OpportunityType
-  description      String
-  url              String?
-  deadline         DateTime?
-  ageRange         String?         @map("age_range")
-  matchedInterests String[]        @map("matched_interests")
-  isActive         Boolean         @map("is_active")
-  createdBy        User            @relation("OpportunityCreator", fields: [createdById], references: [id])
-  createdById      String          @db.Uuid
-  createdAt        DateTime        @default(now()) @map("created_at")
-  updatedAt        DateTime        @updatedAt @map("updated_at")
-
-  @@index([createdById])
-}
-
-model TranscriptEntry {
-  id                 String    @id @default(uuid()) @db.Uuid
-  metadata    Json?    @default("{}")
-
-  user User? @relation(fields: [userId], references: [id])
-  userId String? @db.Uuid
-
-  activityName       String    @map("activity_name")
-  mappedSubject      String    @map("mapped_subject")
-  creditsEarned      Decimal   @map("credits_earned") @db.Decimal(10, 2)
-  gradeLevel         String?   @map("grade_level")
-  evidenceArtifact   Artifact? @relation(fields: [evidenceArtifactId], references: [id])
-  evidenceArtifactId String?   @db.Uuid
-  dateCompleted      DateTime  @map("date_completed")
-  approvedBy         User?     @relation("TranscriptApprover", fields: [approvedById], references: [id])
-  approvedById       String?   @db.Uuid
-  notes              String?
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
-
-  @@index([userId])
-  @@index([mappedSubject])
-}
-
-model Concept {
-  id            String                @id @default(uuid()) @db.Uuid
-  name          String
-  description   String
-  subjectArea   String                @map("subject_area")
-  gradeBand     String?               @map("grade_band")
-  embedding     Unsupported("vector")
-  prerequisites ConceptPrerequisite[] @relation("ConceptPrereqs")
-  dependents    ConceptPrerequisite[] @relation("ConceptDependents")
-  activities    ConceptActivity[]
-  learningGaps      LearningGap[]
-  userMastery       UserConceptMastery[]
-  reviewSchedules   ReviewSchedule[]
-  skillMappings     SkillStandardMapping[]
-  createdAt         DateTime              @default(now()) @map("created_at")
-  updatedAt         DateTime              @updatedAt @map("updated_at")
-}
-
-model ConceptPrerequisite {
-  concept        Concept @relation("ConceptPrereqs", fields: [conceptId], references: [id])
-  conceptId      String  @db.Uuid
-  prerequisite   Concept @relation("ConceptDependents", fields: [prerequisiteId], references: [id])
-  prerequisiteId String  @db.Uuid
-
-  @@id([conceptId, prerequisiteId])
-  @@index([conceptId])
-}
-
-model ConceptActivity {
-  id                  String   @id @default(uuid()) @db.Uuid
-  concept             Concept  @relation(fields: [conceptId], references: [id])
-  conceptId           String   @db.Uuid
-  activityDescription String   @map("activity_description")
-  creditMapping       String   @map("credit_mapping")
-  suggestedExtension  String   @map("suggested_extension")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-
-  @@index([conceptId])
-}
-
-model TimelineEntry {
-  id             String     @id @default(uuid()) @db.Uuid
-  year           Int
-  title          String
-  description    String
-  worldviewNote  String     @map("worldview_note")
-  sourceType     SourceType @map("source_type")
-  sourceCitation String?    @map("source_citation")
-  curriculumUnit String?    @map("curriculum_unit")
-  tags           String[]
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-}
-
-model HippocampusDocument {
-  id         String   @id @default(uuid()) @db.Uuid
-  title      String
-  content    String
-  metadata   Json
-  sourceType SourceType @map("source_type")
-  embedding  Unsupported("vector")
-  chunkIndex Int      @map("chunk_index")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  @@index([sourceType])
-  // Ensure pgvector index (ivfflat/hnsw) created in migration for embedding column
-}
-
-model ConversationMemory {
-  id        String   @id @default(uuid()) @db.Uuid
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @db.Uuid
-  sessionId String   @map("session_id")
-  role      ConversationRole
-  content   String
-  metadata  Json
-  embedding Unsupported("vector")
-  createdAt DateTime              @default(now()) @map("created_at")
-  updatedAt DateTime              @updatedAt @map("updated_at")
-
-  @@index([userId, sessionId])
-  @@index([createdAt])
-}
-
-model LearningGap {
-  id           String              @id @default(uuid()) @db.Uuid
-  user         User                @relation(fields: [userId], references: [id])
-  userId       String              @db.Uuid
-  concept      Concept             @relation(fields: [conceptId], references: [id])
-  conceptId    String              @db.Uuid
-  detectedAt   DateTime            @map("detected_at")
-  severity     LearningGapSeverity
-  addressed    Boolean             @default(false)
-  addressedVia String?             @map("addressed_via")
-  createdAt    DateTime            @default(now()) @map("created_at")
-  updatedAt    DateTime            @updatedAt @map("updated_at")
-}
-
-model ReflectionEntry {
-  id              String         @id @default(uuid()) @db.Uuid
-  user            User           @relation(fields: [userId], references: [id])
-  userId          String         @db.Uuid
-  type            ReflectionType
-  activitySummary String         @map("activity_summary")
-  promptUsed      String         @map("prompt_used")
-  studentResponse String?        @map("student_response")
-  aiFollowUp      String?        @map("ai_follow_up")
-  conceptsTagged  String[]       @map("concepts_tagged")
-  insightScore    Float?         @map("insight_score") // 0-1, AI-assessed depth of reflection
-  metadata        Json?
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-
-  @@index([userId])
-  @@index([type])
-}
-
-model ReviewSchedule {
-  id             String   @id @default(uuid()) @db.Uuid
-  user           User     @relation(fields: [userId], references: [id])
-  userId         String   @db.Uuid
-  concept        Concept  @relation(fields: [conceptId], references: [id])
-  conceptId      String   @db.Uuid
-  nextReviewAt   DateTime @map("next_review_at")
-  interval       Float    @default(1) // days until next review
-  easeFactor     Float    @default(2.5) @map("ease_factor") // SM-2 ease factor
-  repetitions    Int      @default(0) // consecutive correct recalls
-  lastQuality    Int?     @map("last_quality") // 0-5 quality of last recall
-  lastReviewedAt DateTime? @map("last_reviewed_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  @@unique([userId, conceptId])
-  @@index([userId, nextReviewAt])
-}
-
-model UserConceptMastery {
-  id            String   @id @default(uuid()) @db.Uuid
-  user          User     @relation(fields: [userId], references: [id])
-  userId        String   @db.Uuid
-  concept       Concept  @relation(fields: [conceptId], references: [id])
-  conceptId     String   @db.Uuid
-  masteryLevel  Float    @default(0.0) @map("mastery_level") // 0.0 to 1.0
-  lastPracticed DateTime @default(now()) @map("last_practiced")
-  history       Json? // Store history of mastery changes or specific evidence IDs
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@unique([userId, conceptId])
-  @@index([userId])
-}
-
-model LLMTrace {
-  id            String   @id @default(uuid()) @db.Uuid
-  traceId       String   @map("trace_id") // groups related calls in one request
-  agentNode     String   @map("agent_node") // e.g. "router", "lifeCreditLogger"
-  modelId       String   @map("model_id")
-  promptTokens  Int      @default(0) @map("prompt_tokens")
-  outputTokens  Int      @default(0) @map("output_tokens")
-  totalTokens   Int      @default(0) @map("total_tokens")
-  latencyMs     Int      @map("latency_ms")
-  estimatedCost Float    @default(0) @map("estimated_cost") // USD
-  success       Boolean  @default(true)
-  errorMessage  String?  @map("error_message")
-  userId        String?  @db.Uuid
-  metadata      Json?
-  createdAt     DateTime @default(now()) @map("created_at")
-
-  @@index([traceId])
-  @@index([agentNode])
-  @@index([createdAt])
-  @@index([userId])
-}
-
-model Highlight {
-  id        String   @id @default(uuid()) @db.Uuid
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String   @db.Uuid
-  messageId String?  @db.Uuid
-  content   String
-  type      String
-  source    String
-  impact    String?
-  userNote  String?  @map("user_note")
-  intent    String?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([userId, createdAt])
-}
-
-model OnboardingProgress {
-  id             String    @id @default(uuid()) @db.Uuid
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String    @unique @db.Uuid
-  completedSteps String[]  @map("completed_steps")
-  completedAt    DateTime? @map("completed_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-}
-
-model Subscription {
-  id                   String             @id @default(uuid()) @db.Uuid
-  userId               String             @unique @db.Uuid
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stripeCustomerId     String             @unique @map("stripe_customer_id")
-  stripeSubscriptionId String             @unique @map("stripe_subscription_id")
-  stripePriceId        String             @map("stripe_price_id")
-  tier                 SubscriptionTier   @default(FREE)
-  status               SubscriptionStatus @default(ACTIVE)
-  currentPeriodEnd     DateTime           @map("current_period_end")
-  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
-  credits              Decimal            @default(0) @db.Decimal(10, 2)
-  createdAt            DateTime           @default(now()) @map("created_at")
-  updatedAt            DateTime           @updatedAt @map("updated_at")
-
-  @@index([userId])
-  @@index([stripeCustomerId])
-}
-
-model Referral {
-  id           String         @id @default(uuid()) @db.Uuid
-  referrerId   String         @db.Uuid @map("referrer_id")
-  referrer     User           @relation("Referrer", fields: [referrerId], references: [id])
-  refereeId    String         @db.Uuid @map("referee_id")
-  referee      User           @relation("Referee", fields: [refereeId], references: [id])
-  status       ReferralStatus @default(PENDING)
-  creditAmount Decimal        @default(10.00) @db.Decimal(10, 2) @map("credit_amount")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  paidAt       DateTime?      @map("paid_at")
-  creditedAt   DateTime?      @map("credited_at")
-
-  @@index([referrerId])
-  @@index([refereeId])
-}
-
-model AIJob {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String?   @db.Uuid
-  sessionId   String    @map("session_id")
-  status      JobStatus @default(PENDING)
-  intent      String?
-  prompt      String
-  result      String?   // final response text
-  error       String?
-  metadata    Json?     // workflow state, genUI payload, etc.
-  startedAt   DateTime? @map("started_at")
-  completedAt DateTime? @map("completed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  @@index([userId, status])
-  @@index([sessionId])
-  @@index([status])
-}
-
-// --- State Standards & Compliance (ported from old dear-adeline) ---
 
 enum MasteryLevel {
   INTRODUCED
@@ -602,117 +702,4 @@ enum AssessmentStatus {
   IN_PROGRESS
   COMPLETED
   ABANDONED
-}
-
-model StateStandard {
-  id                String                    @id @default(uuid()) @db.Uuid
-  standardCode      String                    @map("standard_code")
-  jurisdiction      String                    // e.g. "Oklahoma", "California"
-  subject           String                    // e.g. "Mathematics", "English Language Arts"
-  gradeLevel        String                    @map("grade_level")
-  statementText     String                    @map("statement_text")
-  description       String?
-  learningComponents LearningComponent[]
-  skillMappings     SkillStandardMapping[]
-  studentProgress   StudentStandardProgress[]
-
-  @@unique([standardCode, jurisdiction])
-  @@index([jurisdiction, subject])
-  @@index([jurisdiction, gradeLevel])
-}
-
-model LearningComponent {
-  id             String        @id @default(uuid()) @db.Uuid
-  standard       StateStandard @relation(fields: [standardId], references: [id], onDelete: Cascade)
-  standardId     String        @db.Uuid @map("standard_id")
-  componentText  String        @map("component_text")
-  componentOrder Int?          @map("component_order")
-
-  @@index([standardId])
-}
-
-model SkillStandardMapping {
-  id                String            @id @default(uuid()) @db.Uuid
-  conceptId         String            @db.Uuid @map("concept_id")
-  concept           Concept           @relation(fields: [conceptId], references: [id])
-  standardId        String            @db.Uuid @map("standard_id")
-  standard          StateStandard     @relation(fields: [standardId], references: [id])
-  alignmentStrength AlignmentStrength @default(FULL) @map("alignment_strength")
-  notes             String?
-
-  @@unique([conceptId, standardId])
-  @@index([conceptId])
-  @@index([standardId])
-}
-
-model StudentStandardProgress {
-  id          String       @id @default(uuid()) @db.Uuid
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String       @db.Uuid @map("user_id")
-  standard    StateStandard @relation(fields: [standardId], references: [id])
-  standardId  String       @db.Uuid @map("standard_id")
-  mastery     MasteryLevel @default(INTRODUCED)
-  sourceType  String?      @map("source_type")  // e.g. "activity_log", "assessment", "manual"
-  sourceId    String?      @map("source_id")
-  evidence    Json?        // additional context
-  demonstratedAt DateTime  @default(now()) @map("demonstrated_at")
-
-  @@unique([userId, standardId])
-  @@index([userId])
-  @@index([standardId])
-  @@index([userId, mastery])
-}
-
-model PlacementAssessment {
-  id             String           @id @default(uuid()) @db.Uuid
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String           @db.Uuid @map("user_id")
-  status         AssessmentStatus @default(IN_PROGRESS)
-  currentSubject String?          @map("current_subject")
-  responses      Json?            // { questionIndex: { question, answer, timestamp } }
-  results        Json?            // { subject: { level, confidence, recommendations } }
-  learningProfile Json?           @map("learning_profile") // { interests, style, pace }
-  startedAt      DateTime         @default(now()) @map("started_at")
-  completedAt    DateTime?        @map("completed_at")
-
-  @@index([userId, status])
-  @@index([userId])
-}
-
-model Investigation {
-  id          String      @id @default(cuid())
-  title       String
-  summary     String
-  userId      String      @db.Uuid
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  sources     InvestigationSource[]
-  shareLinks  ShareLink[]
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("investigations")
-}
-
-model InvestigationSource {
-  id            String      @id @default(cuid())
-  title         String
-  content       String
-  sourceType    SourceType
-  investigationId String
-  createdAt     DateTime    @default(now())
-  investigation  Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
-
-  @@map("investigation_sources")
-}
-
-model ShareLink {
-  id             String       @id @default(cuid())
-  investigationId String
-  createdBy      String       @db.Uuid
-  expiresAt      DateTime
-  createdAt      DateTime     @default(now())
-  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
-  creator        User         @relation("ShareLinkCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-
-  @@map("share_links")
 }
