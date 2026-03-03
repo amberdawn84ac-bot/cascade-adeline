@@ -14,7 +14,7 @@ return { intent: "CHAT" };
 
 // Normal LLM routing for everything else
 const routerSchema = z.object({
-intent: z.enum(["CHAT", "BRAINSTORM", "INVESTIGATE", "LIFE_LOG"])
+intent: z.enum(["CHAT", "BRAINSTORM", "INVESTIGATE", "LOG_CREDIT"])
 });
 
 const llm = new ChatOpenAI({ modelName: "gpt-4o", temperature: 0 }).withStructuredOutput(routerSchema);
