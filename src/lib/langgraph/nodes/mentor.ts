@@ -1,23 +1,29 @@
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { AdelineStateType } from "../state";
 import { ChatOpenAI } from "@langchain/openai";
+import { loadConfig, buildSystemPrompt } from '@/lib/config';
+import prisma from '@/lib/db';
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
 const lastMessage = state.messages[state.messages.length - 1];
 const content = lastMessage.content as string;
 
 try {
-// Mock implementations for missing dependencies
-const config = { systemPrompt: "You are Adeline, a wise classical mentor." };
-const loadConfig = () => config;
-const buildSystemPrompt = (cfg: any, additional: string) => cfg.systemPrompt + "\n\n" + additional;
-const learningGaps = [];
-const model = new ChatOpenAI({ modelName: "gpt-4o", temperature: 0.7 });
-const hippocampusTool = {
-  name: "search_hippocampus",
-  description: "Search for information",
-  invoke: async (args: any) => "Search results for: " + JSON.stringify(args)
-};
+    const config = loadConfig();
+    
+    // Fetch real learning gaps from DB
+    const learningGaps = await prisma.learningGap.findMany({
+      where: { userId: state.userId, addressed: false },
+      include: { concept: true },
+      take: 5,
+    });
+    
+    // Note: We need a placeholder tool if hippocampusTool isn't imported from another file
+    const hippocampusTool = {
+      name: "search_hippocampus",
+      description: "Search for information",
+      invoke: async (args: any) => "Search results for: " + JSON.stringify(args)
+    };
 
 const relevantGaps = learningGaps.filter(gap =>
 content.toLowerCase().includes(gap.concept?.name?.toLowerCase() || '') ||
@@ -30,6 +36,8 @@ studentContext = `Student has unaddressed gaps. Relevant: ${relevantGaps.map(g =
 }
 
 const gradeLevelContext = `You are speaking to a student in grade ${state.gradeLevel}. Adjust your vocabulary appropriately.`;
+
+const model = new ChatOpenAI({ modelName: "gpt-4o", temperature: 0.7 });
 
 const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}
 
@@ -48,7 +56,7 @@ Think through your answer step by step out loud. Acknowledge what the student is
 
 const modelWithTools = model.bindTools([hippocampusTool]);
 
-const conversationHistory = [
+const conversationHistory: any[] = [
 new SystemMessage(systemPrompt),
 new HumanMessage(content)
 ];
@@ -58,7 +66,7 @@ let response = await modelWithTools.invoke(conversationHistory);
 
 // ReAct Loop: If it decided to use a tool, execute it and ask again
 if (response.tool_calls && response.tool_calls.length > 0) {
-conversationHistory.push(response); // Save the AI's tool request
+conversationHistory.push(new AIMessage(response.content as string)); // Save the AI's tool request
 
 for (const toolCall of response.tool_calls) {
 if (toolCall.name === 'search_hippocampus') {

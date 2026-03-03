@@ -169,5 +169,5 @@ export default async function StoryWorkshopPage() {
           ← Back to ELA Hub
         </Link>
       </div>
-    </div  );
+    </div>);
 }

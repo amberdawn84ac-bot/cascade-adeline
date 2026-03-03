@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { ChatOpenAI } from '@langchain/openai';
+import { z } from 'zod';
+import { getSessionUser } from '@/lib/auth';
+import { loadConfig } from '@/lib/config';
+import prisma from '@/lib/db';
+
+const encyclopediaSchema = z.object({
+  title: z.string().describe("The specific scientific topic"),
+  hypothesis: z.string().describe("The core scientific question or premise"),
+  observation: z.string().describe("A deep, classical explanation of the mechanics at work"),
+  conclusion: z.string().describe("A definitive summary fact or law of nature"),
+  fieldNotes: z.array(z.string()).describe("3 to 4 fascinating, obscure facts about the topic"),
+  references: z.array(z.string()).describe("Historical scientists or classical texts that studied this"),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser();
+    if (!user) return new NextResponse('Unauthorized', { status: 401 });
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { gradeLevel: true, learningStyle: true }
+    });
+    
+    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : 'The student is in middle school.';
+    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
+
+    const body = await req.json();
+    const { query } = body;
+    if (!query) return NextResponse.json({ error: "Missing query" }, { status: 400 });
+
+    const config = loadConfig();
+    const llm = new ChatOpenAI({
+      modelName: config.models.default || "gpt-4o",
+      temperature: 0.7,
+    }).withStructuredOutput(encyclopediaSchema);
+
+    const result = await llm.invoke([
+      { 
+        role: 'system', 
+        content: `You are Adeline, a wise classical educator. ${gradeContext} ${styleContext} The student is discovering a new scientific concept. Act as a classical naturalist. Explain the concept beautifully, grounded in the natural world and observable laws. MUST deeply adapt the vocabulary, concepts, and tone of the explanation to perfectly match their specific grade level and learning style.` 
+      },
+      { role: 'user', content: `Topic: ${query}` }
+    ]);
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Encyclopedia generation error:", error);
+    return NextResponse.json({ error: "Failed to generate entry" }, { status: 500 });
+  }
+}

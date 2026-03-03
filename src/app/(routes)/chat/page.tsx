@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import { useChat } from '@ai-sdk/react';
 import { Lightbulb, X, Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
-import QuickPrompts from '@/components/ui/quick-prompts';
+// import QuickPrompts from '@/components/ui/quick-prompts'; // Component not found
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
