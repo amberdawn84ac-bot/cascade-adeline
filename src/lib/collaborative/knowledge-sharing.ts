@@ -209,9 +209,8 @@ export async function getCollaborativeAnalytics(
     prisma.collaborativeSession.count({
       where: {
         participantIds: {
-          path: '$',
-          string_contains: userId
-        }
+          array_contains: userId
+        } as any
       },
     }),
     prisma.collaborativeSession.count({
@@ -220,12 +219,9 @@ export async function getCollaborativeAnalytics(
     prisma.collaborativeSession.findMany({
       where: { 
         participantIds: {
-          path: '$',
-          string_contains: userId
-        },
-        sharedInsights: { 
-          not: null 
-        } 
+          array_contains: userId
+        } as any,
+        NOT: [{ sharedInsights: { equals: 'DbNull' as any } }],
       },
     }),
     prisma.userConceptMastery.count({

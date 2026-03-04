@@ -1,14 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { getSessionUser } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { Clock, Users, BookOpen, Search, ScrollText, Eye, AlertTriangle, Loader2 } from 'lucide-react';
+import { BookOpen, Search, ScrollText, Eye, AlertTriangle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { Timeline } from '@/components/gen-ui/Timeline';
-import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
-import prisma from '@/lib/db';
-import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 

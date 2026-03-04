@@ -1,6 +1,6 @@
 import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { Cpu, Zap, Puzzle, Brain } from 'lucide-react';
+import { Cpu, Zap, Puzzle, Brain, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
 import prisma from '@/lib/db';

@@ -73,7 +73,7 @@ Let me start by searching our knowledge base for information related to this inv
           
           const toolMessage = new ToolMessage({
             content: toolResult,
-            tool_call_id: toolCall.id,
+            tool_call_id: toolCall.id ?? '',
           });
           messages.push(toolMessage);
         }

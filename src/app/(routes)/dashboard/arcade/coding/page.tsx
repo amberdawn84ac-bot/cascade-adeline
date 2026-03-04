@@ -1,145 +1,167 @@
-import { getSessionUser } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { Code, Terminal, Zap, Play } from 'lucide-react';
+'use client';
+
+import { useState } from 'react';
+import { Code, Terminal, Loader2, Send, BookOpen } from 'lucide-react';
 import Link from 'next/link';
-import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
-import prisma from '@/lib/db';
-import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-export default async function CodingPage() {
-  const session = await getSessionUser();
-  
-  if (!session) {
-    redirect('/login');
-  }
+interface ChallengeResult {
+  explanation: string;
+  codeSnippet: string;
+  language: string;
+  nextChallenge: string;
+}
 
-  // Get adaptive content based on user's grade level
-  const adaptiveContent = await getUserAdaptiveContent(session.userId, 'arcade', 'coding');
-  
-  // Get user data for grade level
-  const userData = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { gradeLevel: true }
-  });
-  
-  const attentionSpan = getAttentionSpanForGrade(userData?.gradeLevel || '3');
-  const interactiveType = getInteractiveTypeForGrade(userData?.gradeLevel || '3');
+export default function CodingPage() {
+  const [question, setQuestion] = useState('');
+  const [language, setLanguage] = useState('Python');
+  const [result, setResult] = useState<ChallengeResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleAsk = async () => {
+    if (!question.trim()) return;
+    setIsLoading(true);
+    setResult(null);
+    setSaveSuccess(false);
+    try {
+      const res = await fetch('/api/arcade/coding-challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, language }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!result) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/arcade/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: result.codeSnippet, title: question.slice(0, 60), type: 'challenge' }),
+      });
+      if (res.ok) setSaveSuccess(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="bg-violet-50 rounded-[2rem] p-8 border border-violet-100">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 bg-violet-100 rounded-xl text-violet-700">
-            <Code size={32} />
-          </div>
+        <div className="flex items-center gap-4 mb-2">
+          <div className="p-3 bg-violet-100 rounded-xl text-violet-700"><Code size={32} /></div>
           <div>
             <h1 className="text-3xl font-bold text-purple-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-              {adaptiveContent.title}
+              Coding Challenge Lab
             </h1>
-            <p className="text-purple-800/70 text-lg">
-              {adaptiveContent.description}
-            </p>
-            <div className="text-sm text-purple-600 mt-2">
-              Grade Level: {userData?.gradeLevel || 'Default'} • Difficulty: {adaptiveContent.difficulty}
-            </div>
+            <p className="text-purple-800/70">Ask Adeline any coding question. Get an explanation + working code.</p>
           </div>
         </div>
       </div>
 
-      {/* Learning Path */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Beginner */}
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-violet-100 hover:border-violet-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-green-100 rounded-xl w-fit text-green-700">
-            <Terminal size={24} />
-          </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Hello World</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Start your coding journey with the basics. Learn variables, loops, and functions.
-          </p>
-          <div className="space-y-2">
-            <div className="bg-green-50 p-3 rounded-lg">
-              <p className="text-green-800 text-sm font-medium">✅ Python Basics</p>
-            </div>
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-blue-800 text-sm font-medium">🔄 JavaScript Fundamentals</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-gray-800 text-sm font-medium">⏳ Web Development</p>
-            </div>
-          </div>
+      {/* Ask Input */}
+      <div className="bg-white rounded-[2rem] p-6 border border-violet-100 space-y-4">
+        <div className="flex gap-3">
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="border border-violet-200 rounded-xl px-3 py-2 text-sm font-medium text-violet-700 bg-violet-50 focus:outline-none"
+          >
+            {['Python', 'JavaScript', 'HTML/CSS', 'Scratch'].map(l => (
+              <option key={l} value={l}>{l}</option>
+            ))}
+          </select>
+          <Input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
+            placeholder='E.g. "How do I make a loop?", "What is a variable?"'
+            disabled={isLoading}
+            className="flex-1"
+          />
+          <Button onClick={handleAsk} disabled={isLoading || !question.trim()} className="bg-violet-600 hover:bg-violet-700">
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          </Button>
         </div>
 
-        {/* Intermediate */}
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-violet-100 hover:border-violet-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-yellow-100 rounded-xl w-fit text-yellow-700">
-            <Zap size={24} />
+        {/* Starter prompts */}
+        {!result && !isLoading && (
+          <div className="flex flex-wrap gap-2 pt-2">
+            {['How do I make a loop?', 'What is a variable?', 'How do I make a function?', 'How do I use if/else?'].map(p => (
+              <button key={p} onClick={() => setQuestion(p)} className="text-xs px-3 py-1.5 bg-violet-50 border border-violet-200 rounded-full text-violet-700 hover:bg-violet-100 transition-colors">
+                {p}
+              </button>
+            ))}
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Problem Solving</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Level up your skills with algorithms and data structures.
-          </p>
-          <div className="space-y-2">
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-gray-800 text-sm font-medium">⏳ Data Structures</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-gray-800 text-sm font-medium">⏳ Algorithms</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-gray-800 text-sm font-medium">⏳ Problem Solving</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Advanced */}
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-violet-100 hover:border-violet-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700">
-            <Play size={24} />
-          </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Build Projects</h3>
-          <p className="text-slate-600 text-sm mb-4">
-            Create real applications and games that people can use.
-          </p>
-          <div className="space-y-2">
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-gray-800 text-sm font-medium">⏳ Web Apps</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-gray-800 text-sm font-medium">⏳ Mobile Apps</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-gray-800 text-sm font-medium">⏳ Game Development</p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Interactive Console */}
-      <div className="bg-slate-900 rounded-[2rem] p-6 border border-slate-700">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-          <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-          <span className="text-slate-400 text-sm ml-4">Python Console</span>
+      {/* Result */}
+      {isLoading && (
+        <div className="flex justify-center py-12">
+          <div className="flex items-center gap-3 text-violet-600">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span className="font-medium">Adeline is thinking...</span>
+          </div>
         </div>
-        <div className="font-mono text-green-400 space-y-2">
-          <div>&gt;&gt;&gt; print("Hello, World!")</div>
-          <div>Hello, World!</div>
-          <div>&gt;&gt;&gt; </div>
-          <div className="animate-pulse">_</div>
-        </div>
-      </div>
+      )}
 
-      {/* Back Navigation */}
+      {result && (
+        <div className="space-y-4">
+          {/* Explanation */}
+          <div className="bg-white rounded-[2rem] p-6 border border-violet-100">
+            <div className="flex items-center gap-2 mb-3">
+              <BookOpen className="w-5 h-5 text-violet-600" />
+              <h3 className="font-bold text-violet-900">Adeline's Explanation</h3>
+            </div>
+            <p className="text-slate-700 leading-relaxed">{result.explanation}</p>
+          </div>
+
+          {/* Code Snippet */}
+          <div className="bg-[#1e1e1e] rounded-[2rem] overflow-hidden border border-slate-700">
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#2d2d2d] border-b border-slate-700">
+              <div className="w-3 h-3 bg-red-500 rounded-full" />
+              <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+              <div className="w-3 h-3 bg-green-500 rounded-full" />
+              <span className="text-xs text-slate-400 ml-2 font-mono">{result.language}</span>
+            </div>
+            <pre className="p-6 font-mono text-sm text-[#9cdcfe] overflow-x-auto whitespace-pre-wrap">
+              {result.codeSnippet}
+            </pre>
+          </div>
+
+          {/* Next Challenge */}
+          <div className="bg-amber-50 rounded-[2rem] p-6 border border-amber-100">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-700 mb-1">Next Challenge</p>
+            <p className="text-amber-800">{result.nextChallenge}</p>
+          </div>
+
+          {/* Save */}
+          <div className="flex justify-center">
+            <Button onClick={handleSave} disabled={isSaving || saveSuccess} className="bg-[#2F4731] hover:bg-[#BD6809] text-white px-8 py-5 rounded-2xl">
+              {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : saveSuccess ? '✨ Saved to Portfolio!' : '🌿 Save to Portfolio'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="text-center">
-        <Link 
-          href="/dashboard/arcade"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors"
-        >
-          ← Back to Game Arcade
-        </Link>
+        <Link href="/dashboard/arcade" className="text-sm text-violet-600 hover:underline">← Back to Game Arcade</Link>
       </div>
     </div>
   );

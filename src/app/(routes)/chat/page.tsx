@@ -79,8 +79,8 @@ export default function ChatPage() {
           try {
             console.log('[ChatPage] === MESSAGE FINISHED ===');
 
-            let genUIPayload = null;
-            let metadata = null;
+            let genUIPayload: GenUIPayload | null = null;
+            let metadata: Record<string, unknown> | null = null;
 
             if (message && message.content) {
               const content = message.content as string;
@@ -119,7 +119,7 @@ export default function ChatPage() {
             }
 
             if (metadata?.gapNudge) setGapNudge(String(metadata.gapNudge));
-            if (metadata?.intent) setDetectedIntent(metadata.intent);
+            if (metadata?.intent) setDetectedIntent(String(metadata.intent));
           } catch (error) {
             console.error('[ChatPage] Error in onFinish:', error);
           }
@@ -426,11 +426,9 @@ export default function ChatPage() {
 
         {renderedMessages}
 
-        {console.log('[ChatPage] Render - genUIPayload:', genUIPayload, 'directPayload:', directPayload, 'forceRender:', forceRender, 'renderKey:', renderKey)}
         {forceRender && <GenUIRenderer key={renderKey} payload={forceRender} />}
-        {console.log('[ChatPage] GenUIRenderer should be rendered with forceRender:', forceRender)}
 
-        {isLoading && <AdelineTyping intent={detectedIntent} />}
+        {isLoading && <AdelineTyping intent={detectedIntent ?? undefined} />}
         {isLoading && <WaitingTips show={showTips} />}
 
         <div ref={messagesEndRef} />

@@ -98,7 +98,7 @@ export function createAgentWorker(): Worker {
       
       try {
         // Execute the appropriate agent workflow based on job type
-        let result: AdelineGraphState;
+        let result: any;
         
         switch (name as JobType) {
           case JobType.CHAT_RESPONSE:

@@ -414,8 +414,8 @@ export default async function DashboardPage() {
   // Render dashboard based on role
   switch (user.role) {
     case 'STUDENT': {
-      const { roomStats, zpdRecommendation, opportunity } = await getStudentDashboardData(session.userId);
-      return <StudentDashboard roomStats={roomStats} zpdRecommendation={zpdRecommendation} opportunity={opportunity} />;
+      // Redirect students straight to chat with Adeline
+      redirect('/dashboard/chat');
     }
     case 'PARENT': {
       const { children, totalCredits, recentActivities, maxStudents } = await getParentDashboardData(session.userId);

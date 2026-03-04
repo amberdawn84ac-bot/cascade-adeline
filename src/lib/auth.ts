@@ -49,6 +49,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   }
 
   // Hard-lock: reject if account is locked or deletion requested
+  if (!user) return null;
   if (user.accountLockedAt) return null;
   if (user.dataDeletionRequestedAt) return null;
 

@@ -16,7 +16,6 @@ async function visionAnalyzerWrapper(state: AdelineStateType): Promise<Partial<A
     userId: state.userId,
     gradeLevel: undefined, // Not available in AdelineStateType
     prompt: state.messages[state.messages.length - 1]?.content as string || '',
-    imageUrl: state.metadata?.imageUrl,
     metadata: state.metadata,
   };
   

@@ -1,173 +1,169 @@
-import { getSessionUser } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { PenTool, BookOpen, Lightbulb, Users } from 'lucide-react';
+'use client';
+
+import { useState } from 'react';
+import { PenTool, BookOpen, Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
-import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
-import prisma from '@/lib/db';
-import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-export default async function StoryWorkshopPage() {
-  const session = await getSessionUser();
-  
-  if (!session) {
-    redirect('/login');
-  }
+interface StoryResult {
+  title: string;
+  opening: string;
+  characterSketch: string;
+  plotHook: string;
+  writingTip: string;
+}
 
-  // Get adaptive content based on user's grade level
-  const adaptiveContent = await getUserAdaptiveContent(session.userId, 'reading', 'story-workshop');
-  
-  // Get user data for grade level
-  const userData = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { gradeLevel: true }
-  });
-  
-  const attentionSpan = getAttentionSpanForGrade(userData?.gradeLevel || '3');
-  const interactiveType = getInteractiveTypeForGrade(userData?.gradeLevel || '3');
+const GENRES = ['Adventure', 'Mystery', 'Fantasy', 'Historical Fiction', 'Science Fiction', 'Realistic Fiction'];
+
+const STARTER_PROMPTS = [
+  'A child discovers a hidden door in their school basement',
+  'A letter arrives addressed to someone who disappeared 100 years ago',
+  'A young inventor builds something that changes their entire town',
+  'The last tree in the world is guarded by a girl who refuses to leave',
+];
+
+export default function StoryWorkshopPage() {
+  const [prompt, setPrompt] = useState('');
+  const [genre, setGenre] = useState('Adventure');
+  const [result, setResult] = useState<StoryResult | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+    setIsGenerating(true);
+    setResult(null);
+    setSaveSuccess(false);
+    try {
+      const res = await fetch('/api/ela/story/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, genre }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setResult(await res.json());
+    } catch (e) { console.error(e); }
+    finally { setIsGenerating(false); }
+  };
+
+  const handleSave = async () => {
+    if (!result) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/ela/story/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: result.title, result }),
+      });
+      if (res.ok) setSaveSuccess(true);
+    } catch (e) { console.error(e); }
+    finally { setIsSaving(false); }
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-rose-50 rounded-[2rem] p-8 border border-rose-100">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 bg-rose-100 rounded-xl text-rose-700">
-            <PenTool size={32} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-rose-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-              Story Workshop
-            </h1>
-            <p className="text-rose-800/70 text-lg">
-              {adaptiveContent.description}
-            </p>
-            <div className="text-sm text-rose-600 mt-2">
-              Grade Level: {userData?.gradeLevel || 'Default'} • Difficulty: {adaptiveContent.difficulty}
-            </div>
-          </div>
+      <div className="bg-rose-50 rounded-[2rem] p-8 border border-rose-100 flex items-center gap-4">
+        <div className="p-3 bg-rose-100 rounded-xl text-rose-700"><PenTool size={32} /></div>
+        <div>
+          <h1 className="text-3xl font-bold text-rose-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>Story Workshop</h1>
+          <p className="text-rose-800/70">Give Adeline a prompt. She'll write you a story starter to continue.</p>
         </div>
       </div>
 
-      {/* Story Elements */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Character Development */}
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-rose-100 hover:border-rose-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700">
-            <Users size={24} />
-          </div>
-          <h3 className="font-bold text-purple-800 mb-2">Character Development</h3>
-          <p className="text-sm text-slate-600">
-            Create compelling characters with unique personalities, motivations, and growth arcs.
-          </p>
+      {/* Input */}
+      <div className="bg-white rounded-[2rem] p-6 border border-rose-100 space-y-4">
+        <div className="flex gap-3">
+          <select
+            value={genre}
+            onChange={(e) => setGenre(e.target.value)}
+            className="border border-rose-200 rounded-xl px-3 py-2 text-sm font-medium text-rose-700 bg-rose-50 focus:outline-none"
+          >
+            {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <Input
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+            placeholder="Your story idea or opening situation..."
+            disabled={isGenerating}
+            className="flex-1"
+          />
+          <Button onClick={handleGenerate} disabled={isGenerating || !prompt.trim()} className="bg-rose-600 hover:bg-rose-700">
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          </Button>
         </div>
-
-        {/* Plot Structure */}
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-rose-100 hover:border-rose-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-blue-100 rounded-xl w-fit text-blue-700">
-            <BookOpen size={24} />
+        {/* Starter prompts */}
+        {!result && !isGenerating && (
+          <div className="flex flex-wrap gap-2">
+            {STARTER_PROMPTS.map(p => (
+              <button key={p} onClick={() => setPrompt(p)} className="text-xs px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-full text-rose-700 hover:bg-rose-100 transition-colors text-left">
+                {p}
+              </button>
+            ))}
           </div>
-          <h3 className="font-bold text-blue-800 mb-2">Plot Structure</h3>
-          <p className="text-sm text-slate-600">
-            Learn story arcs, conflict development, and narrative pacing techniques.
-          </p>
-        </div>
-
-        {/* Setting & World */}
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-rose-100 hover:border-rose-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-green-100 rounded-xl w-fit text-green-700">
-            <Lightbulb size={24} />
-          </div>
-          <h3 className="font-bold text-green-800 mb-2">Setting & World</h3>
-          <p className="text-sm text-slate-600">
-            Build immersive worlds and settings that bring your stories to life.
-          </p>
-        </div>
-
-        {/* Dialogue */}
-        <div className="bg-white p-6 rounded-[2rem] border-2 border-rose-100 hover:border-rose-300 transition-all hover:shadow-lg">
-          <div className="mb-4 p-3 bg-amber-100 rounded-xl w-fit text-amber-700">
-            <PenTool size={24} />
-          </div>
-          <h3 className="font-bold text-amber-800 mb-2">Dialogue</h3>
-          <p className="text-sm text-slate-600">
-            Master natural conversation and character voice through dialogue writing.
-          </p>
-        </div>
+        )}
       </div>
 
-      {/* Interactive Writing Studio */}
-      <div className="bg-white p-8 rounded-[2rem] border-2 border-rose-100">
-        <h2 className="text-2xl font-bold text-rose-900 mb-6">Interactive Writing Studio</h2>
-        
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Story Prompts */}
-          <div>
-            <h3 className="text-lg font-semibold text-rose-800 mb-4">Today's Story Prompts</h3>
-            <div className="space-y-3">
-              {adaptiveContent.examples.map((example, index) => (
-                <div key={index} className="p-4 bg-rose-50 rounded-xl border border-rose-200">
-                  <p className="text-sm text-rose-800">{example}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Writing Challenges */}
-          <div>
-            <h3 className="text-lg font-semibold text-rose-800 mb-4">Writing Challenges</h3>
-            <div className="space-y-3">
-              {adaptiveContent.challenges.map((challenge, index) => (
-                <div key={index} className="p-4 bg-purple-50 rounded-xl border border-purple-200">
-                  <p className="text-sm text-purple-800">{challenge}</p>
-                </div>
-              ))}
-            </div>
+      {isGenerating && (
+        <div className="flex justify-center py-12">
+          <div className="flex items-center gap-3 text-rose-600">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span className="font-medium italic">Adeline is writing...</span>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Learning Objectives */}
-      <div className="bg-gradient-to-r from-rose-50 to-purple-50 p-8 rounded-[2rem] border border-rose-200">
-        <h2 className="text-2xl font-bold text-rose-900 mb-6">What You'll Learn</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-rose-600 text-white rounded-full flex items-center justify-center font-bold mb-3 mx-auto">
-              1
-            </div>
-            <h3 className="font-bold text-rose-800 mb-2">Story Structure</h3>
-            <p className="text-sm text-slate-600">Master the elements of compelling storytelling</p>
+      {result && (
+        <div className="space-y-4">
+          {/* Title */}
+          <div className="text-center py-4">
+            <h2 className="text-3xl font-bold text-rose-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+              {result.title}
+            </h2>
+            <span className="text-xs font-bold uppercase tracking-widest text-rose-400 mt-1 inline-block">{genre}</span>
           </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold mb-3 mx-auto">
-              2
+
+          {/* Opening */}
+          <div className="bg-white rounded-[2rem] p-8 border border-rose-100">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="w-5 h-5 text-rose-600" />
+              <h3 className="font-bold text-rose-900">Opening</h3>
             </div>
-            <h3 className="font-bold text-purple-800 mb-2">Character Voice</h3>
-            <p className="text-sm text-slate-600">Develop unique character personalities and dialogue</p>
+            <p className="text-slate-700 leading-relaxed text-lg italic">&ldquo;{result.opening}&rdquo;</p>
           </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mb-3 mx-auto">
-              3
+
+          {/* Character + Hook */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-purple-50 rounded-[2rem] p-6 border border-purple-100">
+              <p className="text-xs font-bold uppercase tracking-widest text-purple-600 mb-2">Main Character</p>
+              <p className="text-slate-700">{result.characterSketch}</p>
             </div>
-            <h3 className="font-bold text-blue-800 mb-2">Creative Expression</h3>
-            <p className="text-sm text-slate-600">Find your unique writing style and voice</p>
+            <div className="bg-amber-50 rounded-[2rem] p-6 border border-amber-100">
+              <p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-2">The Central Conflict</p>
+              <p className="text-slate-700">{result.plotHook}</p>
+            </div>
+          </div>
+
+          {/* Writing Tip */}
+          <div className="bg-rose-50 rounded-[2rem] p-6 border border-rose-100">
+            <p className="text-xs font-bold uppercase tracking-widest text-rose-600 mb-2">✍️ Adeline's Writing Tip</p>
+            <p className="text-rose-800">{result.writingTip}</p>
+          </div>
+
+          <div className="flex justify-center">
+            <Button onClick={handleSave} disabled={isSaving || saveSuccess} className="bg-[#2F4731] hover:bg-[#BD6809] text-white px-8 py-5 rounded-2xl">
+              {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : saveSuccess ? '✨ Saved to Writing Portfolio!' : '🌿 Save to Writing Portfolio'}
+            </Button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* ZPD Personalized Recommendations */}
-      <ZPDRecommendations 
-        userId={session.userId} 
-        subjectArea="ela" 
-        limit={3} 
-      />
-
-      {/* Back Navigation */}
       <div className="text-center">
-        <Link 
-          href="/dashboard/ela"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-colors"
-        >
-          ← Back to ELA Hub
-        </Link>
+        <Link href="/dashboard/ela" className="text-sm text-rose-600 hover:underline">← Back to ELA Hub</Link>
       </div>
-    </div>);
+    </div>
+  );
 }

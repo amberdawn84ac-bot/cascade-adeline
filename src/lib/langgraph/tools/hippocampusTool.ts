@@ -88,7 +88,7 @@ ${metadata.tags ? `Tags: ${metadata.tags}` : ''}
             id: true,
             title: true,
             content: true,
-            source_type: true,
+            sourceType: true,
             metadata: true
           }
         });
@@ -99,7 +99,7 @@ ${metadata.tags ? `Tags: ${metadata.tags}` : ''}
             
             return `Result ${index + 1}:
 Title: ${doc.title}
-Source Type: ${doc.source_type}
+Source Type: ${doc.sourceType}
 Content: ${doc.content.substring(0, 300)}${doc.content.length > 300 ? '...' : ''}
 ${metadata?.tags ? `Tags: ${metadata.tags}` : ''}
 ---`;

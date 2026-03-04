@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import * as pdfParse from 'pdf-parse';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
 import { embedMany } from 'ai';
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';

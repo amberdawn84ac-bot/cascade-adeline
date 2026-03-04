@@ -13,12 +13,16 @@ import { Telescope, MasonJar, VineDivider, MagnifyingGlass, LeafBranch, Wildflow
 // Types from our central types file
 interface ScienceEntry {
   id: string;
-  title: string;
+  title?: string;
+  topic?: string;
+  category?: string;
   hypothesis: string;
   observation: string;
   conclusion: string;
-  fieldNotes: string[];
-  references: string[];
+  funFact?: string;
+  fieldNotes?: string[];
+  references?: string[];
+  sources?: { title: string; uri: string }[];
 }
 
 interface ScienceExperiment {
@@ -565,7 +569,7 @@ export default function SciencePage() {
                                     <div className="bg-emerald-50 p-6 border-l-4 border-emerald-600">
                                         <h3 className="text-lg font-bold text-emerald-800 mb-3">Field Notes</h3>
                                         <ul className="space-y-2">
-                                            {generatedEntry.fieldNotes.map((note, i) => (
+                                            {(generatedEntry.fieldNotes ?? []).map((note, i) => (
                                                 <li key={i} className="text-emerald-700 flex items-start gap-2">
                                                     <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></span>
                                                     {note}
@@ -577,7 +581,7 @@ export default function SciencePage() {
                                     <div>
                                         <h3 className="text-lg font-bold text-emerald-800 mb-3">References</h3>
                                         <div className="space-y-1">
-                                            {generatedEntry.references.map((ref, i) => (
+                                            {(generatedEntry.references ?? []).map((ref, i) => (
                                                 <p key={i} className="text-emerald-600 text-sm italic">• {ref}</p>
                                             ))}
                                         </div>

@@ -233,7 +233,7 @@ async function calculateServiceLearning(
       const metadata = entry.metadata as any;
       return metadata?.skills || [];
     })
-  );
+  ));
 
   const leadershipDemonstrated = Math.min(1, serviceActivities.filter(entry =>
     entry.activityName.toLowerCase().includes('lead') ||
@@ -352,7 +352,7 @@ export async function generateCharacterGrowthReport(
 Holistic Score: ${(metrics.holisticScore * 100).toFixed(1)}%
 
 Virtues Assessment:
-${metrics.virtues.map(v => `- ${virtue.virtue}: ${(v.score * 100).toFixed(1)}% (${v.trend})`).join('\n')}
+${metrics.virtues.map(v => `- ${v.virtue}: ${(v.score * 100).toFixed(1)}% (${v.trend})`).join('\n')}
 
 Spiritual Growth:
 - Prayer Consistency: ${(metrics.spiritualGrowth.prayerConsistency * 100).toFixed(1)}%

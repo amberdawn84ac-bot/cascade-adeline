@@ -46,21 +46,17 @@ export async function generateAnalytics(
     // Load Adeline's configuration
     const config = loadConfig();
     
+    const periodMs = period === '24h' ? 24 * 60 * 60 * 1000 : period === '7d' ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+    const sinceDate = new Date(Date.now() - periodMs);
+
     // Fetch data from various sources
-    const [messageCount, transcriptEntries, userConcepts, collaborativeSessions] = await Promise.all([
-      // Message count (placeholder implementation)
-      prisma.message.count({
-        where: userId ? { userId } : {},
-        ...(period === '24h' && { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }),
-        ...(period === '7d' && { createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }),
-        ...(period === '30d' && { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
-      }),
+    const [transcriptEntries, userConcepts, collaborativeSessions] = await Promise.all([
       // Transcript entries for learning metrics
       prisma.transcriptEntry.findMany({
-        where: userId ? { userId } : {},
-        ...(period === '24h' && { dateCompleted: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }),
-        ...(period === '7d' && { dateCompleted: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }),
-        ...(period === '30d' && { dateCompleted: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+        where: {
+          ...(userId ? { userId } : {}),
+          dateCompleted: { gte: sinceDate },
+        },
       }),
       // User concept mastery
       prisma.userConceptMastery.findMany({
@@ -69,12 +65,13 @@ export async function generateAnalytics(
       }),
       // Collaborative sessions
       prisma.collaborativeSession.findMany({
-        where: userId ? { hostId: userId } : {},
-        ...(period === '24h' && { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }),
-        ...(period === '7d' && { createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }),
-        ...(period === '30d' && { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+        where: {
+          ...(userId ? { hostUserId: userId } : {}),
+          createdAt: { gte: sinceDate },
+        },
       }),
     ]);
+    const messageCount = transcriptEntries.length; // Proxy for engagement
 
     // Calculate metrics
     const metrics: AnalyticsMetrics = {
@@ -85,21 +82,21 @@ export async function generateAnalytics(
         retentionRate: Math.random() * 0.3 + 0.7, // Placeholder
       },
       learningMetrics: {
-        conceptsMastered: userConcepts.filter(c => c.masteryScore > 0.8).length,
-        averageMasteryScore: userConcepts.reduce((sum, c) => sum + Number(c.masteryScore), 0) / userConcepts.length || 0,
+        conceptsMastered: userConcepts.filter((c: any) => c.masteryScore > 0.8).length,
+        averageMasteryScore: userConcepts.reduce((sum: number, c: any) => sum + Number(c.masteryScore), 0) / userConcepts.length || 0,
         learningVelocity: Math.random() * 0.5 + 0.3, // Placeholder
-        strugglingConcepts: userConcepts.filter(c => c.masteryScore < 0.5).map(c => c.concept.name).slice(0, 5),
+        strugglingConcepts: userConcepts.filter((c: any) => c.masteryScore < 0.5).map((c: any) => c.concept.name).slice(0, 5),
       },
       collaborationMetrics: {
         collaborativeSessions: collaborativeSessions.length,
         peerTeachingMatches: Math.floor(Math.random() * 10), // Placeholder
-        sharedInsights: collaborativeSessions.reduce((sum, s) => sum + (s.sharedInsights?.length || 0), 0),
+        sharedInsights: collaborativeSessions.reduce((sum: number, s: any) => sum + (s.sharedInsights?.length || 0), 0),
         teamProjects: Math.floor(Math.random() * 5), // Placeholder
       },
       characterGrowthMetrics: {
         virtueAssessments: Math.floor(Math.random() * 20), // Placeholder
         spiritualGrowthScore: Math.random() * 0.5 + 0.5, // Placeholder
-        serviceLearningHours: transcriptEntries.reduce((sum, e) => sum + (Number(e.creditsEarned) * 120), 0),
+        serviceLearningHours: transcriptEntries.reduce((sum: number, e: any) => sum + (Number(e.creditsEarned) * 120), 0),
         holisticScore: Math.random() * 0.3 + 0.6, // Placeholder
       },
     };

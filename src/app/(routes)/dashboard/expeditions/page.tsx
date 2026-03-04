@@ -7,8 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, Compass, Calendar, Clock, Users, Camera, BookOpen, Mountain, Trees, Building } from 'lucide-react';
+import { MapPin, Compass, Calendar, Clock, Users, Camera, BookOpen, Mountain, Building, Loader2 } from 'lucide-react';
 
 interface ExpeditionReport {
   location: string;
@@ -43,30 +42,10 @@ export default function ExpeditionsPage() {
   const [locationInput, setLocationInput] = useState('');
   const [report, setReport] = useState<ExpeditionReport | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  
-  // Field Journal State
-  const [journalEntries, setJournalEntries] = useState<FieldJournalEntry[]>([
-    {
-      id: '1',
-      title: 'Rock Formation Study',
-      location: 'Local Creek Bed',
-      date: '2024-01-15',
-      weather: 'Sunny, 72°F',
-      observations: 'Found interesting sedimentary layers with visible fossil imprints.',
-      discoveries: ['Marine fossils', 'Sedimentary rock layers', 'Mineral deposits'],
-      photos: 3
-    },
-    {
-      id: '2',
-      title: 'Urban Architecture Tour',
-      location: 'Downtown Historic District',
-      date: '2024-01-20',
-      weather: 'Cloudy, 65°F',
-      observations: 'Studied building styles from different eras and their construction materials.',
-      discoveries: ['Art Deco designs', 'Victorian architecture', 'Modern steel structures'],
-      photos: 5
-    }
-  ]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const [journalEntries, setJournalEntries] = useState<FieldJournalEntry[]>([]);
 
   const [newEntry, setNewEntry] = useState({
     title: '',
@@ -77,35 +56,39 @@ export default function ExpeditionsPage() {
 
   const handleGenerateReport = async () => {
     if (!locationInput.trim()) return;
-    
     setIsGenerating(true);
+    setReport(null);
+    setSaveSuccess(false);
     try {
-      // Simulate API call - in real implementation, this would call your LangGraph service
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock report data
-      const mockReport: ExpeditionReport = {
-        location: locationInput,
-        coordinates: `${(Math.random() * 180 - 90).toFixed(4)}°N, ${(Math.random() * 360 - 180).toFixed(4)}°W`,
-        geology: {
-          formation: `The geological formation of ${locationInput} consists of layered sedimentary rock deposits that have been uplifted and eroded over millions of years.`,
-          rocks: ['Sandstone', 'Shale', 'Limestone', 'Quartzite']
-        },
-        archaeology: {
-          era: 'Holocene Period',
-          remnants: `Evidence of early human settlement has been discovered in the area, including pottery fragments and primitive tools dating back approximately 8,000 years.`
-        },
-        sociology: {
-          culture: `The region has been inhabited by various indigenous peoples who developed sophisticated agricultural practices and trading networks.`,
-          connection: 'The natural landscape has significantly influenced settlement patterns, with communities establishing near water sources and fertile valleys.'
-        }
-      };
-      
-      setReport(mockReport);
+      const response = await fetch('/api/expeditions/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location: locationInput }),
+      });
+      if (!response.ok) throw new Error('Failed to generate report');
+      const data = await response.json();
+      setReport(data);
     } catch (error) {
       console.error('Error generating report:', error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSaveReport = async () => {
+    if (!report) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/expeditions/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report }),
+      });
+      if (res.ok) setSaveSuccess(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -261,6 +244,19 @@ export default function ExpeditionsPage() {
                         </div>
                       </CardContent>
                     </Card>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-center pt-4 border-t border-[#E7DAC3]">
+                    <Button
+                      onClick={handleSaveReport}
+                      disabled={isSaving || saveSuccess}
+                      className="bg-[#2F4731] hover:bg-[#BD6809] text-white font-semibold px-8 py-6 rounded-2xl text-lg"
+                    >
+                      {isSaving ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                      ) : saveSuccess ? '✨ Saved to Field Journal!' : '🌿 Save to Field Journal'}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

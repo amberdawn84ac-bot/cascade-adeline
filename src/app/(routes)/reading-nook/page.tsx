@@ -22,22 +22,22 @@ export default function ReadingNookPage() {
   const [isCurating, setIsCurating] = useState(false);
   
   // Chat state for book discussion
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
     api: '/api/reading-nook/discuss',
     initialMessages: []
   });
 
   useEffect(() => {
     if (activeBook) {
-      // Reset and add welcome message when book changes
-      messages.length = 0;
-      messages.push({
+      const welcomeText = `Welcome to the discussion circle for *${activeBook.title}* by ${activeBook.author}. What are your initial thoughts on this piece?`;
+      setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `Welcome to the discussion circle for *${activeBook.title}* by ${activeBook.author}. What are your initial thoughts on this piece?`
-      });
+        content: welcomeText,
+        parts: [{ type: 'text' as const, text: welcomeText }],
+      }]);
     }
-  }, [activeBook]);
+  }, [activeBook, setMessages]);
 
   const handleCurate = async () => {
     if (!interestInput.trim()) return;
