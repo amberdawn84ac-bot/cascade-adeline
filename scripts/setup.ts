@@ -46,7 +46,7 @@ async function main() {
   const dotenv = await import('dotenv');
   dotenv.config({ path: ENV_FILE });
 
-  const required = ['OPENAI_API_KEY', 'DATABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'UPSTASH_REDIS_REST_URL'];
+  const required = ['OPENAI_API_KEY', 'DATABASE_URL', 'DIRECT_DATABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'UPSTASH_REDIS_REST_URL'];
   const missing = required.filter((key) => !process.env[key] || process.env[key]?.startsWith('sk-...') || process.env[key]?.includes('YOUR_'));
 
   if (missing.length > 0) {
@@ -56,17 +56,33 @@ async function main() {
     log('All required env vars set');
   }
 
-  // Step 3: Push DB schema
+  // Step 3: Validate DIRECT_DATABASE_URL for schema changes (Supabase)
+  // Supabase transaction pooler URLs (commonly port 6543 / pgbouncer) do not support DDL.
+  const directUrl = process.env.DIRECT_DATABASE_URL;
+  if (!directUrl) {
+    fail(
+      'DIRECT_DATABASE_URL is missing from your .env file. Supabase requires a direct connection (port 5432) for database migrations. The transaction pooler (DATABASE_URL) will reject schema changes.'
+    );
+    process.exit(1);
+  }
+  if (directUrl.includes(':6543') || directUrl.includes('pgbouncer=true')) {
+    fail(
+      'DIRECT_DATABASE_URL appears to be a pooled/transaction connection (port 6543 / pgbouncer). Supabase requires a direct connection (port 5432) for database migrations and schema changes.'
+    );
+    process.exit(1);
+  }
+
+  // Step 4: Push DB schema
   console.log('\n📦 Pushing database schema...');
   try {
     run('npx prisma db push');
     log('Database schema synced');
   } catch {
-    fail('prisma db push failed. Check your DATABASE_URL.');
+    fail('prisma db push failed. Ensure DIRECT_DATABASE_URL is set (port 5432) for schema changes and DATABASE_URL is set for app runtime.');
     process.exit(1);
   }
 
-  // Step 4: Generate Prisma client
+  // Step 5: Generate Prisma client
   console.log('\n🔧 Generating Prisma client...');
   try {
     run('npx prisma generate');
@@ -76,7 +92,7 @@ async function main() {
     process.exit(1);
   }
 
-  // Step 5: Seed knowledge graph
+  // Step 6: Seed knowledge graph
   console.log('\n🌳 Seeding knowledge graph...');
   try {
     run('npx tsx prisma/seed-knowledge-graph.ts');
