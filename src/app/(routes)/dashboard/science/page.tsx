@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Plus, X, Upload, Play, Users, Calendar, Award, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, X, Upload, Play, Users, Calendar, Award, AlertTriangle, ScrollText } from 'lucide-react';
 import { Telescope, MasonJar, VineDivider, MagnifyingGlass, LeafBranch, Wildflower } from '@/components/illustrations';
 
 // Types from our central types file
 interface ScienceEntry {
-  id: string;
+  id?: string;
   title?: string;
   topic?: string;
   category?: string;
@@ -23,6 +23,8 @@ interface ScienceEntry {
   fieldNotes?: string[];
   references?: string[];
   sources?: { title: string; uri: string }[];
+  primarySourceCitation?: string;
+  directQuote?: string;
 }
 
 interface ScienceExperiment {
@@ -79,38 +81,27 @@ export default function SciencePage() {
   const [joinedClubs, setJoinedClubs] = useState<string[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [entries, setEntries] = useState<ScienceEntry[]>([]);
+  const [globalHerbarium, setGlobalHerbarium] = useState<ScienceEntry[]>([]);
+  const [isLoadingHerbarium, setIsLoadingHerbarium] = useState(true);
 
-  // Mock data for UI testing
+  // Load Global Herbarium from database on mount
   useEffect(() => {
-    // Mock science entries
-    setEntries([
-      {
-        id: '1',
-        topic: 'Photosynthesis',
-        category: 'Biology',
-        hypothesis: 'Plants convert sunlight into chemical energy through a complex process',
-        observation: 'Chlorophyll in leaves captures sunlight energy, which converts water and carbon dioxide into glucose and oxygen. This process occurs in chloroplasts and is essential for most life on Earth.',
-        conclusion: 'Photosynthesis is the foundation of most ecosystems, producing the oxygen we breathe and the energy that fuels food chains.',
-        funFact: 'A single large tree can produce enough oxygen for two people per year!',
-        sources: [
-          { title: 'NASA Earth Observatory', uri: 'https://earthobservatory.nasa.gov/features/photosynthesis' },
-          { title: 'Khan Academy Biology', uri: 'https://www.khanacademy.org/science/biology/photosynthesis' }
-        ]
-      },
-      {
-        id: '2',
-        topic: 'Gravity and Orbits',
-        category: 'Physics',
-        hypothesis: 'Gravity is a fundamental force that governs the motion of celestial bodies',
-        observation: 'Every object with mass attracts every other object with a force proportional to their masses and inversely proportional to the square of the distance between them. This force keeps planets in orbit around stars and moons around planets.',
-        conclusion: 'Gravity is the universal architect of cosmic structure, from falling apples to galaxy clusters.',
-        funFact: 'If you could fold a piece of paper in half 42 times, it would reach the moon - demonstrating exponential growth that also applies to gravitational forces!',
-        sources: [
-          { title: 'Physics Classroom', uri: 'https://www.physicsclassroom.com/Class/circles/u6l3a.cfm' },
-          { title: 'NOVA Physics', uri: 'https://www.pbs.org/wgbh/nova/physics/' }
-        ]
+    const loadGlobalHerbarium = async () => {
+      setIsLoadingHerbarium(true);
+      try {
+        const response = await fetch('/api/science/encyclopedia/all');
+        if (response.ok) {
+          const data = await response.json();
+          setGlobalHerbarium(data);
+        }
+      } catch (error) {
+        console.error('Failed to load Global Herbarium:', error);
+      } finally {
+        setIsLoadingHerbarium(false);
       }
-    ]);
+    };
+
+    loadGlobalHerbarium();
 
     // Load community data when societies tab is selected
     if (activeTab === 'societies' && clubs.length === 0) {
@@ -226,7 +217,11 @@ export default function SciencePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entry: generatedEntry })
       });
-      if (res.ok) setSaveEntrySuccess(true);
+      if (res.ok) {
+        setSaveEntrySuccess(true);
+        // Add to Global Herbarium immediately
+        setGlobalHerbarium(prev => [generatedEntry, ...prev]);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -578,8 +573,28 @@ export default function SciencePage() {
                                         </ul>
                                     </div>
                                     
+                                    {/* Primary Source Evidence */}
+                                    {generatedEntry.primarySourceCitation && generatedEntry.directQuote && (
+                                        <div className="bg-amber-50 p-6 rounded-xl border-2 border-amber-300">
+                                            <h3 className="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
+                                                <ScrollText className="w-5 h-5" />
+                                                Primary Source Evidence
+                                            </h3>
+                                            <div className="bg-white p-4 rounded-lg border border-amber-200 mb-4">
+                                                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-2">Original Source Citation:</p>
+                                                <p className="text-amber-900 font-medium">{generatedEntry.primarySourceCitation}</p>
+                                            </div>
+                                            <div className="bg-[#FFFEF7] p-5 rounded-lg border-l-4 border-amber-600">
+                                                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-3">Direct Quote from Original Document:</p>
+                                                <blockquote className="text-amber-900 leading-relaxed italic" style={{ fontFamily: 'Georgia, serif' }}>
+                                                    "{generatedEntry.directQuote}"
+                                                </blockquote>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
                                     <div>
-                                        <h3 className="text-lg font-bold text-emerald-800 mb-3">References</h3>
+                                        <h3 className="text-lg font-bold text-emerald-800 mb-3">Additional References</h3>
                                         <div className="space-y-1">
                                             {(generatedEntry.references ?? []).map((ref, i) => (
                                                 <p key={i} className="text-emerald-600 text-sm italic">• {ref}</p>
@@ -629,6 +644,61 @@ export default function SciencePage() {
                         )}
                     </Button>
                 </form>
+            </div>
+
+            {/* Global Herbarium - Crowdsourced Knowledge */}
+            <div className="absolute bottom-24 left-0 right-0 max-h-[40vh] overflow-y-auto bg-[#FFFEF7] border-t-2 border-emerald-300 z-20">
+                <div className="p-6">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-2xl font-bold text-emerald-900" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                                🌿 Global Herbarium
+                            </h3>
+                            <Badge className="bg-emerald-600 text-white">
+                                {globalHerbarium.length} Discoveries
+                            </Badge>
+                        </div>
+                        <p className="text-sm text-emerald-700 mb-6 italic">
+                            A living encyclopedia built by students around the world. Every discovery adds to our collective understanding.
+                        </p>
+                        
+                        {isLoadingHerbarium ? (
+                            <div className="flex items-center justify-center py-12">
+                                <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                                <span className="ml-3 text-emerald-700">Loading collective knowledge...</span>
+                            </div>
+                        ) : globalHerbarium.length === 0 ? (
+                            <div className="text-center py-12 text-emerald-600 italic">
+                                The Herbarium awaits its first discovery. Be the pioneer!
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {globalHerbarium.map((entry) => (
+                                    <div 
+                                        key={entry.id}
+                                        className="bg-white p-4 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 transition-all hover:shadow-lg cursor-pointer"
+                                    >
+                                        <div className="flex items-start justify-between mb-2">
+                                            <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-600">
+                                                {entry.category || 'Science'}
+                                            </Badge>
+                                        </div>
+                                        <h4 className="font-bold text-emerald-900 mb-2" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                                            {entry.title || entry.topic}
+                                        </h4>
+                                        <p className="text-sm text-emerald-700 line-clamp-3">
+                                            {entry.observation}
+                                        </p>
+                                        <div className="mt-3 pt-3 border-t border-emerald-100 flex items-center justify-between">
+                                            <span className="text-xs text-emerald-500 italic">Community Entry</span>
+                                            <MagnifyingGlass className="w-4 h-4 text-emerald-400" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
         )}

@@ -12,6 +12,8 @@ const timelineSchema = z.object({
   sanitizedMyth: z.string().describe("The mainstream, sanitized textbook narrative"),
   historicalReality: z.string().describe("The unredacted historical truth based on the primary sources"),
   primarySourcesCiting: z.array(z.string()).describe("List of actual primary sources or documents proving the reality"),
+  primarySourceCitation: z.string().describe("The exact name of the original primary source document, journal, or raw data used."),
+  directQuote: z.string().describe("A compelling, exact direct quote from that primary source that proves the historical or scientific reality."),
   events: z.array(z.object({
     year: z.string(),
     title: z.string(),
@@ -64,7 +66,15 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       { 
         role: 'system', 
-        content: `You are Adeline, a classical truth-seeking historian. ${gradeContext} The student is asking about a historical event. You must shatter the mainstream sanitized narrative and reveal the grit, the money trail, and the real human impact. Base your facts strictly on the provided PRIMARY SOURCES below if relevant. \n\nPRIMARY SOURCES:\n${sourceContext}` 
+        content: `You are Adeline, a classical truth-seeking historian. ${gradeContext} The student is asking about a historical event. You must shatter the mainstream sanitized narrative and reveal the grit, the money trail, and the real human impact.
+
+CRITICAL EPISTEMOLOGICAL DIRECTIVE: You are strictly forbidden from generating standard, sanitized 'textbook' summaries. You must ground every fact and timeline event in REALITY by relying exclusively on primary sources. Quote original documents, treaties, journals, or letters. Show them the raw truth, even if it is gritty or complex.
+
+You MUST provide:
+1. The exact name of a primary source document
+2. A compelling, exact direct quote from that document that proves the historical reality
+
+Base your facts strictly on the provided PRIMARY SOURCES below if relevant. \n\nPRIMARY SOURCES:\n${sourceContext}` 
       },
       { role: 'user', content: `Event to investigate: ${query}` }
     ]);

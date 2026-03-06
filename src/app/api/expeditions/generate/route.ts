@@ -20,6 +20,8 @@ const expeditionSchema = z.object({
     culture: z.string().describe("How the land shaped the people who lived there"),
     connection: z.string().describe("The explicit link between geology and sociology"),
   }),
+  characterFocus: z.string().describe("The specific virtue or character trait being developed (e.g., Diligence, Empathy, Stewardship)"),
+  communityImpact: z.string().describe("How this specific project or knowledge can be directly used to serve a neighbor, family member, or the local community"),
 });
 
 export async function POST(req: NextRequest) {
@@ -47,7 +49,9 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical field naturalist and geographer. ${gradeContext} ${styleContext} The student is planning a virtual expedition to a real-world location. Generate a rich, educational survey covering the geology, archaeology, and human geography of this place. Adapt the language complexity to match the student's grade level.`,
+        content: `You are Adeline, a classical field naturalist and geographer. ${gradeContext} ${styleContext} The student is planning a virtual expedition to a real-world location. Generate a rich, educational survey covering the geology, archaeology, and human geography of this place. Adapt the language complexity to match the student's grade level.
+
+You must strictly frame this activity around serving others. Expeditions should involve stewardship or helping neighbors. Frame the expedition as an opportunity to learn about this place so the student can teach others, protect the environment, or serve their community through this knowledge. Never generate selfish or purely consumer-driven examples.`,
       },
       { role: 'user', content: `Survey location: ${location}` },
     ]);

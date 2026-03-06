@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Compass, Calendar, Clock, Users, Camera, BookOpen, Mountain, Building, Loader2 } from 'lucide-react';
+import { MapPin, Compass, Calendar, Clock, Users, Camera, BookOpen, Mountain, Building, Loader2, Heart, HandHeart } from 'lucide-react';
 
 interface ExpeditionReport {
   location: string;
@@ -24,6 +24,8 @@ interface ExpeditionReport {
     culture: string;
     connection: string;
   };
+  characterFocus: string;
+  communityImpact: string;
 }
 
 interface FieldJournalEntry {
@@ -111,17 +113,22 @@ export default function ExpeditionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#FFFEF7] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Expeditions Pavilion</h1>
-            <p className="text-gray-600 mt-1">Plan field trips and document your discoveries</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Compass className="h-6 w-6 text-gray-400" />
-            <Mountain className="h-6 w-4 text-gray-400" />
+        <div className="bg-[#E7DAC3] rounded-[2rem] p-8 border-2 border-[#BD6809]/20">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-[#2F4731] rounded-xl text-[#FFFEF7]">
+              <Compass size={32} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                Expeditions Pavilion
+              </h1>
+              <p className="text-[#2F4731]/70 text-lg" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                Plan field trips and document your discoveries in nature
+              </p>
+            </div>
           </div>
         </div>
 
@@ -246,15 +253,34 @@ export default function ExpeditionsPage() {
                     </Card>
                   </div>
 
+                  {/* Character Focus & Community Impact */}
+                  <div className="grid md:grid-cols-2 gap-6 mt-6">
+                    <div className="bg-purple-50 p-6 rounded-xl border-2 border-purple-200">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Heart className="h-6 w-6 text-purple-600" />
+                        <h4 className="font-bold text-purple-900 text-lg">Character Focus</h4>
+                      </div>
+                      <p className="text-purple-800 leading-relaxed">{report.characterFocus}</p>
+                    </div>
+                    <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200">
+                      <div className="flex items-center gap-3 mb-3">
+                        <HandHeart className="h-6 w-6 text-green-600" />
+                        <h4 className="font-bold text-green-900 text-lg">Community Impact</h4>
+                      </div>
+                      <p className="text-green-800 leading-relaxed">{report.communityImpact}</p>
+                    </div>
+                  </div>
+
                   {/* Save Button */}
-                  <div className="flex justify-center pt-4 border-t border-[#E7DAC3]">
+                  <div className="flex justify-center pt-4 border-t-2 border-[#E7DAC3]">
                     <Button
                       onClick={handleSaveReport}
                       disabled={isSaving || saveSuccess}
-                      className="bg-[#2F4731] hover:bg-[#BD6809] text-white font-semibold px-8 py-6 rounded-2xl text-lg"
+                      className="bg-[#2F4731] hover:bg-[#BD6809] text-[#FFFEF7] px-8 py-6 rounded-2xl text-lg shadow-md transition-colors"
+                      style={{ fontFamily: 'var(--font-kalam), cursive' }}
                     >
                       {isSaving ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Pressing into Field Journal...</>
                       ) : saveSuccess ? '✨ Saved to Field Journal!' : '🌿 Save to Field Journal'}
                     </Button>
                   </div>

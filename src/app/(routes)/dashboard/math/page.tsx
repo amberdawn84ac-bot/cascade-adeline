@@ -1,144 +1,250 @@
-import { getSessionUser } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { Calculator, TrendingUp, PieChart, Ruler } from 'lucide-react';
-import { DottedArrow } from '@/components/illustrations';
-import Link from 'next/link';
-import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
-import prisma from '@/lib/db';
-import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
+'use client';
 
-export default async function MathPage() {
-  const session = await getSessionUser();
-  
-  if (!session) {
-    redirect('/login');
-  }
+import { useState } from 'react';
+import { Hammer, Package, Ruler, DollarSign, TrendingUp, Calculator, Wrench, Heart, HandHeart } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-  // Get user data for grade level
-  const userData = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { gradeLevel: true }
-  });
-  
-  const gradeLevel = userData?.gradeLevel || '3';
-  const attentionSpan = getAttentionSpanForGrade(gradeLevel);
-  const interactiveType = getInteractiveTypeForGrade(gradeLevel);
+export default function MathPage() {
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="bg-amber-50 rounded-[2rem] p-8 border border-amber-100">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 bg-amber-100 rounded-xl text-amber-700">
-            <Calculator size={32} />
+    <div className="min-h-screen bg-[#FFFEF7] p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="bg-[#E7DAC3] rounded-[2rem] p-8 border-2 border-[#BD6809]/20">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-[#2F4731] rounded-xl text-[#FFFEF7]">
+              <Hammer size={32} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                Applied Mathematics Workshop
+              </h1>
+              <p className="text-[#2F4731]/70 text-lg" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                Real-world math for builders, traders, and entrepreneurs
+              </p>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-amber-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-            Math Hub
-          </h1>
-          <p className="text-amber-800/70 text-lg">
-            Grade {gradeLevel} Math Activities • {attentionSpan}-min sessions • {interactiveType} interactions
-          </p>
-          <p className="text-amber-800/70 text-lg max-w-2xl">
-            Welcome to the world of numbers! Here you can master mathematical concepts through
-            real-world applications, problem-solving, and business simulations.
-          </p>
         </div>
-      </div>
 
-      {/* Activities Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Business Math */}
-        <Link href="/dashboard/math/business" className="group block">
-          <div className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
-            <div className="mb-4 p-3 bg-green-100 rounded-xl w-fit text-green-700 group-hover:bg-green-600 group-hover:text-white transition-colors">
-              <TrendingUp size={24} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Business Math</h3>
-            <p className="text-slate-600 text-sm mb-4">
-              Run a virtual business! Learn profit calculation, budgeting, and financial planning.
-            </p>
-            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
-              Start Business <DottedArrow size={24} className="ml-2 rotate-180" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Geometry */}
-        <Link href="/dashboard/math/geometry" className="group block">
-          <div className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
-            <div className="mb-4 p-3 bg-blue-100 rounded-xl w-fit text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Ruler size={24} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Geometry Workshop</h3>
-            <p className="text-slate-600 text-sm mb-4">
-              Build and measure! Explore shapes, areas, volumes through hands-on projects.
-            </p>
-            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
-              Build & Measure <DottedArrow size={24} className="ml-2 rotate-180" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Data Analysis */}
-        <Link href="/dashboard/math/data" className="group block">
-          <div className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 hover:border-amber-300 transition-all hover:shadow-lg cursor-pointer">
-            <div className="mb-4 p-3 bg-purple-100 rounded-xl w-fit text-purple-700 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <PieChart size={24} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Data Detective</h3>
-            <p className="text-slate-600 text-sm mb-4">
-              Analyze real data, create charts, and discover patterns in numbers.
-            </p>
-            <div className="inline-flex items-center text-xs font-bold uppercase tracking-wider text-amber-600">
-              Analyze Data <DottedArrow size={24} className="ml-2 rotate-180" />
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Math Concepts Section */}
-      <div className="bg-white rounded-[2rem] p-8 border border-amber-100">
-        <h2 className="text-2xl font-bold text-amber-900 mb-6">Core Math Skills</h2>
-        <div className="grid md:grid-cols-4 gap-6">
-          {[
-            { skill: "Arithmetic", desc: "Add, subtract, multiply, divide", level: "Foundation" },
-            { skill: "Fractions", desc: "Parts of a whole and operations", level: "Intermediate" },
-            { skill: "Algebra", desc: "Variables and equations", level: "Advanced" },
-            { skill: "Geometry", desc: "Shapes and measurements", level: "Applied" }
-          ].map((item, index) => (
-            <div key={index} className="text-center p-4 bg-amber-50 rounded-xl">
-              <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center text-amber-700 font-bold mx-auto mb-3">
-                {item.skill[0]}
-              </div>
-              <h3 className="font-bold text-slate-800 mb-2">{item.skill}</h3>
-              <p className="text-sm text-slate-600 mb-2">{item.desc}</p>
-              <span className="text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-1 rounded-full">
-                {item.level}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Real World Applications */}
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-[2rem] p-8 border border-amber-100">
-        <h2 className="text-2xl font-bold text-amber-900 mb-6">Math in Real Life</h2>
+        {/* Project Workshops - Real-World Applications */}
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl mb-3">🏪</div>
-            <h3 className="font-bold text-slate-800 mb-2">Shopping</h3>
-            <p className="text-sm text-slate-600">Calculate discounts, compare prices, manage budgets</p>
+          {/* Architectural Geometry */}
+          <Card className="border-2 border-[#BD6809]/20 hover:border-[#BD6809] transition-all hover:shadow-xl cursor-pointer group">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-[#2F4731] rounded-xl text-[#FFFEF7] group-hover:bg-[#BD6809] transition-colors">
+                  <Ruler size={28} />
+                </div>
+                <Badge className="bg-amber-600 text-white">Geometry</Badge>
+              </div>
+              <CardTitle className="text-2xl" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                Architectural Geometry
+              </CardTitle>
+              <CardDescription className="text-base">
+                Calculate structural loads, framing, and materials for real building projects
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-[#E7DAC3] p-4 rounded-xl">
+                <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase">Real Projects:</h4>
+                <ul className="space-y-2 text-sm text-[#2F4731]/80">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>16x60 Saltbox Barn: Calculate roof pitch, rafter lengths, and board feet</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>Greenhouse Foundation: Determine concrete volume and rebar spacing</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>Deck Framing: Calculate joist spacing and load-bearing capacity</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pt-4 border-t border-[#E7DAC3]">
+                <p className="text-xs text-[#2F4731]/60 italic">
+                  Master Pythagorean theorem, trigonometry, and structural engineering math
+                </p>
+              </div>
+              <div className="mt-4 space-y-3">
+                <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Heart className="h-4 w-4 text-purple-600" />
+                    <h5 className="text-xs font-bold text-purple-900">Character: Diligence</h5>
+                  </div>
+                  <p className="text-xs text-purple-800">Precision and careful measurement build integrity in craftsmanship</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <HandHeart className="h-4 w-4 text-green-600" />
+                    <h5 className="text-xs font-bold text-green-900">Community Impact</h5>
+                  </div>
+                  <p className="text-xs text-green-800">Build structures for your family, neighbors, or local community projects</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* E-commerce & Logistics */}
+          <Card className="border-2 border-[#BD6809]/20 hover:border-[#BD6809] transition-all hover:shadow-xl cursor-pointer group">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-[#2F4731] rounded-xl text-[#FFFEF7] group-hover:bg-[#BD6809] transition-colors">
+                  <Package size={28} />
+                </div>
+                <Badge className="bg-green-600 text-white">Business Math</Badge>
+              </div>
+              <CardTitle className="text-2xl" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                E-commerce & Logistics
+              </CardTitle>
+              <CardDescription className="text-base">
+                Calculate landed costs, tariffs, and supply chain margins for global trade
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-[#E7DAC3] p-4 rounded-xl">
+                <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase">Real Scenarios:</h4>
+                <ul className="space-y-2 text-sm text-[#2F4731]/80">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>Import Costing: Calculate HS code tariffs, shipping, and customs fees</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>Landed Cost Analysis: Determine true product cost including all fees</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>Margin Optimization: Calculate break-even and profit margins</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pt-4 border-t border-[#E7DAC3]">
+                <p className="text-xs text-[#2F4731]/60 italic">
+                  Master percentages, exchange rates, and international trade mathematics
+                </p>
+              </div>
+              <div className="mt-4 space-y-3">
+                <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Heart className="h-4 w-4 text-purple-600" />
+                    <h5 className="text-xs font-bold text-purple-900">Character: Stewardship</h5>
+                  </div>
+                  <p className="text-xs text-purple-800">Wise resource management and fair pricing honor both buyer and seller</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <HandHeart className="h-4 w-4 text-green-600" />
+                    <h5 className="text-xs font-bold text-green-900">Community Impact</h5>
+                  </div>
+                  <p className="text-xs text-green-800">Help family businesses price fairly and source products that serve your community</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Trade Shop Economics */}
+          <Card className="border-2 border-[#BD6809]/20 hover:border-[#BD6809] transition-all hover:shadow-xl cursor-pointer group">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-[#2F4731] rounded-xl text-[#FFFEF7] group-hover:bg-[#BD6809] transition-colors">
+                  <Wrench size={28} />
+                </div>
+                <Badge className="bg-blue-600 text-white">Economics</Badge>
+              </div>
+              <CardTitle className="text-2xl" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                Trade Shop Economics
+              </CardTitle>
+              <CardDescription className="text-base">
+                Calculate material costs, labor rates, and profit margins for skilled trades
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-[#E7DAC3] p-4 rounded-xl">
+                <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase">Real Workshops:</h4>
+                <ul className="space-y-2 text-sm text-[#2F4731]/80">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>Walnut Woodworking: Calculate board feet, waste factor, and pricing</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>Custom Furniture: Determine material costs and labor hours</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#BD6809]">•</span>
+                    <span>Shop Overhead: Calculate true hourly rate including fixed costs</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pt-4 border-t border-[#E7DAC3]">
+                <p className="text-xs text-[#2F4731]/60 italic">
+                  Master unit conversion, cost estimation, and small business finance
+                </p>
+              </div>
+              <div className="mt-4 space-y-3">
+                <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Heart className="h-4 w-4 text-purple-600" />
+                    <h5 className="text-xs font-bold text-purple-900">Character: Craftsmanship</h5>
+                  </div>
+                  <p className="text-xs text-purple-800">Excellence in work honors the materials, the craft, and those who will use it</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <HandHeart className="h-4 w-4 text-green-600" />
+                    <h5 className="text-xs font-bold text-green-900">Community Impact</h5>
+                  </div>
+                  <p className="text-xs text-green-800">Create heirloom furniture or teach woodworking skills to the next generation</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Why This Matters */}
+        <div className="bg-white rounded-[2rem] p-8 border-2 border-[#BD6809]/20">
+          <h2 className="text-2xl font-bold text-[#2F4731] mb-6" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+            Why Applied Mathematics?
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Calculator className="w-8 h-8 text-[#BD6809]" />
+                <h3 className="font-bold text-[#2F4731]">Real Skills, Real Value</h3>
+              </div>
+              <p className="text-[#2F4731]/70 text-sm leading-relaxed">
+                These aren't abstract problems. You're learning the exact math that architects, importers, and craftsmen use daily to run profitable businesses.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <DollarSign className="w-8 h-8 text-[#BD6809]" />
+                <h3 className="font-bold text-[#2F4731]">Economic Literacy</h3>
+              </div>
+              <p className="text-[#2F4731]/70 text-sm leading-relaxed">
+                Understand how pricing works, why things cost what they do, and how to calculate true profitability in any venture.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-8 h-8 text-[#BD6809]" />
+                <h3 className="font-bold text-[#2F4731]">Immediate Application</h3>
+              </div>
+              <p className="text-[#2F4731]/70 text-sm leading-relaxed">
+                Use these calculations today for your own projects, side hustles, or family business. Math becomes a tool, not a chore.
+              </p>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-3xl mb-3">👨‍🍳</div>
-            <h3 className="font-bold text-slate-800 mb-2">Cooking</h3>
-            <p className="text-sm text-slate-600">Measure ingredients, scale recipes, timing</p>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl mb-3">🏗️</div>
-            <h3 className="font-bold text-slate-800 mb-2">Building</h3>
-            <p className="text-sm text-slate-600">Calculate materials, angles, structural design</p>
-          </div>
+        </div>
+
+        {/* Coming Soon */}
+        <div className="bg-[#E7DAC3] rounded-[2rem] p-6 border-2 border-[#BD6809]/20 text-center">
+          <p className="text-[#2F4731] italic" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+            Interactive calculators and project templates coming soon. For now, work through these scenarios with pencil and paper - the old-fashioned way builds deeper understanding.
+          </p>
         </div>
       </div>
     </div>

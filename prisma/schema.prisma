@@ -290,19 +290,21 @@ model HippocampusDocument {
 }
 
 model ConversationMemory {
-  id        String                @id @default(uuid()) @db.Uuid
-  userId    String                @db.Uuid
-  sessionId String                @map("session_id")
-  role      ConversationRole
-  content   String
-  metadata  Json
-  embedding Unsupported("vector")
-  createdAt DateTime              @default(now()) @map("created_at")
-  updatedAt DateTime              @updatedAt @map("updated_at")
-  user      User                  @relation(fields: [userId], references: [id])
+  id         String                @id @default(uuid()) @db.Uuid
+  userId     String                @db.Uuid
+  sessionId  String                @map("session_id")
+  role       ConversationRole
+  content    String
+  metadata   Json
+  embedding  Unsupported("vector")
+  importance Float                 @default(0.5)
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @updatedAt @map("updated_at")
+  user       User                  @relation(fields: [userId], references: [id])
 
   @@index([userId, sessionId])
   @@index([createdAt])
+  @@index([userId, importance])
 }
 
 model LearningGap {

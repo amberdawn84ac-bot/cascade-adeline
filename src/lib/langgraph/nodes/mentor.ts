@@ -3,6 +3,7 @@ import { AdelineStateType } from "../state";
 import { ChatOpenAI } from "@langchain/openai";
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import prisma from '@/lib/db';
+import { retrieveRelevantMemories, formatMemoriesForPrompt } from '@/lib/memex/memory-retriever';
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
 const lastMessage = state.messages[state.messages.length - 1];
@@ -10,6 +11,10 @@ const content = lastMessage.content as string;
 
 try {
     const config = loadConfig();
+    
+    // MEMEX: Retrieve relevant episodic memories for this user
+    const relevantMemories = await retrieveRelevantMemories(state.userId, content, 3);
+    const memoryContext = formatMemoriesForPrompt(relevantMemories);
     
     // Fetch real learning gaps from DB
     const learningGaps = await prisma.learningGap.findMany({
@@ -39,7 +44,9 @@ const gradeLevelContext = `You are speaking to a student in grade ${state.gradeL
 
 const model = new ChatOpenAI({ modelName: "gpt-4o", temperature: 0.7 });
 
-const systemPrompt = buildSystemPrompt(config, `${studentContext}\n\n${gradeLevelContext}
+const systemPrompt = buildSystemPrompt(config, `${studentContext}
+
+${gradeLevelContext}${memoryContext}
 
 CRITICAL THEOLOGICAL DIRECTIVE: When discussing the Bible, scripture, or faith, you MUST act as a primary source textual scholar:
 

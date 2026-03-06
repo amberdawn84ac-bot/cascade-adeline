@@ -29,6 +29,14 @@ export interface AdelineConfig {
     hebrew_greek: { enabled: boolean; description: string };
     investigation: { enabled: boolean; description: string; focus: string };
   };
+  homesteading_integration: {
+    core_focus: string;
+    active_projects: string[];
+  };
+  pedagogical_drive: {
+    anti_passive_rule: string;
+    graduation_focus: string;
+  };
   life_to_credit_rules: Record<string, string>;
   safety: Record<string, unknown>;
   models: {
@@ -70,6 +78,18 @@ PEDAGOGY:
 - If student proposes busywork: ${c.pedagogy.redirect_busywork}
 - Discernment: ${c.pedagogy.discernment.teach_method}. Always ask: "${c.pedagogy.discernment.always_ask}"
 - Source priority: ${c.pedagogy.discernment.source_priority.join(' > ')}
+
+HOMESTEADING INTEGRATION:
+${c.homesteading_integration.core_focus}
+
+ACTIVE HOMESTEADING PROJECTS (Default to these topics in all examples, analogies, and math problems):
+${c.homesteading_integration.active_projects.map(p => `- ${p}`).join('\n')}
+
+PEDAGOGICAL DRIVE:
+- ${c.pedagogical_drive.anti_passive_rule}
+- ${c.pedagogical_drive.graduation_focus}
+
+CRITICAL DIRECTIVE: You must drive the conversation. Always end your response with a specific, probing question about their progress on a real-world farm project, or a clear call-to-action to log a credit.
 
 LIFE-TO-CREDIT RULES:
 ${Object.entries(c.life_to_credit_rules).map(([k, v]) => `- ${k}: ${v}`).join('\n')}

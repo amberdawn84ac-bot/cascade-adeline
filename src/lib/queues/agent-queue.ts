@@ -1,7 +1,17 @@
 import { Queue, Worker, Job, QueueEvents } from 'bullmq';
-import redis from '../redis';
 import { adelineBrainRunnable } from '../langgraph';
 import { AdelineGraphState } from '../langgraph/types';
+
+/**
+ * ⚠️ WARNING: BullMQ is NOT compatible with Vercel serverless + Upstash REST API.
+ * 
+ * BullMQ requires a persistent Redis TCP connection (ioredis), but:
+ * - Vercel serverless functions are stateless and can't maintain persistent connections
+ * - Upstash provides a REST API, not a Redis TCP socket
+ * 
+ * For production on Vercel, use the Postgres-backed job queue in @/lib/jobs/queue.ts instead.
+ * This file is kept for local development only.
+ */
 
 // Queue configuration
 const QUEUE_NAME = 'agent-processing';
@@ -16,29 +26,25 @@ const JOB_OPTIONS = {
   },
 };
 
-// Create queue instance
-export const agentQueue = new Queue(QUEUE_NAME, {
+// Only initialize BullMQ in local development (not in Vercel production)
+const isLocalDev = process.env.NODE_ENV === 'development' && !process.env.VERCEL;
+
+// Create queue instance (guarded for serverless compatibility)
+export const agentQueue = isLocalDev ? new Queue(QUEUE_NAME, {
   connection: {
-    host: process.env.UPSTASH_REDIS_REST_URL ? 'redis' : 'localhost',
+    host: 'localhost',
     port: 6379,
-    // Use Upstash Redis configuration if available
-    ...(process.env.UPSTASH_REDIS_REST_URL && {
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    }),
   },
   defaultJobOptions: JOB_OPTIONS,
-});
+}) : null as any;
 
-// Create queue events listener
-export const queueEvents = new QueueEvents(QUEUE_NAME, {
+// Create queue events listener (guarded for serverless compatibility)
+export const queueEvents = isLocalDev ? new QueueEvents(QUEUE_NAME, {
   connection: {
-    host: process.env.UPSTASH_REDIS_REST_URL ? 'redis' : 'localhost',
+    host: 'localhost',
     port: 6379,
-    ...(process.env.UPSTASH_REDIS_REST_URL && {
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    }),
   },
-});
+}) : null as any;
 
 // Job priorities (lower number = higher priority)
 export enum JobPriority {

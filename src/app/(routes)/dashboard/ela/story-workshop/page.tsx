@@ -1,168 +1,335 @@
 'use client';
 
 import { useState } from 'react';
-import { PenTool, BookOpen, Loader2, Send } from 'lucide-react';
-import Link from 'next/link';
+import { PenTool, Sparkles, Loader2, BookOpen, TrendingUp, Award, Heart, HandHeart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
-interface StoryResult {
-  title: string;
-  opening: string;
-  characterSketch: string;
-  plotHook: string;
-  writingTip: string;
+interface StoryPrompt {
+  genre: string;
+  setting: string;
+  character: string;
+  conflict: string;
+  twist: string;
+  wordCountTarget: number;
+  inspirationalQuote: string;
+  characterFocus: string;
+  communityImpact: string;
 }
 
-const GENRES = ['Adventure', 'Mystery', 'Fantasy', 'Historical Fiction', 'Science Fiction', 'Realistic Fiction'];
+interface StoryAnalysis {
+  overallScore: number;
+  strengths: string[];
+  areasForGrowth: string[];
+  grammarScore: number;
+  creativityScore: number;
+  narrativeScore: number;
+  vocabularyScore: number;
+  encouragement: string;
+  nextSteps: string;
+}
 
-const STARTER_PROMPTS = [
-  'A child discovers a hidden door in their school basement',
-  'A letter arrives addressed to someone who disappeared 100 years ago',
-  'A young inventor builds something that changes their entire town',
-  'The last tree in the world is guarded by a girl who refuses to leave',
-];
+interface AnalysisResult {
+  analysis: StoryAnalysis;
+  creditsEarned: number;
+  wordCount: number;
+}
+
+const THEMES = ['any', 'adventure', 'mystery', 'fantasy', 'friendship', 'courage', 'discovery'];
 
 export default function StoryWorkshopPage() {
-  const [prompt, setPrompt] = useState('');
-  const [genre, setGenre] = useState('Adventure');
-  const [result, setResult] = useState<StoryResult | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<string>('any');
+  const [prompt, setPrompt] = useState<StoryPrompt | null>(null);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  
+  const [studentStory, setStudentStory] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    setIsGenerating(true);
-    setResult(null);
-    setSaveSuccess(false);
+  const wordCount = studentStory.trim().split(/\s+/).filter(w => w.length > 0).length;
+  const progressPercent = prompt ? Math.min(100, (wordCount / prompt.wordCountTarget) * 100) : 0;
+
+  const handleGeneratePrompt = async (theme: string) => {
+    setIsGeneratingPrompt(true);
+    setPrompt(null);
+    setStudentStory('');
+    setAnalysisResult(null);
+    setSelectedTheme(theme);
+
     try {
-      const res = await fetch('/api/ela/story/generate', {
+      const response = await fetch('/api/story/generate-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, genre }),
+        body: JSON.stringify({ theme }),
       });
-      if (!res.ok) throw new Error('Failed');
-      setResult(await res.json());
-    } catch (e) { console.error(e); }
-    finally { setIsGenerating(false); }
+      if (!response.ok) throw new Error('Failed to generate prompt');
+      const data = await response.json();
+      setPrompt(data);
+    } catch (error) {
+      console.error('Error generating prompt:', error);
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
   };
 
-  const handleSave = async () => {
-    if (!result) return;
-    setIsSaving(true);
+  const handleSubmitStory = async () => {
+    if (!prompt || !studentStory.trim()) return;
+    setIsAnalyzing(true);
+
     try {
-      const res = await fetch('/api/ela/story/save', {
+      const response = await fetch('/api/story/analyze-submission', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: result.title, result }),
+        body: JSON.stringify({ prompt, studentStory }),
       });
-      if (res.ok) setSaveSuccess(true);
-    } catch (e) { console.error(e); }
-    finally { setIsSaving(false); }
+      if (!response.ok) throw new Error('Failed to analyze story');
+      const data = await response.json();
+      setAnalysisResult(data);
+    } catch (error) {
+      console.error('Error analyzing story:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleNewStory = () => {
+    setPrompt(null);
+    setStudentStory('');
+    setAnalysisResult(null);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-rose-50 rounded-[2rem] p-8 border border-rose-100 flex items-center gap-4">
-        <div className="p-3 bg-rose-100 rounded-xl text-rose-700"><PenTool size={32} /></div>
-        <div>
-          <h1 className="text-3xl font-bold text-rose-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>Story Workshop</h1>
-          <p className="text-rose-800/70">Give Adeline a prompt. She'll write you a story starter to continue.</p>
+    <div className="min-h-screen bg-[#FFFEF7] p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-[#E7DAC3] rounded-[2rem] p-8 border-2 border-[#BD6809]/20">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-[#2F4731] rounded-xl text-[#FFFEF7]">
+              <PenTool size={32} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                Story Workshop
+              </h1>
+              <p className="text-[#2F4731]/70 text-lg" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                Craft tales that come alive on the page
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Input */}
-      <div className="bg-white rounded-[2rem] p-6 border border-rose-100 space-y-4">
-        <div className="flex gap-3">
-          <select
-            value={genre}
-            onChange={(e) => setGenre(e.target.value)}
-            className="border border-rose-200 rounded-xl px-3 py-2 text-sm font-medium text-rose-700 bg-rose-50 focus:outline-none"
-          >
-            {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
-          <Input
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-            placeholder="Your story idea or opening situation..."
-            disabled={isGenerating}
-            className="flex-1"
-          />
-          <Button onClick={handleGenerate} disabled={isGenerating || !prompt.trim()} className="bg-rose-600 hover:bg-rose-700">
-            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </Button>
-        </div>
-        {/* Starter prompts */}
-        {!result && !isGenerating && (
-          <div className="flex flex-wrap gap-2">
-            {STARTER_PROMPTS.map(p => (
-              <button key={p} onClick={() => setPrompt(p)} className="text-xs px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-full text-rose-700 hover:bg-rose-100 transition-colors text-left">
-                {p}
-              </button>
-            ))}
+        {/* Theme Selection */}
+        {!prompt && !isGeneratingPrompt && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+              Choose Your Story Theme
+            </h2>
+            <div className="grid md:grid-cols-4 gap-3">
+              {THEMES.map((theme) => (
+                <button
+                  key={theme}
+                  onClick={() => handleGeneratePrompt(theme)}
+                  className="p-4 rounded-2xl border-2 border-[#BD6809]/20 bg-white hover:bg-[#E7DAC3] transition-all hover:shadow-lg"
+                >
+                  <div className="font-bold text-[#2F4731] capitalize" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                    {theme === 'any' ? '✨ Surprise Me' : `📖 ${theme}`}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
-      </div>
 
-      {isGenerating && (
-        <div className="flex justify-center py-12">
-          <div className="flex items-center gap-3 text-rose-600">
-            <Loader2 className="w-6 h-6 animate-spin" />
-            <span className="font-medium italic">Adeline is writing...</span>
-          </div>
-        </div>
-      )}
+        {/* Loading Prompt */}
+        {isGeneratingPrompt && (
+          <Card className="border-2 border-[#BD6809]/20">
+            <CardContent className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[#BD6809]" />
+              <span className="ml-3 text-lg" style={{ fontFamily: 'var(--font-kalam), cursive' }}>Crafting your story prompt...</span>
+            </CardContent>
+          </Card>
+        )}
 
-      {result && (
-        <div className="space-y-4">
-          {/* Title */}
-          <div className="text-center py-4">
-            <h2 className="text-3xl font-bold text-rose-900" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-              {result.title}
-            </h2>
-            <span className="text-xs font-bold uppercase tracking-widest text-rose-400 mt-1 inline-block">{genre}</span>
-          </div>
+        {/* Story Prompt Display */}
+        {prompt && !analysisResult && (
+          <Card className="border-2 border-[#BD6809]/20">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                  Your Writing Prompt
+                </CardTitle>
+                <Badge className="bg-[#2F4731] text-[#FFFEF7]">{prompt.genre}</Badge>
+              </div>
+              <CardDescription className="italic text-[#2F4731]/60" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                &ldquo;{prompt.inspirationalQuote}&rdquo;
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-[#E7DAC3] p-4 rounded-xl">
+                  <h4 className="font-bold text-[#2F4731] mb-2 text-sm">Setting</h4>
+                  <p className="text-[#2F4731]/80 text-sm">{prompt.setting}</p>
+                </div>
+                <div className="bg-[#E7DAC3] p-4 rounded-xl">
+                  <h4 className="font-bold text-[#2F4731] mb-2 text-sm">Character</h4>
+                  <p className="text-[#2F4731]/80 text-sm">{prompt.character}</p>
+                </div>
+              </div>
 
-          {/* Opening */}
-          <div className="bg-white rounded-[2rem] p-8 border border-rose-100">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="w-5 h-5 text-rose-600" />
-              <h3 className="font-bold text-rose-900">Opening</h3>
-            </div>
-            <p className="text-slate-700 leading-relaxed text-lg italic">&ldquo;{result.opening}&rdquo;</p>
-          </div>
+              <div className="bg-[#E7DAC3] p-4 rounded-xl">
+                <h4 className="font-bold text-[#2F4731] mb-2 text-sm">Conflict</h4>
+                <p className="text-[#2F4731]/80 text-sm">{prompt.conflict}</p>
+              </div>
 
-          {/* Character + Hook */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-purple-50 rounded-[2rem] p-6 border border-purple-100">
-              <p className="text-xs font-bold uppercase tracking-widest text-purple-600 mb-2">Main Character</p>
-              <p className="text-slate-700">{result.characterSketch}</p>
-            </div>
-            <div className="bg-amber-50 rounded-[2rem] p-6 border border-amber-100">
-              <p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-2">The Central Conflict</p>
-              <p className="text-slate-700">{result.plotHook}</p>
-            </div>
-          </div>
+              <div className="bg-amber-50 p-4 rounded-xl border-2 border-amber-200">
+                <h4 className="font-bold text-amber-800 mb-2 text-sm">✨ Plot Twist</h4>
+                <p className="text-amber-700 text-sm">{prompt.twist}</p>
+              </div>
 
-          {/* Writing Tip */}
-          <div className="bg-rose-50 rounded-[2rem] p-6 border border-rose-100">
-            <p className="text-xs font-bold uppercase tracking-widest text-rose-600 mb-2">✍️ Adeline's Writing Tip</p>
-            <p className="text-rose-800">{result.writingTip}</p>
-          </div>
+              {/* Character Focus & Community Impact */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-purple-50 p-4 rounded-xl border-2 border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Heart className="h-5 w-5 text-purple-600" />
+                    <h4 className="font-bold text-purple-900 text-sm">Character Focus</h4>
+                  </div>
+                  <p className="text-purple-800 text-sm">{prompt.characterFocus}</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-xl border-2 border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <HandHeart className="h-5 w-5 text-green-600" />
+                    <h4 className="font-bold text-green-900 text-sm">Community Impact</h4>
+                  </div>
+                  <p className="text-green-800 text-sm">{prompt.communityImpact}</p>
+                </div>
+              </div>
 
-          <div className="flex justify-center">
-            <Button onClick={handleSave} disabled={isSaving || saveSuccess} className="bg-[#2F4731] hover:bg-[#BD6809] text-white px-8 py-5 rounded-2xl">
-              {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : saveSuccess ? '✨ Saved to Writing Portfolio!' : '🌿 Save to Writing Portfolio'}
-            </Button>
-          </div>
-        </div>
-      )}
+              {/* Writing Area */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                    Write Your Story
+                  </h3>
+                  <div className="text-sm text-[#2F4731]/60">
+                    {wordCount} / {prompt.wordCountTarget} words
+                  </div>
+                </div>
+                <Progress value={progressPercent} className="h-2" />
+                <Textarea
+                  value={studentStory}
+                  onChange={(e) => setStudentStory(e.target.value)}
+                  placeholder="Once upon a time..."
+                  className="min-h-[300px] text-base leading-relaxed border-2 border-[#E7DAC3] focus:border-[#BD6809]"
+                  style={{ fontFamily: 'var(--font-kalam), cursive' }}
+                />
+              </div>
 
-      <div className="text-center">
-        <Link href="/dashboard/ela" className="text-sm text-rose-600 hover:underline">← Back to ELA Hub</Link>
+              <Button
+                onClick={handleSubmitStory}
+                disabled={!studentStory.trim() || isAnalyzing}
+                className="w-full bg-[#2F4731] hover:bg-[#BD6809] text-[#FFFEF7] py-6 text-lg"
+                style={{ fontFamily: 'var(--font-kalam), cursive' }}
+              >
+                {isAnalyzing ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adeline is reading...</>
+                ) : (
+                  <>Submit for Feedback <Sparkles className="w-4 h-4 ml-2" /></>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Analysis Results */}
+        {analysisResult && (
+          <Card className="border-2 border-green-500 bg-green-50">
+            <CardContent className="py-8 space-y-6">
+              <div className="text-center">
+                <Award className="w-16 h-16 text-green-600 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                  🎉 Story Complete!
+                </h3>
+                <p className="text-lg mb-2">
+                  You earned <span className="font-bold text-[#BD6809]">{analysisResult.creditsEarned.toFixed(2)}</span> credits!
+                </p>
+                <p className="text-sm text-green-700">({analysisResult.wordCount} words written)</p>
+              </div>
+
+              {/* Scores */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: 'Overall', score: analysisResult.analysis.overallScore },
+                  { label: 'Grammar', score: analysisResult.analysis.grammarScore },
+                  { label: 'Creativity', score: analysisResult.analysis.creativityScore },
+                  { label: 'Narrative', score: analysisResult.analysis.narrativeScore },
+                ].map(({ label, score }) => (
+                  <div key={label} className="bg-white p-4 rounded-xl border-2 border-[#E7DAC3] text-center">
+                    <div className="text-2xl font-bold text-[#BD6809]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                      {score}
+                    </div>
+                    <div className="text-xs text-[#2F4731]/60">{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Strengths */}
+              <div className="bg-white p-6 rounded-xl border-2 border-[#E7DAC3]">
+                <h4 className="font-bold mb-3 text-[#2F4731] flex items-center gap-2" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                  <TrendingUp className="w-5 h-5" /> What You Did Brilliantly
+                </h4>
+                <ul className="space-y-2">
+                  {analysisResult.analysis.strengths.map((strength, i) => (
+                    <li key={i} className="text-[#2F4731]/80 flex items-start gap-2">
+                      <span className="text-green-600">✓</span>
+                      <span>{strength}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Areas for Growth */}
+              <div className="bg-white p-6 rounded-xl border-2 border-[#E7DAC3]">
+                <h4 className="font-bold mb-3 text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                  💡 Ways to Grow
+                </h4>
+                <ul className="space-y-2">
+                  {analysisResult.analysis.areasForGrowth.map((area, i) => (
+                    <li key={i} className="text-[#2F4731]/80 flex items-start gap-2">
+                      <span className="text-amber-600">→</span>
+                      <span>{area}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Encouragement */}
+              <div className="bg-[#E7DAC3] p-6 rounded-xl">
+                <p className="text-[#2F4731] italic" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                  &ldquo;{analysisResult.analysis.encouragement}&rdquo;
+                </p>
+              </div>
+
+              {/* Next Steps */}
+              <div className="bg-white p-6 rounded-xl border-2 border-[#E7DAC3]">
+                <h4 className="font-bold mb-2 text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
+                  📝 Next Steps
+                </h4>
+                <p className="text-[#2F4731]/80">{analysisResult.analysis.nextSteps}</p>
+              </div>
+
+              <Button
+                onClick={handleNewStory}
+                className="w-full bg-[#2F4731] hover:bg-[#BD6809] text-[#FFFEF7] py-6 text-lg"
+                style={{ fontFamily: 'var(--font-kalam), cursive' }}
+              >
+                Write Another Story <BookOpen className="w-4 h-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

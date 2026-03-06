@@ -12,14 +12,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid report data' }, { status: 400 });
     }
 
+    // Map to Physical Education (outdoor activity) or Science (geology/archaeology focus)
+    const hasGeologyFocus = report.geology?.formation || report.geology?.rocks?.length > 0;
+    const mappedSubject = hasGeologyFocus ? 'Science' : 'Physical Education';
+
     const transcriptEntry = await prisma.transcriptEntry.create({
       data: {
         userId: user.userId,
         activityName: `Expedition: ${report.location}`,
-        mappedSubject: 'Geography',
-        creditsEarned: 0.1,
+        mappedSubject,
+        creditsEarned: 0.1, // Micro-credit for expedition planning
         dateCompleted: new Date(),
-        notes: `${report.geology.formation} | ${report.archaeology.remnants}`,
+        notes: `Geology: ${report.geology?.formation || 'N/A'} | Archaeology: ${report.archaeology?.remnants || 'N/A'}`,
         metadata: report,
       },
     });

@@ -46,15 +46,25 @@ async function main() {
   const dotenv = await import('dotenv');
   dotenv.config({ path: ENV_FILE });
 
-  const required = ['OPENAI_API_KEY', 'DATABASE_URL', 'DIRECT_DATABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'UPSTASH_REDIS_REST_URL'];
-  const missing = required.filter((key) => !process.env[key] || process.env[key]?.startsWith('sk-...') || process.env[key]?.includes('YOUR_'));
+  const required = [
+    'OPENAI_API_KEY',
+    'DATABASE_URL',
+    'DIRECT_DATABASE_URL',
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'UPSTASH_REDIS_REST_URL',
+    'UPSTASH_REDIS_REST_TOKEN',
+    'CRON_SECRET',
+  ];
+  const missing = required.filter((key) => !process.env[key] || process.env[key]?.startsWith('sk-...') || process.env[key]?.includes('YOUR_') || process.env[key]?.includes('replace-with'));
 
   if (missing.length > 0) {
-    warn(`Missing or placeholder env vars: ${missing.join(', ')}`);
-    console.log('  Please fill these in before running the app.');
-  } else {
-    log('All required env vars set');
+    fail(`Missing or placeholder env vars: ${missing.join(', ')}`);
+    console.log('  Please fill these in your .env file before running the app.');
+    process.exit(1);
   }
+  log('All required env vars set');
 
   // Step 3: Validate DIRECT_DATABASE_URL for schema changes (Supabase)
   // Supabase transaction pooler URLs (commonly port 6543 / pgbouncer) do not support DDL.

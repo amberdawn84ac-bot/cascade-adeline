@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
 import prisma from '@/lib/db';
+import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,6 +45,24 @@ export async function POST(req: NextRequest) {
 
     const result = await adelineBrainRunnable.invoke(initialState);
     
+    // MEMEX: Non-blocking memory indexing - extract and store important facts from this conversation
+    // Build conversation history for memory extraction
+    const conversationForMemory = [
+      { role: 'user' as const, content: maskedContent.masked },
+      { role: 'assistant' as const, content: result.response_content || '' },
+    ];
+    
+    // Index memories in background (non-blocking) if conversation is substantial
+    if (shouldIndexConversation(conversationForMemory)) {
+      // Generate a session ID from timestamp for grouping related conversations
+      const sessionId = `chat-${Date.now()}`;
+      
+      // Fire and forget - don't await, let it run in background
+      indexConversationMemory(user.userId, sessionId, conversationForMemory).catch(err => {
+        console.error('[Memex] Background indexing failed:', err);
+      });
+    }
+    
     // 1. Extract and Strip the [GENUI] string if the LLM leaked it into the text
     let responseText = result.response_content || "I'm here to help you learn and grow!";
     let payload = result.genUIPayload;
@@ -78,6 +97,7 @@ export async function POST(req: NextRequest) {
           } else {
             clearInterval(interval);
             controller.close();
+            // Memory indexing happens in background, stream closes immediately
           }
         }, 10);
       }
