@@ -266,7 +266,7 @@ export default function SciencePage() {
           ]
         };
         setEntries(prev => [...prev, mockEntry]);
-        setSelectedId(mockEntry.id);
+        setSelectedId(mockEntry.id || null);
       }
     } catch (error) {
       console.error('Error discovering:', error);
@@ -406,7 +406,7 @@ export default function SciencePage() {
                         entries.map((entry, idx) => (
                             <button 
                                 key={entry.id}
-                                onClick={() => setSelectedId(entry.id)}
+                                onClick={() => setSelectedId(entry.id || null)}
                                 className={`
                                     w-full text-left p-3 rounded-sm border transition-all duration-300 group
                                     ${selectedId === entry.id 
