@@ -45,3 +45,6 @@ next-env.d.ts
 
 # test scripts
 test-*.ts
+
+.vercel
+.env*.local
