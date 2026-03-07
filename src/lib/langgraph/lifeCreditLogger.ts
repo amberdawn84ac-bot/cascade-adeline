@@ -118,22 +118,39 @@ export async function lifeCreditLogger(state: AdelineGraphState): Promise<Adelin
           return (parts[parts.length - 1] || s).trim().toLowerCase();
         });
 
-        // Find matching concepts in the knowledge graph
-        const concepts = await prisma.concept.findMany({
+        // Find matching concepts in the knowledge graph with timeout protection
+        const conceptsPromise = prisma.concept.findMany({
           where: {
             OR: keywords.map((kw: string) => ({
               name: { contains: kw, mode: 'insensitive' as const },
             })),
           },
           select: { id: true, name: true },
+          take: 10, // Limit results to prevent excessive queries
+        });
+
+        // Add timeout to prevent hanging
+        const concepts = await Promise.race([
+          conceptsPromise,
+          new Promise<[]>((_, reject) => 
+            setTimeout(() => reject(new Error('Concept query timeout')), 5000)
+          )
+        ]).catch(err => {
+          console.warn('[lifeCreditLogger] Concept query failed or timed out:', err);
+          return [];
         });
 
         for (const concept of concepts) {
-          await scheduleConceptReview(state.userId, concept.id);
-          scheduledConcepts.push(concept.name);
+          try {
+            await scheduleConceptReview(state.userId, concept.id);
+            scheduledConcepts.push(concept.name);
+          } catch (reviewErr) {
+            console.warn('[lifeCreditLogger] Failed to schedule review for concept:', concept.name, reviewErr);
+          }
         }
       } catch (err) {
         console.warn('[lifeCreditLogger] Failed to schedule concept reviews:', err);
+        // Don't throw - continue with the response even if concept scheduling fails
       }
     }
 
