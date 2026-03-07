@@ -24,6 +24,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing or invalid fields: userId, name, role required' }, { status: 400 });
     }
 
+    // Test database connection
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (dbError: any) {
+      console.error('Database connection failed:', dbError);
+      return NextResponse.json({ 
+        error: 'Database connection failed',
+        details: dbError.message 
+      }, { status: 503 });
+    }
+
     // Idempotent: return existing user if already provisioned
     const existing = await prisma.user.findUnique({ where: { id: userId } });
     if (existing) {
@@ -44,6 +55,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(user, { status: 201 });
   } catch (error: any) {
     console.error("Error provisioning user:", error);
-    return NextResponse.json({ error: 'Failed to provision user' }, { status: 500 });
+    console.error("Error details:", {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      stack: error.stack,
+    });
+    return NextResponse.json({ 
+      error: 'Failed to provision user',
+      details: error.message || 'Unknown error',
+      code: error.code
+    }, { status: 500 });
   }
 }
