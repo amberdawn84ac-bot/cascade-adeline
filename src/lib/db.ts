@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 
 declare global {
   var prisma: PrismaClient | undefined;
+  var pool: Pool | undefined;
 }
 
 function createClient(): PrismaClient {
@@ -13,13 +14,20 @@ function createClient(): PrismaClient {
     throw new Error('DATABASE_URL is not set');
   }
 
-  const pool = new Pool({ 
-    connectionString,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-  const adapter = new PrismaPg(pool);
+  // Reuse pool in development to avoid "too many clients" error
+  if (!globalThis.pool) {
+    globalThis.pool = new Pool({ 
+      connectionString,
+      ssl: {
+        rejectUnauthorized: false
+      },
+      max: 10, // Limit connections
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    });
+  }
+  
+  const adapter = new PrismaPg(globalThis.pool);
   
   return new PrismaClient({
     adapter,
@@ -27,10 +35,19 @@ function createClient(): PrismaClient {
   });
 }
 
-const prisma = globalThis.prisma ?? createClient();
+// Lazy initialization - only create client when first accessed
+let prismaInstance: PrismaClient | undefined;
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
-}
+const prisma = new Proxy({} as PrismaClient, {
+  get(target, prop) {
+    if (!prismaInstance) {
+      prismaInstance = globalThis.prisma ?? createClient();
+      if (process.env.NODE_ENV !== 'production') {
+        globalThis.prisma = prismaInstance;
+      }
+    }
+    return (prismaInstance as any)[prop];
+  }
+});
 
 export default prisma;
