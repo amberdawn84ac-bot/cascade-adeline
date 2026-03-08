@@ -39,7 +39,7 @@ export default function HistoryPage() {
         const response = await fetch('/api/history/timeline/all');
         if (response.ok) {
           const data = await response.json();
-          setLivingTimeline(data);
+          setLivingTimeline(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         console.error('Failed to load Living Timeline:', error);
@@ -189,7 +189,7 @@ export default function HistoryPage() {
             <div className="bg-amber-50 p-6 rounded-xl border border-amber-100">
               <h4 className="font-bold text-amber-800 mb-3 text-lg">📄 Additional Primary Sources</h4>
               <ul className="space-y-2">
-                {generatedTimeline.primarySourcesCiting.map((source, i) => (
+                {(generatedTimeline.primarySourcesCiting || []).map((source, i) => (
                   <li key={i} className="text-amber-700 flex items-start gap-2">
                     <span className="w-1.5 h-1.5 bg-amber-400 rounded-full mt-2 flex-shrink-0"></span>
                     {source}
@@ -201,7 +201,7 @@ export default function HistoryPage() {
             <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
               <h4 className="font-bold text-indigo-800 mb-4 text-lg">⏰ Timeline Events</h4>
               <div className="space-y-4">
-                {generatedTimeline.events.map((event, i) => (
+                {(generatedTimeline.events || []).map((event, i) => (
                   <div key={i} className="flex gap-4">
                     <div className="bg-indigo-600 text-white px-3 py-1 rounded-lg font-bold text-sm min-w-fit">
                       {event.year}

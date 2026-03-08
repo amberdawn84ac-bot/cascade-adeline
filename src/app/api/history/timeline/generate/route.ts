@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ChatOpenAI } from '@langchain/openai';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
-import { embed } from 'ai';
-import { getEmbeddingModel } from '@/lib/ai-models';
 
 const timelineSchema = z.object({
   topic: z.string().describe("The historical event or era"),
@@ -39,12 +37,11 @@ export async function POST(req: NextRequest) {
     const config = loadConfig();
 
     // 1. Vector Search the Hippocampus Database
-    const { embedding } = await embed({
-      model: getEmbeddingModel(config.models.embeddings || 'text-embedding-3-small'),
-      value: query,
+    const embeddings = new OpenAIEmbeddings({
+      modelName: config.models.embeddings || 'text-embedding-3-small',
     });
-
-    const vectorLiteral = `[${embedding.join(',')}]`;
+    const embeddingVector = await embeddings.embedQuery(query);
+    const vectorLiteral = `[${embeddingVector.join(',')}]`;
     const docs = await prisma.$queryRaw`
       SELECT title, content, source_type as "sourceType"
       FROM hippocampusdocument

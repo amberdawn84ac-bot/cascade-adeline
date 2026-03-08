@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "bash scripts/prisma-generate.sh && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "setup": "npx tsx scripts/setup.ts",
