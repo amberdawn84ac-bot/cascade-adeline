@@ -38,6 +38,8 @@
   ],
   "exclude": [
     "node_modules",
-    "_ai_studio_reference"
+    "_ai_studio_reference",
+    "e2e",
+    "__tests__"
   ]
 }
