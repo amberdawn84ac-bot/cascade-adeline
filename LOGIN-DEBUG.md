@@ -10,11 +10,12 @@ Login kicks you back to the login page instead of redirecting to dashboard.
 1. Go to https://supabase.com/dashboard
 2. Select your project: `ddzpmkcvyxllafhtinte`
 3. Go to **Authentication → URL Configuration**
-4. Add these URLs to **Redirect URLs**:
+4. Set **Site URL** to: `https://dearadeline.co`
+5. Add these URLs to **Redirect URLs**:
    - `http://localhost:3000/auth/callback`
    - `http://localhost:3001/auth/callback`
-   - `https://dearadeline.vercel.app/auth/callback`
-   - `https://your-production-domain.com/auth/callback`
+   - `https://dearadeline.co/auth/callback`
+   - `https://www.dearadeline.co/auth/callback`
 
 ### 2. Session Cookie Issues
 **Check in Browser DevTools:**
