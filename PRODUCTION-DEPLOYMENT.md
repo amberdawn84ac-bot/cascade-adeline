@@ -164,7 +164,7 @@ After deployment completes:
 
 1. **Check health endpoint:**
    ```bash
-   curl https://your-domain.vercel.app/api/health
+   curl https://dearadeline.co/api/health
    ```
    All checks should return `"status": "ok"`
 
@@ -187,12 +187,14 @@ After deployment completes:
 
 ### 4.1 Configure Supabase redirect URLs
 In Supabase Dashboard → Authentication → URL Configuration:
-- Add your production URL to **Site URL**
-- Add to **Redirect URLs**: `https://your-domain.vercel.app/auth/callback`
+- Set **Site URL** to: `https://dearadeline.co`
+- Add to **Redirect URLs**:
+  - `https://dearadeline.co/auth/callback`
+  - `https://www.dearadeline.co/auth/callback`
 
 ### 4.2 Configure Stripe webhooks (if using payments)
 In Stripe Dashboard → Webhooks:
-- Add endpoint: `https://your-domain.vercel.app/api/stripe/webhook`
+- Add endpoint: `https://dearadeline.co/api/stripe/webhook`
 - Select events: `checkout.session.completed`, `customer.subscription.*`, `invoice.payment_*`
 - Copy webhook signing secret → Update `STRIPE_WEBHOOK_SECRET` in Vercel
 
@@ -239,7 +241,7 @@ npx tsx scripts/validate-env.ts
 
 ### Production health check
 ```bash
-curl https://your-domain.vercel.app/api/health
+curl https://dearadeline.co/api/health
 ```
 
 Expected response:
