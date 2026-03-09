@@ -9,15 +9,28 @@ import redis from '@/lib/redis';
  * Returns detailed status for production monitoring.
  */
 export async function GET() {
-  const checks: Record<string, { status: 'ok' | 'fail'; message?: string; latency?: number }> = {};
+  const checks: Record<string, { 
+    status: 'ok' | 'fail'; 
+    message?: string; 
+    latency?: number;
+    meta?: any;
+    code?: string;
+    name?: string;
+  }> = {};
 
   // Check Postgres
   const dbStart = Date.now();
   try {
     await (prisma as any).$queryRaw`SELECT 1`;
     checks.database = { status: 'ok', latency: Date.now() - dbStart };
-  } catch (error) {
-    checks.database = { status: 'fail', message: String(error).substring(0, 100) };
+  } catch (error: any) {
+    checks.database = { 
+      status: 'fail', 
+      message: error.message,
+      meta: error.meta,
+      code: error.code,
+      name: error.name
+    };
   }
 
   // Check Redis
