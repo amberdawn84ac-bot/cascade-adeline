@@ -4,6 +4,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import prisma from '@/lib/db';
 import { retrieveRelevantMemories, formatMemoriesForPrompt } from '@/lib/memex/memory-retriever';
+import { hippocampusTool } from '../tools/hippocampusTool';
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
 const lastMessage = state.messages[state.messages.length - 1];
@@ -23,13 +24,6 @@ try {
       take: 5,
     });
     
-    // Note: We need a placeholder tool if hippocampusTool isn't imported from another file
-    const hippocampusTool = {
-      name: "search_hippocampus",
-      description: "Search for information",
-      invoke: async (args: any) => "Search results for: " + JSON.stringify(args)
-    };
-
 const relevantGaps = learningGaps.filter(gap =>
 content.toLowerCase().includes(gap.concept?.name?.toLowerCase() || '') ||
 (gap.concept?.name?.toLowerCase() || '').includes(content.toLowerCase())
@@ -77,7 +71,7 @@ conversationHistory.push(new AIMessage(response.content as string)); // Save the
 
 for (const toolCall of response.tool_calls) {
 if (toolCall.name === 'search_hippocampus') {
-const toolResult = await hippocampusTool.invoke(toolCall.args);
+const toolResult = await hippocampusTool.invoke(toolCall.args as { query: string });
 conversationHistory.push({
 role: 'tool',
 content: toolResult,
@@ -123,6 +117,7 @@ timestamp: new Date().toISOString(),
 },
 };
 } catch (error) {
+console.error('[mentor] CAUGHT ERROR:', error);
 return {
 response_content: "I am having a little trouble thinking clearly.",
 messages: [new AIMessage("I am having a little trouble thinking clearly.")],
