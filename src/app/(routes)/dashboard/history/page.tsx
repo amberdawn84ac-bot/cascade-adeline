@@ -26,6 +26,7 @@ export default function HistoryPage() {
   const [query, setQuery] = useState('');
   const [generatedTimeline, setGeneratedTimeline] = useState<TimelineEntry | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [livingTimeline, setLivingTimeline] = useState<TimelineEntry[]>([]);
@@ -55,6 +56,7 @@ export default function HistoryPage() {
     if (!query.trim()) return;
     
     setGeneratedTimeline(null);
+    setGenerateError(null);
     setIsGenerating(true);
     
     try {
@@ -68,10 +70,11 @@ export default function HistoryPage() {
         const timeline = await response.json();
         setGeneratedTimeline(timeline);
       } else {
-        console.error('Failed to generate timeline');
+        const err = await response.json().catch(() => ({}));
+        setGenerateError(err.error || `Server error (${response.status}) — check that your API keys are configured.`);
       }
     } catch (e) {
-      console.error('Error generating timeline:', e);
+      setGenerateError('Network error — could not reach the server.');
     } finally {
       setIsGenerating(false);
     }
@@ -124,6 +127,13 @@ export default function HistoryPage() {
           <h2 className="text-2xl font-bold text-indigo-900">Investigate Historical Events</h2>
         </div>
         
+        {generateError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{generateError}</span>
+          </div>
+        )}
+
         <div className="flex gap-4 mb-6">
           <Input
             type="text"

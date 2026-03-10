@@ -32,23 +32,27 @@ export async function POST(req: NextRequest) {
 
     const config = loadConfig();
 
-    // 1. Vector Search the Hippocampus Database
-    const embeddings = new OpenAIEmbeddings({
-      modelName: config.models.embeddings || 'text-embedding-3-small',
-    });
-    const embeddingVector = await embeddings.embedQuery(query);
-    const vectorLiteral = `[${embeddingVector.join(',')}]`;
-    const docs = await prisma.$queryRaw`
-      SELECT title, content, source_type as "sourceType"
-      FROM hippocampusdocument
-      ORDER BY embedding <=> ${vectorLiteral}::vector
-      LIMIT 4;
-    `;
-
-    const typedDocs = docs as Array<{ title: string; content: string }>;
-    const sourceContext = typedDocs.length > 0
-      ? typedDocs.map(d => `Title: ${d.title}\nContent: ${d.content}`).join('\n\n')
-      : "No uploaded primary sources found. Rely on your pre-trained primary source knowledge.";
+    // 1. Vector Search the Hippocampus Database (graceful fallback if unavailable)
+    let sourceContext = "No uploaded primary sources found. Rely on your pre-trained primary source knowledge.";
+    try {
+      const embeddings = new OpenAIEmbeddings({
+        model: config.models.embeddings || 'text-embedding-3-small',
+      });
+      const embeddingVector = await embeddings.embedQuery(query);
+      const vectorLiteral = `[${embeddingVector.join(',')}]`;
+      const docs = await prisma.$queryRaw`
+        SELECT title, content, source_type as "sourceType"
+        FROM "HippocampusDocument"
+        ORDER BY embedding <=> ${vectorLiteral}::vector
+        LIMIT 4;
+      `;
+      const typedDocs = docs as Array<{ title: string; content: string }>;
+      if (typedDocs.length > 0) {
+        sourceContext = typedDocs.map(d => `Title: ${d.title}\nContent: ${d.content}`).join('\n\n');
+      }
+    } catch (vecErr) {
+      console.warn('[history/generate] Vector search skipped:', vecErr);
+    }
 
     // 2. Generate Structured Output
     const llm = new ChatOpenAI({
