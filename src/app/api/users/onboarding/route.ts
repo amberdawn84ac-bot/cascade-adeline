@@ -18,3 +18,33 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { childName, gradeLevel, interests, cognitiveProfile } = await req.json();
+
+  const existing = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: { metadata: true },
+  });
+
+  const updatedMetadata = {
+    ...((existing?.metadata as Record<string, unknown>) ?? {}),
+    ...(cognitiveProfile ? { cognitiveProfile } : {}),
+  };
+
+  await prisma.user.update({
+    where: { id: user.userId },
+    data: {
+      ...(childName ? { name: childName.trim() } : {}),
+      gradeLevel: gradeLevel || null,
+      interests: Array.isArray(interests) ? interests : [],
+      onboardingComplete: true,
+      metadata: updatedMetadata,
+    },
+  });
+
+  return NextResponse.json({ ok: true });
+}

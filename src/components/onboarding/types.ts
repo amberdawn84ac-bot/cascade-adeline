@@ -2,6 +2,7 @@ export type OnboardingData = {
   childName?: string;
   gradeLevel?: string;
   interests?: string[];
+  cognitiveProfile?: string;
 };
 
 export type OnboardingStep = {
