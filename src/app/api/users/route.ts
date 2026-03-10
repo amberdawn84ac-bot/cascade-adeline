@@ -1,6 +1,5 @@
 // src/app/api/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import prisma from '@/lib/db';
 
 type CreateUserBody = {
@@ -22,17 +21,6 @@ export async function POST(req: NextRequest) {
 
     if (!userId || !name || !role || !(role in ROLE_MAP)) {
       return NextResponse.json({ error: 'Missing or invalid fields: userId, name, role required' }, { status: 400 });
-    }
-
-    // Test database connection
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-    } catch (dbError: any) {
-      console.error('Database connection failed:', dbError);
-      return NextResponse.json({ 
-        error: 'Database connection failed',
-        details: dbError.message 
-      }, { status: 503 });
     }
 
     // Idempotent: return existing user if already provisioned
