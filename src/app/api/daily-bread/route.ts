@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateText } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { ChatOpenAI } from '@langchain/openai';
 import redis from '@/lib/redis';
 
 export async function GET() {
@@ -13,15 +12,22 @@ export async function GET() {
     if (cached) return NextResponse.json(cached);
   } catch (_) {}
 
-  // Generate with Claude
+  // Generate with OpenAI
   try {
-    const { text } = await generateText({
-      model: anthropic('claude-3-5-haiku-20241022'),
-      system: `You are a biblical scholar with deep expertise in ancient Hebrew and Greek texts. 
-You help modern readers understand scripture more richly by surfacing what the original languages reveal.`,
-      prompt: `Today's date is ${today}. Choose a meaningful, uplifting Bible verse appropriate for today.
+    const llm = new ChatOpenAI({ modelName: 'gpt-4o', temperature: 0.7 });
 
-Return ONLY valid JSON — no markdown, no code fences, no explanation before or after:
+    const response = await llm.invoke([
+      {
+        role: 'system',
+        content: `You are a biblical scholar with deep expertise in ancient Hebrew and Greek texts. 
+You help modern readers understand scripture more richly by surfacing what the original languages reveal.
+You MUST respond with ONLY valid JSON — no markdown, no code fences, no explanation before or after.`,
+      },
+      {
+        role: 'user',
+        content: `Today's date is ${today}. Choose a meaningful, uplifting Bible verse appropriate for today.
+
+Return ONLY this JSON object with no other text:
 {
   "verse": "The verse text in clear modern English",
   "reference": "Book Chapter:Verse (e.g. Proverbs 3:5-6)",
@@ -30,8 +36,10 @@ Return ONLY valid JSON — no markdown, no code fences, no explanation before or
   "translationNote": "One sentence describing what nuance or meaning is lost or changed in common English translations. Use null if the translation is faithful.",
   "context": "One sentence of historical or cultural context that makes this verse richer"
 }`,
-    });
+      },
+    ]);
 
+    const text = typeof response.content === 'string' ? response.content : JSON.stringify(response.content);
     const data = JSON.parse(text.trim());
 
     // Cache for 24 hours

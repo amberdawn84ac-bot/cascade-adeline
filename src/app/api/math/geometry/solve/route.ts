@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const geometrySchema = z.object({
   answer: z.string().describe("The final numerical answer with units"),
@@ -21,13 +21,7 @@ export async function POST(req: NextRequest) {
     const { problem } = await req.json();
     if (!problem) return NextResponse.json({ error: 'Missing problem' }, { status: 400 });
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : '';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -38,7 +32,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical mathematics tutor. ${gradeContext} ${styleContext} Solve this geometry problem step by step. Show every calculation clearly. Adapt vocabulary and complexity to the student's grade level. Connect the math to real-world examples they would relate to.`,
+        content: `You are Adeline, a classical mathematics tutor. Solve this geometry problem step by step. Show every calculation clearly. Connect the math to real-world examples they would relate to.${studentContext}`,
       },
       { role: 'user', content: `Geometry problem: ${problem}` },
     ]);

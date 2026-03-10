@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const experimentSchema = z.object({
   title: z.string().describe("A fun, catchy title for the experiment"),
@@ -20,13 +21,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true }
-    });
-    
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : 'The student is in middle school.';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
     const body = await req.json();
     const { query } = body;
@@ -43,7 +38,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       { 
         role: 'system', 
-        content: `You are Adeline, a wise classical educator. ${gradeContext} ${styleContext} The student wants a hands-on science experiment related to their topic. Generate a safe, highly educational experiment using common household items. Focus on true scientific inquiry and observation. MUST deeply adapt the vocabulary, the complexity of the 'procedures', and 'theScience' explanation to perfectly match their specific grade level and learning style.` 
+        content: `You are Adeline, a wise classical educator. The student wants a hands-on science experiment related to their topic. Generate a safe, highly educational experiment using common household items. Focus on true scientific inquiry and observation.${studentContext}` 
       },
       { role: 'user', content: `Topic: ${query}` }
     ]);

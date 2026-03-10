@@ -38,13 +38,19 @@ interface ScienceExperiment {
   theScience: string;
 }
 
-interface Club {
+interface Group {
   id: string;
   name: string;
   focus: string;
   description: string;
   currentChallenge: string;
-  members: number;
+}
+
+interface FieldProject {
+  title: string;
+  objective: string;
+  communityImpact: string;
+  materialsNeeded: string[];
 }
 
 interface Opportunity {
@@ -57,7 +63,7 @@ interface Opportunity {
 }
 
 export default function SciencePage() {
-  const [activeTab, setActiveTab] = useState<'book' | 'laboratory' | 'societies' | 'bulletin'>('book');
+  const [activeTab, setActiveTab] = useState<'book' | 'laboratory' | 'groups' | 'fieldwork'>('book');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -77,9 +83,11 @@ export default function SciencePage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Community State
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [joinedClubs, setJoinedClubs] = useState<string[]>([]);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [joinedGroups, setJoinedGroups] = useState<string[]>([]);
+  const [fieldProjects, setFieldProjects] = useState<FieldProject[]>([]);
+  const [isLoadingFieldWork, setIsLoadingFieldWork] = useState(false);
+  const [fieldWorkLoaded, setFieldWorkLoaded] = useState(false);
   const [entries, setEntries] = useState<ScienceEntry[]>([]);
   const [globalHerbarium, setGlobalHerbarium] = useState<ScienceEntry[]>([]);
   const [isLoadingHerbarium, setIsLoadingHerbarium] = useState(true);
@@ -103,74 +111,74 @@ export default function SciencePage() {
 
     loadGlobalHerbarium();
 
-    // Load community data when societies tab is selected
-    if (activeTab === 'societies' && clubs.length === 0) {
-      loadCommunityData();
+    if (activeTab === 'groups' && groups.length === 0) {
+      loadGroupsData();
     }
-  }, [activeTab, clubs.length]);
+    if (activeTab === 'fieldwork' && !fieldWorkLoaded) {
+      loadFieldWork();
+    }
+  }, [activeTab, groups.length, fieldWorkLoaded]);
 
-  const loadCommunityData = async () => {
+  const loadGroupsData = () => {
+    setGroups([
+      {
+        id: '1',
+        name: 'Plant & Soil Group',
+        focus: 'Soil science, composting, and plant biology',
+        description: 'Study what makes soil healthy, run composting experiments, and learn how plants pull nutrients from the ground.',
+        currentChallenge: 'Test soil from 3 spots on your property and compare nitrogen levels',
+      },
+      {
+        id: '2',
+        name: 'Builders Group',
+        focus: 'Structures, materials, and mechanical systems',
+        description: 'Build things that work — raised beds, rainwater collectors, small structures, and tools. Learn by making.',
+        currentChallenge: 'Build a cold frame from scrap wood and test how warm it stays vs. outside',
+      },
+      {
+        id: '3',
+        name: 'Foragers Group',
+        focus: 'Wild plants, local ecology, and food identification',
+        description: 'Learn to identify what grows wild in your area, what is edible, medicinal, or invasive.',
+        currentChallenge: 'Map every wild plant within 50 feet of your garden and identify each one',
+      },
+      {
+        id: '4',
+        name: 'Animal Science Group',
+        focus: 'Livestock biology, behavior, and husbandry',
+        description: 'Study the animals you raise — nutrition, health signs, behavior, and the science behind good husbandry.',
+        currentChallenge: 'Track one animal\'s feed intake vs. weight gain for two weeks',
+      },
+      {
+        id: '5',
+        name: 'Food & Fermentation Group',
+        focus: 'Food chemistry, preservation, and fermentation',
+        description: 'Learn the science behind canning, fermenting, dehydrating, and storing food.',
+        currentChallenge: 'Ferment a batch of something and measure the pH every 24 hours',
+      },
+      {
+        id: '6',
+        name: 'Water & Weather Group',
+        focus: 'Hydrology, weather patterns, and water systems',
+        description: 'Study rainfall, water flow, drainage, and how weather affects your land.',
+        currentChallenge: 'Set up a rain gauge and record daily rainfall for one month',
+      },
+    ]);
+  };
+
+  const loadFieldWork = async () => {
+    setIsLoadingFieldWork(true);
     try {
-      // Mock API calls - will be implemented later
-      const clubsResponse = await fetch('/api/science/societies');
-      const opportunitiesResponse = await fetch('/api/science/opportunities');
-      
-      // For now, use mock data
-      setClubs([
-        {
-          id: '1',
-          name: 'Young Naturalists Society',
-          focus: 'Field Biology & Ecology',
-          description: 'Explore local ecosystems, document wildlife, and contribute to citizen science projects.',
-          currentChallenge: 'Winter Bird Migration Tracking',
-          members: 47
-        },
-        {
-          id: '2',
-          name: 'Chemistry Innovators Club',
-          focus: 'Experimental Chemistry',
-          description: 'Safe, hands-on chemistry experiments and demonstrations.',
-          currentChallenge: 'Crystal Growing Competition',
-          members: 32
-        },
-        {
-          id: '3',
-          name: 'Astronomy Observers',
-          focus: 'Stargazing & Space Science',
-          description: 'Night sky observation, telescope building, and space exploration.',
-          currentChallenge: 'Meteor Shower Photography',
-          members: 28
-        }
-      ]);
-
-      setOpportunities([
-        {
-          id: '1',
-          title: 'Regional Science Fair',
-          type: 'Fair',
-          description: 'Showcase your experiments and compete for scholarships.',
-          deadline: '2024-03-15',
-          organization: 'State Science Education Association'
-        },
-        {
-          id: '2',
-          title: 'NASA Space Camp Scholarship',
-          type: 'Workshop',
-          description: 'All-expenses paid week at NASA Space Camp.',
-          deadline: '2024-02-28',
-          organization: 'NASA Education'
-        },
-        {
-          id: '3',
-          title: 'Young Inventors Challenge',
-          type: 'Competition',
-          description: 'Design and build an invention that solves a real-world problem.',
-          deadline: '2024-04-01',
-          organization: 'National Inventors Hall of Fame'
-        }
-      ]);
+      const res = await fetch('/api/science/field-work/generate', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setFieldProjects(data);
+        setFieldWorkLoaded(true);
+      }
     } catch (e) {
-      console.error('Failed to load community data:', e);
+      console.error('Failed to load field work:', e);
+    } finally {
+      setIsLoadingFieldWork(false);
     }
   };
 
@@ -331,12 +339,20 @@ export default function SciencePage() {
     }
   };
 
-  const handleJoinToggle = (clubId: string) => {
-    setJoinedClubs(prev => 
-      prev.includes(clubId) 
-        ? prev.filter(c => c !== clubId) 
-        : [...prev, clubId]
-    );
+  const handleJoinToggle = async (group: Group) => {
+    try {
+      const res = await fetch('/api/science/groups/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupName: group.name }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setJoinedGroups(data.joinedGroups ?? []);
+      }
+    } catch (e) {
+      console.error('Failed to toggle group membership:', e);
+    }
   };
 
   return (
@@ -370,16 +386,16 @@ export default function SciencePage() {
             The Laboratory
           </button>
           <button 
-            onClick={() => setActiveTab('societies')}
-            className={`flex-1 min-w-[120px] py-3 text-sm uppercase tracking-widest transition-colors flex justify-center items-center gap-2 ${activeTab === 'societies' ? 'bg-emerald-600 text-white' : 'text-emerald-600/60 hover:bg-emerald-100'}`}
+            onClick={() => setActiveTab('groups')}
+            className={`flex-1 min-w-[120px] py-3 text-sm uppercase tracking-widest transition-colors flex justify-center items-center gap-2 ${activeTab === 'groups' ? 'bg-emerald-600 text-white' : 'text-emerald-600/60 hover:bg-emerald-100'}`}
           >
-            Societies
+            Groups
           </button>
           <button 
-            onClick={() => setActiveTab('bulletin')}
-            className={`flex-1 min-w-[120px] py-3 text-sm uppercase tracking-widest transition-colors flex justify-center items-center gap-2 ${activeTab === 'bulletin' ? 'bg-emerald-600 text-white' : 'text-emerald-600/60 hover:bg-emerald-100'}`}
+            onClick={() => setActiveTab('fieldwork')}
+            className={`flex-1 min-w-[120px] py-3 text-sm uppercase tracking-widest transition-colors flex justify-center items-center gap-2 ${activeTab === 'fieldwork' ? 'bg-emerald-600 text-white' : 'text-emerald-600/60 hover:bg-emerald-100'}`}
           >
-            Bulletin
+            Field Work
           </button>
       </div>
 
@@ -857,79 +873,105 @@ export default function SciencePage() {
             </div>
         )}
 
-        {/* --- SOCIETIES TAB --- */}
-        {activeTab === 'societies' && (
+        {/* --- GROUPS TAB --- */}
+        {activeTab === 'groups' && (
              <div className="overflow-y-auto h-full p-6">
-                <h3 className="text-2xl text-emerald-900 mb-6 font-bold">Science Societies</h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {clubs.map((club) => (
-                        <Card key={club.id} className="border-emerald-200">
+                <div className="max-w-5xl mx-auto">
+                  <h3 className="text-2xl text-emerald-900 mb-2 font-bold">Science Groups</h3>
+                  <p className="text-sm text-emerald-600 italic mb-6">Join a group to track your focus area and log related credits together.</p>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {groups.map((group) => {
+                      const isJoined = joinedGroups.includes(group.name);
+                      return (
+                        <Card key={group.id} className={`border-2 transition-all ${isJoined ? 'border-emerald-500 shadow-md' : 'border-emerald-200'}`}>
                             <CardHeader>
-                                <CardTitle className="text-emerald-900">{club.name}</CardTitle>
-                                <CardDescription>{club.focus}</CardDescription>
+                                <CardTitle className="text-emerald-900 text-lg">{group.name}</CardTitle>
+                                <CardDescription className="text-emerald-600">{group.focus}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <p className="text-sm text-emerald-700">{club.description}</p>
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Users className="w-4 h-4 text-emerald-600" />
-                                        <span>{club.members} members</span>
-                                    </div>
-                                    <div className="bg-emerald-50 p-2 rounded text-sm">
-                                        <span className="font-semibold text-emerald-700">Current Challenge:</span>
-                                        <p className="text-emerald-600">{club.currentChallenge}</p>
-                                    </div>
+                                <p className="text-sm text-emerald-700">{group.description}</p>
+                                <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm">
+                                    <span className="font-semibold text-amber-800 block mb-1">Current Challenge:</span>
+                                    <p className="text-amber-700">{group.currentChallenge}</p>
                                 </div>
                                 <Button 
-                                    onClick={() => handleJoinToggle(club.id)}
-                                    className={joinedClubs.includes(club.id) ? "bg-emerald-600 hover:bg-emerald-700" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"}
-                                    variant={joinedClubs.includes(club.id) ? "default" : "secondary"}
+                                    onClick={() => handleJoinToggle(group)}
+                                    className={isJoined ? 'w-full bg-emerald-600 hover:bg-red-600 transition-colors' : 'w-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}
+                                    variant={isJoined ? 'default' : 'secondary'}
                                 >
-                                    {joinedClubs.includes(club.id) ? 'Joined' : 'Join Society'}
+                                    {isJoined ? '✓ Joined' : 'Join Group'}
                                 </Button>
                             </CardContent>
                         </Card>
-                    ))}
+                      );
+                    })}
+                  </div>
                 </div>
             </div>
         )}
         
-        {/* --- BULLETIN TAB --- */}
-        {activeTab === 'bulletin' && (
-             <div className="overflow-y-auto h-full p-6">
-                <h3 className="text-2xl text-emerald-900 mb-6 font-bold">Science Opportunities Bulletin</h3>
-                <div className="space-y-4">
-                    {opportunities.map((opportunity) => (
-                        <Card key={opportunity.id} className="border-emerald-200">
-                            <CardContent className="p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h4 className="text-lg font-semibold text-emerald-900">{opportunity.title}</h4>
-                                        <Badge variant="outline" className="border-emerald-300 text-emerald-600 mt-1">
-                                            {opportunity.type}
-                                        </Badge>
-                                    </div>
-                                    {opportunity.deadline && (
-                                        <div className="text-right">
-                                            <div className="flex items-center gap-1 text-sm text-emerald-600">
-                                                <Calendar className="w-4 h-4" />
-                                                {opportunity.deadline}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <p className="text-emerald-700 mb-4">{opportunity.description}</p>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-emerald-600">Organized by {opportunity.organization}</span>
-                                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                                        Learn More
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+        {/* --- FIELD WORK TAB --- */}
+        {activeTab === 'fieldwork' && (
+          <div className="overflow-y-auto h-full p-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-2xl text-emerald-900 font-bold">Field Work</h3>
+                <Button
+                  onClick={() => { setFieldWorkLoaded(false); setFieldProjects([]); loadFieldWork(); }}
+                  variant="ghost"
+                  className="text-xs text-emerald-600 hover:text-emerald-800 uppercase tracking-widest"
+                  disabled={isLoadingFieldWork}
+                >
+                  {isLoadingFieldWork ? <Loader2 className="w-4 h-4 animate-spin" /> : '↺ New Projects'}
+                </Button>
+              </div>
+              <p className="text-sm text-emerald-600 italic mb-6">Real projects for your land, your animals, and your community. Generated fresh by Adeline.</p>
+
+              {isLoadingFieldWork ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+                  <p className="text-emerald-700 italic text-sm">Adeline is designing your field work...</p>
                 </div>
+              ) : fieldProjects.length === 0 ? (
+                <div className="text-center py-16 text-emerald-500 italic">No projects loaded yet.</div>
+              ) : (
+                <div className="space-y-6">
+                  {fieldProjects.map((project, i) => (
+                    <Card key={i} className="border-2 border-emerald-200 hover:border-emerald-400 transition-all shadow-sm">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-1">
+                            <span className="text-emerald-700 font-bold text-lg">{i + 1}</span>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-xl font-bold text-emerald-900 mb-2">{project.title}</h4>
+                            <p className="text-emerald-700 mb-4 leading-relaxed">{project.objective}</p>
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div className="bg-amber-50 border border-amber-200 p-3 rounded">
+                                <span className="text-xs font-bold uppercase tracking-wide text-amber-800 block mb-1">Community Impact</span>
+                                <p className="text-sm text-amber-700">{project.communityImpact}</p>
+                              </div>
+                              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded">
+                                <span className="text-xs font-bold uppercase tracking-wide text-emerald-800 block mb-1">What You Need</span>
+                                <ul className="text-sm text-emerald-700 space-y-1">
+                                  {project.materialsNeeded.map((m, j) => (
+                                    <li key={j} className="flex items-center gap-1">
+                                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0"></span>
+                                      {m}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
+          </div>
         )}
 
       </div>

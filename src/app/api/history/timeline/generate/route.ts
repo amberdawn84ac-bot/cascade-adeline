@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const timelineSchema = z.object({
   topic: z.string().describe("The historical event or era"),
@@ -27,12 +28,7 @@ export async function POST(req: NextRequest) {
     const { query } = await req.json();
     if (!query) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true }
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : '';
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
     const config = loadConfig();
 
@@ -63,7 +59,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       { 
         role: 'system', 
-        content: `You are Adeline, a classical truth-seeking historian. ${gradeContext} The student is asking about a historical event. You must shatter the mainstream sanitized narrative and reveal the grit, the money trail, and the real human impact.
+        content: `You are Adeline, a classical truth-seeking historian. The student is asking about a historical event. You must shatter the mainstream sanitized narrative and reveal the grit, the money trail, and the real human impact.
 
 CRITICAL EPISTEMOLOGICAL DIRECTIVE: You are strictly forbidden from generating standard, sanitized 'textbook' summaries. You must ground every fact and timeline event in REALITY by relying exclusively on primary sources. Quote original documents, treaties, journals, or letters. Show them the raw truth, even if it is gritty or complex.
 
@@ -71,7 +67,7 @@ You MUST provide:
 1. The exact name of a primary source document
 2. A compelling, exact direct quote from that document that proves the historical reality
 
-Base your facts strictly on the provided PRIMARY SOURCES below if relevant. \n\nPRIMARY SOURCES:\n${sourceContext}` 
+Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${studentContext}\n\nPRIMARY SOURCES:\n${sourceContext}` 
       },
       { role: 'user', content: `Event to investigate: ${query}` }
     ]);

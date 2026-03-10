@@ -63,6 +63,7 @@ model User {
   age                     Int?
   gradeLevel              String?                   @map("grade_level")
   interests               String[]
+  joinedGroups            String[]                  @default([]) @map("joined_groups")
   learningStyle           String?                   @default("general")
   onboardingComplete      Boolean                   @default(false)
   coppaConsentAt          DateTime?                 @map("coppa_consent_at")

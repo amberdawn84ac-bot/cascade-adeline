@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const businessSchema = z.object({
   revenue: z.number().describe("Total revenue calculated"),
@@ -25,13 +25,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing price or quantity' }, { status: 400 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : '';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -42,7 +36,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical educator teaching business math. ${gradeContext} ${styleContext} Analyze the student's virtual business with real math calculations. Show your work step by step. Adapt explanations to their grade level — simpler language for younger students, more sophisticated for older ones.`,
+        content: `You are Adeline, a classical educator teaching business math. Analyze the student's virtual business with real math calculations. Show your work step by step.${studentContext}`,
       },
       {
         role: 'user',

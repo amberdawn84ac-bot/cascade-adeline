@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const encyclopediaSchema = z.object({
   title: z.string().describe("The specific scientific topic"),
@@ -21,13 +22,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true }
-    });
-    
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : 'The student is in middle school.';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
     const body = await req.json();
     const { query } = body;
@@ -42,15 +37,13 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       { 
         role: 'system', 
-        content: `You are Adeline, a wise classical educator. ${gradeContext} ${styleContext} The student is discovering a new scientific concept. Act as a classical naturalist. Explain the concept beautifully, grounded in the natural world and observable laws.
+        content: `You are Adeline, a wise classical educator. The student is discovering a new scientific concept. Act as a classical naturalist. Explain the concept beautifully, grounded in the natural world and observable laws.
 
 CRITICAL EPISTEMOLOGICAL DIRECTIVE: You are strictly forbidden from generating standard, sanitized 'textbook' summaries. You must ground every lesson and fact in REALITY by relying exclusively on primary sources. Reference actual experiments, raw data, or the original writings of the scientists. Show them the raw truth, even if it is gritty or complex.
 
 You MUST provide:
 1. The exact name of a primary source (original scientific paper, experiment journal, or raw data)
-2. A compelling, exact direct quote from that primary source that proves the scientific reality
-
-MUST deeply adapt the vocabulary, concepts, and tone of the explanation to perfectly match their specific grade level and learning style.` 
+2. A compelling, exact direct quote from that primary source that proves the scientific reality${studentContext}` 
       },
       { role: 'user', content: `Topic: ${query}` }
     ]);

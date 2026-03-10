@@ -5,44 +5,29 @@ import { openai } from '@ai-sdk/openai';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages } = body;
+    const { messages, bookTitle, chapter } = body;
 
-    // Get the last assistant message to extract book info
-    const welcomeMessage = messages.find((m: any) => m.role === 'assistant');
-    let bookTitle = 'Unknown Book';
-    let bookAuthor = 'Unknown Author';
-    
-    if (welcomeMessage && welcomeMessage.content) {
-      // Handle both string and array content formats
-      const content = typeof welcomeMessage.content === 'string' 
-        ? welcomeMessage.content 
-        : welcomeMessage.content.map((c: any) => c.text || '').join('');
-      
-      const match = content.match(/Welcome to the discussion circle for \*(.*?)\* by (.*?)\./);
-      if (match) {
-        bookTitle = match[1];
-        bookAuthor = match[2];
-      }
-    }
+    const bookContext = bookTitle
+      ? `"${bookTitle}"${chapter ? ` — ${chapter}` : ''}`
+      : 'the book they just read';
 
-    // Build the system prompt with Socratic approach
-    const systemPrompt = `You are facilitating a casual book club discussion on "${bookTitle}" by ${bookAuthor}. 
+    const systemPrompt = `You are Adeline, a classical educator using Socratic narration to check the student's comprehension of ${bookContext}.
 
-Your role is to guide the student using Socratic questioning. Do NOT just summarize the book or give plot details. Instead:
-- Ask thought-provoking questions that make the student think critically
-- Help them connect the book to their own experiences
-- Encourage them to analyze characters' motivations and themes
-- Be warm, encouraging, and conversational
-- Keep responses relatively short (2-3 sentences max)
-- Always end with a question to keep the discussion going
+Your method:
+- NEVER summarize the book or give away plot details — the student must supply those
+- Ask one focused question at a time that demands the student think and articulate
+- When the student gives a thoughtful answer, affirm very briefly (one phrase) then go deeper with the next question
+- Connect the story to real life, moral questions, or their own lived experiences
+- Keep each response to 2-3 sentences maximum, always ending with a question
+- Be warm, direct, and genuinely curious — you love good books and love watching students think
 
-Respond as the book club facilitator, not as an AI assistant.`;
+You are Adeline. Do not say "As Adeline" — just be her.`;
 
     const result = await streamText({
-      model: openai('gpt-4'),
+      model: openai('gpt-4o'),
       messages: [
         { role: 'system', content: systemPrompt },
-        ...messages.filter((m: any) => m.role !== 'system')
+        ...messages.filter((m: { role: string }) => m.role !== 'system'),
       ],
       temperature: 0.7,
     });
