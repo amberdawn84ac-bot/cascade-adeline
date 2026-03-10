@@ -6,7 +6,6 @@ import { redirect } from 'next/navigation';
 import { 
   FlaskConical, 
   Calculator, 
-  Feather, 
   ScrollText,
   Clock,
   Trophy,
@@ -137,16 +136,6 @@ const ROOMS = [
     description: 'Manage your business, calculate profits, and master algebra.',
   },
   {
-    id: 'ela',
-    title: 'Deep Dives',
-    subtitle: 'Rhetoric & Communication',
-    icon: Feather,
-    color: 'bg-rose-500/10',
-    borderColor: 'border-rose-500/20',
-    textColor: 'text-rose-800',
-    description: 'Write stories, analyze texts, and build your portfolio.',
-  },
-  {
     id: 'history',
     title: 'History Zone',
     subtitle: 'History & Discernment',
@@ -158,13 +147,13 @@ const ROOMS = [
   },
   {
     id: 'arcade',
-    title: 'Game Arcade',
-    subtitle: 'Games & Coding',
+    title: 'Arcade',
+    subtitle: 'Applied Math Simulators',
     icon: Gamepad2,
     color: 'bg-violet-500/10',
     borderColor: 'border-violet-500/20',
     textColor: 'text-violet-800',
-    description: 'Play learning games and build your own with code.',
+    description: 'Run the farm, manage the woodshop, calculate real-world problems.',
   },
 ];
 

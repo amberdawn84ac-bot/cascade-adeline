@@ -1,113 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
-import { HumanMessage } from '@langchain/core/messages';
-import { adelineBrainRunnable } from '@/lib/langgraph';
 import { getSessionUser } from '@/lib/auth';
-import { maskPII } from '@/lib/safety/pii-masker';
-import { moderateContent } from '@/lib/safety/content-moderator';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
-const GenerateRequestSchema = z.object({
-  type: z.enum(['recipe', 'pattern']),
-  skillLevel: z.enum(['beginner', 'intermediate', 'advanced']),
-  interest: z.string().min(5, "Interest must be at least 5 characters"),
+const requestSchema = z.object({
+  category: z.enum(['preservation', 'livestock-sheep', 'livestock-poultry', 'livestock-horses', 'greenhouse', 'fiber-arts']),
+  focus: z.string().min(3),
+  skillLevel: z.enum(['beginner', 'intermediate', 'advanced']).default('beginner'),
+});
+
+const projectSchema = z.object({
+  title: z.string().describe('A direct, no-nonsense project title'),
+  category: z.string().describe('The homesteading category'),
+  difficulty: z.enum(['Beginner', 'Intermediate', 'Advanced']),
+  seasonalWindow: z.string().describe("When to execute this project, e.g. 'September before first frost'"),
+  timeRequired: z.string().describe("Realistic time estimate, e.g. '3 hours over two days'"),
+  materials: z.array(z.string()).describe('Specific tools and materials with quantities'),
+  steps: z.array(z.string()).describe('Numbered, gritty real-world steps — no hand-holding'),
+  safetyNotes: z.array(z.string()).describe('Critical safety warnings specific to this task'),
+  yield: z.string().describe("Concrete output, e.g. '18 quart jars of tomatoes' or '4 lbs washed fleece'"),
+  communityImpact: z.string().describe('How this skill directly strengthens family food security, self-sufficiency, or community resilience — be specific and motivating'),
 });
 
 export async function POST(req: NextRequest) {
   try {
-    // Get user session
     const user = await getSessionUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { type, skillLevel, interest } = GenerateRequestSchema.parse(body);
+    const { category, focus, skillLevel } = requestSchema.parse(body);
 
-    // Safety checks
-    const maskedContent = maskPII(interest);
-    const moderationResult = await moderateContent(maskedContent.masked);
-    
-    if (moderationResult.severity === 'blocked') {
-      return NextResponse.json({ error: 'Content violates safety guidelines' }, { status: 400 });
-    }
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
-    // Create initial state for LangGraph
-    const initialState = {
-      messages: [new HumanMessage(`Generate a ${type} for ${skillLevel} level. Here are my interests: "${maskedContent.masked}". Please provide structured output with: title, materials list, step-by-step instructions, and helpful tips. Return as JSON.`)],
-      userId: user.userId,
-      intent: 'BRAINSTORM' as const, // Use the project brainstormer agent
-      missing_info: [],
-      investigation_sources: [],
-      credit_entry: null,
-      learning_gaps: [],
-      response_content: '',
-      genUIPayload: null,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        user_role: user.role,
-        request_type: 'domestic_arts_generation',
-        projectType: type,
-        skillLevel,
-      },
+    const CATEGORY_CONTEXT: Record<string, string> = {
+      'preservation': 'water bath canning, pressure canning, lacto-fermentation, dehydrating, freeze-drying, root cellaring, and cold storage',
+      'livestock-sheep': 'managing a small sheep flock for wool, milk, and meat — including shearing schedules, hoof care, pasture rotation, lambing, milk processing, and fiber preparation',
+      'livestock-poultry': 'raising chickens, ducks, or turkeys for eggs and meat — including brooder setup, feed ratios, butchering, and flock health',
+      'livestock-horses': 'horse husbandry including feeding schedules, hoof care, tack maintenance, pasture management, and daily handling',
+      'greenhouse': 'managing a 16x60 saltbox-style greenhouse including succession planting, thermal mass heating, ventilation, soil management, and season extension',
+      'fiber-arts': 'processing raw wool from shearing through washing, carding, spinning, and dyeing for practical use',
     };
 
-    // Run the LangGraph
-    const result = await adelineBrainRunnable.invoke(initialState);
+    const llm = new ChatOpenAI({ modelName: 'gpt-4o', temperature: 0.6 })
+      .withStructuredOutput(projectSchema);
 
-    // Parse the response to extract project data
-    const responseContent = result.response_content;
-    
-    // Try to extract structured data from the response
-    let project;
-    try {
-      // Look for JSON structure in the response
-      const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        project = JSON.parse(jsonMatch[0]);
-      } else {
-        // Fallback: create a basic structure from the text
-        const lines = responseContent.split('\n').filter(line => line.trim());
-        project = {
-          id: `project_${Date.now()}`,
-          title: `${type.charAt(0).toUpperCase() + type.slice(1)} Project`,
-          type,
-          materials: lines.slice(0, 5).map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean),
-          instructions: lines.slice(5, 10).map(line => line.replace(/^\d+\.\s*/, '').trim()).filter(Boolean),
-          tips: lines.slice(10, 15).map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean),
-          createdAt: new Date(),
-        };
-      }
-    } catch (error) {
-      // If parsing fails, return a basic structure
-      project = {
-        id: `project_${Date.now()}`,
-        title: `${type.charAt(0).toUpperCase() + type.slice(1)} Project`,
-        type,
-        materials: ['Basic materials needed'],
-        instructions: ['Step 1: Prepare your workspace', 'Step 2: Follow the instructions carefully'],
-        tips: ['Take your time and enjoy the process'],
-        createdAt: new Date(),
-      };
-    }
+    const result = await llm.invoke([
+      {
+        role: 'system',
+        content: `You are Adeline, a classical homesteading educator with deep practical knowledge of ${CATEGORY_CONTEXT[category]}. Generate a real, executable homesteading project for a homeschool student.
 
-    // Ensure required fields
-    if (!project.materials || project.materials.length === 0) {
-      project.materials = ['Materials will be specified based on your project'];
-    }
-    if (!project.instructions || project.instructions.length === 0) {
-      project.instructions = ['Detailed instructions will be provided'];
-    }
-    if (!project.tips || project.tips.length === 0) {
-      project.tips = ['Helpful tips will be included'];
-    }
+CRITICAL RULES:
+- Every step must be actionable and specific — no vague instructions like "prepare the area"
+- Include exact temperatures, quantities, and timings where relevant
+- The communityImpact field must be powerful and specific: explain exactly how this skill reduces dependence on grocery stores, builds family resilience, or creates tradeable value
+- Match complexity to ${skillLevel} skill level
+- This is real homestead work, not a craft project${studentContext}`,
+      },
+      {
+        role: 'user',
+        content: `Generate a ${skillLevel} ${category} project focused on: ${focus}`,
+      },
+    ]);
 
-    return NextResponse.json({ project });
-
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Domestic arts generation API error:', error);
+    console.error('[Homesteading/generate] Error:', error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid request format', details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid request', details: error.errors }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate project' }, { status: 500 });
   }
 }

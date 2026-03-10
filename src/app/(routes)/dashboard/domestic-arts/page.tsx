@@ -1,469 +1,216 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { ChefHat, Scissors, BookOpen, Plus, Upload, Loader2, Camera, CheckCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, Sprout, Beef, Flower2, AlertTriangle, Users } from 'lucide-react';
 
-interface GeneratedProject {
-  id: string;
+type CategoryId = 'preservation' | 'livestock-sheep' | 'livestock-poultry' | 'livestock-horses' | 'greenhouse' | 'fiber-arts';
+
+interface HomesteadProject {
   title: string;
-  type: 'recipe' | 'pattern';
+  category: string;
+  difficulty: string;
+  seasonalWindow: string;
+  timeRequired: string;
   materials: string[];
-  instructions: string[];
-  tips: string[];
-  createdAt: Date;
+  steps: string[];
+  safetyNotes: string[];
+  yield: string;
+  communityImpact: string;
 }
 
-interface SavedProject extends GeneratedProject {
-  id: string;
-  photo?: string;
-  creditsAwarded?: number;
-  completedAt?: Date;
-}
+const CATEGORIES: { id: CategoryId; label: string; icon: string; description: string }[] = [
+  { id: 'preservation', label: 'Preservation & Kitchen', icon: '🫙', description: 'Canning, fermentation, dehydrating, root cellaring' },
+  { id: 'livestock-sheep', label: 'Sheep', icon: '🐑', description: 'Wool, milk, meat — shearing, hoof care, lambing' },
+  { id: 'livestock-poultry', label: 'Poultry', icon: '🐓', description: 'Chickens, ducks — feed ratios, health, processing' },
+  { id: 'livestock-horses', label: 'Horses', icon: '🐴', description: 'Daily care, feed schedules, hoof and tack' },
+  { id: 'greenhouse', label: 'Greenhouse', icon: '🌿', description: '16×60 saltbox — succession planting, thermal mass, season extension' },
+  { id: 'fiber-arts', label: 'Fiber Arts', icon: '🧶', description: 'Raw wool → washing → carding → spinning → dyeing' },
+];
 
-export default function DomesticArtsDashboardPage() {
-  const [activeTab, setActiveTab] = useState('kitchen');
-  
-  // Generation state
-  const [projectType, setProjectType] = useState<'recipe' | 'pattern'>('recipe');
+export default function HomesteadingPage() {
+  const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [skillLevel, setSkillLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
-  const [interestInput, setInterestInput] = useState('');
+  const [focus, setFocus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedProject, setGeneratedProject] = useState<GeneratedProject | null>(null);
-  
-  // Journal state
-  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
-  const [isLoadingJournal, setIsLoadingJournal] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [project, setProject] = useState<HomesteadProject | null>(null);
 
   const handleGenerate = async () => {
-    if (!interestInput.trim()) return;
-    
+    if (!selectedCategory || !focus.trim()) return;
     setIsGenerating(true);
-    setGeneratedProject(null);
-    
+    setProject(null);
     try {
-      const response = await fetch('/api/domestic-arts/generate', {
+      const res = await fetch('/api/domestic-arts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          type: projectType, 
-          skillLevel, 
-          interest: interestInput 
-        }),
+        body: JSON.stringify({ category: selectedCategory, focus, skillLevel }),
       });
-      
-      if (!response.ok) throw new Error('Failed to generate project');
-      
-      const data = await response.json();
-      setGeneratedProject(data.project);
-    } catch (error) {
-      console.error('Error generating project:', error);
+      if (!res.ok) throw new Error('Failed to generate');
+      const data = await res.json();
+      setProject(data);
+    } catch (e) {
+      console.error('Homesteading generate error:', e);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleSaveProject = async () => {
-    if (!generatedProject) return;
-    
-    try {
-      const response = await fetch('/api/domestic-arts/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(generatedProject),
-      });
-      
-      if (!response.ok) throw new Error('Failed to save project');
-      
-      // Refresh journal
-      await loadJournal();
-      setGeneratedProject(null);
-      setInterestInput('');
-    } catch (error) {
-      console.error('Error saving project:', error);
-    }
-  };
-
-  const handlePhotoUpload = async (projectId: string, file: File) => {
-    setUploadingPhoto(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('photo', file);
-      formData.append('projectId', projectId);
-      
-      const response = await fetch('/api/domestic-arts/upload-photo', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) throw new Error('Failed to upload photo');
-      
-      // Refresh journal to show updated credits
-      await loadJournal();
-    } catch (error) {
-      console.error('Error uploading photo:', error);
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
-
-  const loadJournal = async () => {
-    setIsLoadingJournal(true);
-    try {
-      const response = await fetch('/api/domestic-arts/journal');
-      if (!response.ok) throw new Error('Failed to load journal');
-      
-      const data = await response.json();
-      setSavedProjects(data.projects);
-    } catch (error) {
-      console.error('Error loading journal:', error);
-    } finally {
-      setIsLoadingJournal(false);
-    }
-  };
-
-  // Load journal on component mount
-  useEffect(() => {
-    loadJournal();
-  }, []);
+  const activeCat = CATEGORIES.find(c => c.id === selectedCategory);
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
-      <div className="flex items-center gap-3">
-        <ChefHat className="h-8 w-8 text-orange-600" />
-        <div>
-          <h1 className="text-3xl font-bold">Domestic Arts</h1>
-          <p className="text-gray-600">Master kitchen skills, sewing projects, and creative journaling</p>
-        </div>
+    <div className="flex flex-col min-h-full bg-[#FAF8F2]">
+      {/* Header */}
+      <div className="p-6 border-b border-green-200 bg-green-50/60">
+        <h1 className="text-3xl font-bold text-green-900 flex items-center gap-3">
+          <Sprout className="w-8 h-8" /> Homesteading
+        </h1>
+        <p className="text-green-700 text-sm mt-1 italic">Real skills. Real food. Real independence.</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="kitchen" className="flex items-center gap-2">
-            <ChefHat className="h-4 w-4" />
-            Kitchen
-          </TabsTrigger>
-          <TabsTrigger value="sewing" className="flex items-center gap-2">
-            <Scissors className="h-4 w-4" />
-            Sewing
-          </TabsTrigger>
-          <TabsTrigger value="journal" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Journal
-          </TabsTrigger>
-        </TabsList>
+      <div className="p-6 max-w-5xl mx-auto w-full space-y-8">
 
-        <TabsContent value="kitchen" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recipe Generator</CardTitle>
-              <CardDescription>
-                Generate custom recipes based on your skill level and preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <Select value={skillLevel} onValueChange={(value: any) => setSkillLevel(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select skill level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={projectType} onValueChange={(value: any) => setProjectType(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Project type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recipe">Recipe</SelectItem>
-                    <SelectItem value="pattern">Pattern</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Textarea
-                placeholder="Tell me what you'd like to make, dietary preferences, available ingredients, or cooking goals..."
-                value={interestInput}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInterestInput(e.target.value)}
-                rows={3}
-              />
-              
-              <Button 
-                onClick={handleGenerate} 
-                disabled={isGenerating || !interestInput.trim()}
-                className="w-full"
+        {/* Category Grid */}
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-widest text-green-800 mb-4">Choose Your Area</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => { setSelectedCategory(cat.id); setProject(null); }}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${selectedCategory === cat.id ? 'border-green-600 bg-green-50 shadow-md' : 'border-green-100 bg-white hover:border-green-300'}`}
               >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Recipe...
-                  </>
-                ) : (
-                  'Generate Recipe'
-                )}
-              </Button>
+                <div className="text-2xl mb-1">{cat.icon}</div>
+                <div className="font-bold text-green-900 text-sm">{cat.label}</div>
+                <div className="text-xs text-green-600 mt-0.5 leading-tight">{cat.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
 
-              {generatedProject && (
-                <Card className="bg-orange-50 border-orange-200">
-                  <CardContent className="pt-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-semibold">{generatedProject.title}</h3>
-                        <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                          {generatedProject.type}
-                        </Badge>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-2">Materials Needed:</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {generatedProject.materials.map((material, index) => (
-                            <li key={index} className="text-sm">{material}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-2">Instructions:</h4>
-                        <ol className="list-decimal list-inside space-y-2">
-                          {generatedProject.instructions.map((instruction, index) => (
-                            <li key={index} className="text-sm">{instruction}</li>
-                          ))}
-                        </ol>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-2">Tips & Tricks:</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {generatedProject.tips.map((tip, index) => (
-                            <li key={index} className="text-sm text-gray-600">{tip}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <Button onClick={handleSaveProject} className="w-full">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Save to Journal
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="sewing" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pattern Generator</CardTitle>
-              <CardDescription>
-                Create sewing patterns and projects tailored to your skill level
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <Select value={skillLevel} onValueChange={(value: any) => setSkillLevel(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select skill level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={projectType} onValueChange={(value: any) => setProjectType(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Project type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recipe">Recipe</SelectItem>
-                    <SelectItem value="pattern">Pattern</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Textarea
-                placeholder="Describe what you'd like to sew, fabric preferences, occasion, or skill goals..."
-                value={interestInput}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInterestInput(e.target.value)}
-                rows={3}
-              />
-              
-              <Button 
-                onClick={handleGenerate} 
-                disabled={isGenerating || !interestInput.trim()}
-                className="w-full"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Pattern...
-                  </>
-                ) : (
-                  'Generate Pattern'
-                )}
-              </Button>
-
-              {generatedProject && (
-                <Card className="bg-purple-50 border-purple-200">
-                  <CardContent className="pt-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-semibold">{generatedProject.title}</h3>
-                        <Badge variant="secondary" className="bg-purple-100 text-purple-800">
-                          {generatedProject.type}
-                        </Badge>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-2">Materials Needed:</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {generatedProject.materials.map((material, index) => (
-                            <li key={index} className="text-sm">{material}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-2">Instructions:</h4>
-                        <ol className="list-decimal list-inside space-y-2">
-                          {generatedProject.instructions.map((instruction, index) => (
-                            <li key={index} className="text-sm">{instruction}</li>
-                          ))}
-                        </ol>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-2">Tips & Tricks:</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {generatedProject.tips.map((tip, index) => (
-                            <li key={index} className="text-sm text-gray-600">{tip}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <Button onClick={handleSaveProject} className="w-full">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Save to Journal
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="journal" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Journal</CardTitle>
-              <CardDescription>
-                Your saved domestic arts projects and achievements
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingJournal ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
+        {/* Generator Form */}
+        {selectedCategory && (
+          <Card className="border-2 border-green-200">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="font-bold text-green-900 text-lg">{activeCat?.icon} {activeCat?.label} Project</h3>
+              <div className="flex gap-3 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-xs font-bold text-green-800 uppercase tracking-wider block mb-1">What specifically?</label>
+                  <Input
+                    value={focus}
+                    onChange={e => setFocus(e.target.value)}
+                    placeholder={
+                      selectedCategory === 'preservation' ? 'e.g. pressure canning green beans' :
+                      selectedCategory === 'livestock-sheep' ? 'e.g. shearing and skirting a fleece' :
+                      selectedCategory === 'livestock-poultry' ? 'e.g. setting up a winter brooder' :
+                      selectedCategory === 'livestock-horses' ? 'e.g. daily hoof picking routine' :
+                      selectedCategory === 'greenhouse' ? 'e.g. January succession planting plan' :
+                      'e.g. washing and carding raw fleece'
+                    }
+                    className="border-green-200"
+                  />
                 </div>
-              ) : savedProjects.length > 0 ? (
-                <div className="space-y-4">
-                  {savedProjects.map((project) => (
-                    <Card key={project.id} className="relative">
-                      <CardContent className="pt-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-semibold text-lg">{project.title}</h3>
-                              <p className="text-sm text-gray-600">
-                                Created: {new Date(project.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {project.creditsAwarded && (
-                                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                  <CheckCircle className="mr-1 h-3 w-3" />
-                                  {project.creditsAwarded.toFixed(2)} credits
-                                </Badge>
-                              )}
-                              <Badge variant="outline">{project.type}</Badge>
-                            </div>
-                          </div>
-                          
-                          {project.photo && (
-                            <div className="mt-3">
-                              <img 
-                                src={project.photo} 
-                                alt={project.title}
-                                className="w-32 h-32 object-cover rounded-lg"
-                              />
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handlePhotoUpload(project.id, file);
-                              }}
-                              className="hidden"
-                              id={`photo-upload-${project.id}`}
-                            />
-                            <Button
-                              asChild
-                              variant="outline"
-                              size="sm"
-                              disabled={uploadingPhoto}
-                            >
-                              <label htmlFor={`photo-upload-${project.id}`} className="cursor-pointer">
-                                {uploadingPhoto ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Uploading...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Camera className="mr-2 h-4 w-4" />
-                                    Add Photo
-                                  </>
-                                )}
-                              </label>
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                <div>
+                  <label className="text-xs font-bold text-green-800 uppercase tracking-wider block mb-1">Skill Level</label>
+                  <div className="flex gap-2">
+                    {(['beginner', 'intermediate', 'advanced'] as const).map(lvl => (
+                      <button
+                        key={lvl}
+                        onClick={() => setSkillLevel(lvl)}
+                        className={`px-3 py-2 rounded-lg text-xs font-bold uppercase border-2 transition-all ${skillLevel === lvl ? 'bg-green-700 text-white border-green-700' : 'border-green-200 text-green-700 hover:border-green-400'}`}
+                      >
+                        {lvl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <Button
+                onClick={handleGenerate}
+                disabled={isGenerating || !focus.trim()}
+                className="w-full bg-green-700 hover:bg-green-800 text-white uppercase tracking-widest py-5"
+              >
+                {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating Project…</> : 'Generate Project'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Project Output */}
+        {project && (
+          <div className="space-y-5">
+            {/* Title + Meta */}
+            <div className="bg-green-800 text-white rounded-2xl p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-black leading-tight">{project.title}</h2>
+                  <p className="text-green-200 text-sm mt-1">{project.difficulty} · {project.timeRequired}</p>
+                </div>
+                <div className="text-right text-sm text-green-200">
+                  <p className="font-bold text-white">{project.seasonalWindow}</p>
+                  <p className="text-xs mt-0.5">Seasonal Window</p>
+                </div>
+              </div>
+              <div className="mt-4 bg-green-700/60 rounded-xl p-4">
+                <p className="text-xs font-black uppercase tracking-widest text-green-300 mb-1">Expected Yield</p>
+                <p className="text-white font-bold">{project.yield}</p>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+              {/* Materials */}
+              <Card className="border-2 border-green-100">
+                <CardContent className="p-5">
+                  <h3 className="font-black text-green-900 uppercase tracking-widest text-xs mb-3 flex items-center gap-2"><Beef className="w-4 h-4" /> Materials & Tools</h3>
+                  <ul className="space-y-1.5">
+                    {project.materials.map((m, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-green-800"><span className="text-green-400 mt-0.5">▸</span>{m}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* Safety */}
+              {project.safetyNotes.length > 0 && (
+                <Card className="border-2 border-amber-200 bg-amber-50">
+                  <CardContent className="p-5">
+                    <h3 className="font-black text-amber-900 uppercase tracking-widest text-xs mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Safety Notes</h3>
+                    <ul className="space-y-1.5">
+                      {project.safetyNotes.map((n, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-amber-800"><span className="text-amber-500 mt-0.5">⚠</span>{n}</li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Steps */}
+            <Card className="border-2 border-green-100">
+              <CardContent className="p-5">
+                <h3 className="font-black text-green-900 uppercase tracking-widest text-xs mb-4 flex items-center gap-2"><Flower2 className="w-4 h-4" /> Step-by-Step</h3>
+                <ol className="space-y-3">
+                  {project.steps.map((step, i) => (
+                    <li key={i} className="flex gap-3 text-sm text-green-900">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-700 text-white text-xs font-black flex items-center justify-center mt-0.5">{i + 1}</span>
+                      <span className="leading-relaxed">{step}</span>
+                    </li>
                   ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="font-medium">No projects yet</p>
-                  <p className="text-sm">Generate and save your first domestic arts project to see it here</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                </ol>
+              </CardContent>
+            </Card>
+
+            {/* Community Impact */}
+            <Card className="border-2 border-green-700 bg-green-50">
+              <CardContent className="p-5">
+                <h3 className="font-black text-green-900 uppercase tracking-widest text-xs mb-2 flex items-center gap-2"><Users className="w-4 h-4" /> Community Impact</h3>
+                <p className="text-green-800 leading-relaxed text-sm">{project.communityImpact}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
