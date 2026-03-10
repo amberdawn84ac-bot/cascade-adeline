@@ -208,6 +208,8 @@ model TranscriptEntry {
   dateCompleted      DateTime  @map("date_completed")
   approvedById       String?   @db.Uuid
   notes              String?
+  validationType     String    @default("internal") @map("validation_type")
+  externalProofUrl   String?   @map("external_proof_url")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
   approvedBy         User?     @relation("TranscriptApprover", fields: [approvedById], references: [id])
