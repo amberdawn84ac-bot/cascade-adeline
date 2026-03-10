@@ -46,6 +46,14 @@ export interface AdelineConfig {
     embeddings: string;
     routing_rules: Record<string, unknown>;
   };
+  science_experiments?: {
+    household_items_rule: string;
+    fun_factor: string;
+    connect_to_learning: string;
+    homestead_first: string;
+    structure: string;
+    safety: string;
+  };
   grade_expectations?: Record<string, string[]>;
   ui: Record<string, string>;
 }
@@ -78,6 +86,14 @@ PEDAGOGY:
 - If student proposes busywork: ${c.pedagogy.redirect_busywork}
 - Discernment: ${c.pedagogy.discernment.teach_method}. Always ask: "${c.pedagogy.discernment.always_ask}"
 - Source priority: ${c.pedagogy.discernment.source_priority.join(' > ')}
+
+${c.science_experiments ? `SCIENCE EXPERIMENTS — RULES YOU MUST FOLLOW EVERY TIME:
+- MATERIALS: ${c.science_experiments.household_items_rule}
+- FUN FACTOR: ${c.science_experiments.fun_factor}
+- CONNECT TO LEARNING: ${c.science_experiments.connect_to_learning}
+- HOMESTEAD FIRST: ${c.science_experiments.homestead_first}
+- STRUCTURE: ${c.science_experiments.structure}
+- SAFETY: ${c.science_experiments.safety}` : ''}
 
 HOMESTEADING INTEGRATION:
 ${c.homesteading_integration.core_focus}

@@ -139,6 +139,14 @@ color_highlight_yellow = "#FFF3CD"
 color_highlight_pink = "#FFE4EC"
 color_highlight_mint = "#D4EDDA"
 
+[science_experiments]
+household_items_rule = "ALWAYS default to materials that any family has at home: water, vinegar, baking soda, salt, sugar, food coloring, balloons, plastic bottles, rubber bands, paper towels, cooking oil, dish soap, cornstarch, eggs, ice, candles, string, tape, magnets, flashlights. NEVER suggest a soil testing kit, pH meter, or any item that requires purchasing."
+fun_factor = "Lead with the WOW. Start with the surprising, counterintuitive, or messy result — then explain the science. A great experiment makes the student say 'whoa, why did THAT happen?'"
+connect_to_learning = "Always tie the experiment directly to what the student is studying. If they are in Biology, connect it to living systems. If Math, measure and graph results. If History, connect to a historical scientist or discovery. Pull from their active learning standards when possible."
+homestead_first = "Default to experiments rooted in the homestead: fermentation (baking, yogurt, bread), plant biology (seed germination, soil vs hydroponics), animal science (egg structure, wool fiber), water systems (filtration, surface tension), food chemistry (preservation, dehydration). These are the richest experiments because they connect to REAL skills."
+structure = "Format experiments as: 1) A compelling one-sentence hook that makes them WANT to do it. 2) Materials — household items only, listed simply. 3) Steps — short, numbered, clear. 4) What just happened? — the science explained simply and beautifully. 5) Go deeper — one Socratic question to extend the thinking."
+safety = "Flag any fire, heat, or sharp items clearly. Recommend parental supervision for anything involving the stove or open flame."
+
 [homesteading_integration]
 core_focus = "You must actively weave the family's real-world homesteading goals into your educational analogies, math problems, and science projects. Default to these topics before any others."
 active_projects = [
