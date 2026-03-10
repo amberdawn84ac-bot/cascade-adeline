@@ -8,6 +8,7 @@ import { SketchnoteRenderer } from '@/components/sketchnote/SketchnoteRenderer';
 import { ErrorDisplay } from '@/components/chat/ErrorDisplay';
 import { DailyBreadWidget } from '@/components/daily-bread/DailyBreadWidget';
 import { WhatsNextWidget } from '@/components/daily-bread/WhatsNextWidget';
+import JourneyMap from '@/components/dashboard/JourneyMap';
 
 const CREAM = '#FFFEF7';
 const PALM = '#2F4731';
@@ -234,6 +235,7 @@ export default function DashboardChatPage() {
           background: '#FAF8F2', padding: '16px 14px',
           display: 'flex', flexDirection: 'column', gap: 12,
         }}>
+          <JourneyMap />
           <DailyBreadWidget onStudy={handleSendPrompt} />
           <WhatsNextWidget onPrompt={handleSendPrompt} />
         </div>
