@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Gamepad2, Loader2, Heart, Star, ChevronLeft, Check, X, Trophy, Keyboard, Code2 } from 'lucide-react';
+import { Gamepad2, Loader2, Heart, Star, ChevronLeft, Check, X, Trophy, Keyboard, Code2, Volume2, Mic, MicOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,41 @@ interface SpellingWord {
   hint: string;
 }
 
+function useSpellingSpeech() {
+  const [isListening, setIsListening] = useState(false);
+  const recRef = useRef<any>(null);
+
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined') return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.85;
+    utt.pitch = 1.0;
+    window.speechSynthesis.speak(utt);
+  }, []);
+
+  const stopSpeaking = useCallback(() => window.speechSynthesis.cancel(), []);
+
+  const startListening = useCallback((onResult: (t: string) => void) => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    recRef.current = rec;
+    rec.lang = 'en-US';
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onstart = () => setIsListening(true);
+    rec.onresult = (e: any) => { onResult(e.results[0][0].transcript.trim()); };
+    rec.onerror = () => setIsListening(false);
+    rec.onend = () => setIsListening(false);
+    rec.start();
+  }, []);
+
+  const stopListening = useCallback(() => { recRef.current?.stop(); setIsListening(false); }, []);
+
+  return { speak, stopSpeaking, isListening, startListening, stopListening };
+}
+
 function SpellingBee({ onBack }: { onBack: () => void }) {
   const [word, setWord] = useState<SpellingWord | null>(null);
   const [input, setInput] = useState('');
@@ -44,20 +79,29 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
   const [round, setRound] = useState(1);
   const [correct, setCorrect] = useState<boolean | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { speak, stopSpeaking, isListening, startListening, stopListening } = useSpellingSpeech();
+
+  const speakWord = useCallback((w: SpellingWord) => {
+    speak(`${w.word}. ${w.word}. Part of speech: ${w.partOfSpeech}. Definition: ${w.definition}. Used in a sentence: ${w.usedInSentence}. ${w.word}.`);
+  }, [speak]);
 
   const fetchWord = useCallback(async () => {
+    stopSpeaking();
     setPhase('loading');
     setInput('');
     setCorrect(null);
     try {
       const res = await fetch('/api/arcade/spelling', { method: 'POST' });
       if (!res.ok) throw new Error('Failed');
-      setWord(await res.json());
+      const w = await res.json();
+      setWord(w);
       setPhase('read');
+      speakWord(w);
     } catch { setPhase('read'); }
-  }, []);
+  }, [speakWord, stopSpeaking]);
 
   useEffect(() => { fetchWord(); }, [fetchWord]);
+  useEffect(() => () => stopSpeaking(), [stopSpeaking]);
 
   const awardSpellingCredits = (w: string, isCorrect: boolean) => {
     fetch('/api/arcade/award-credits', {
@@ -111,7 +155,10 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
           <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Definition</p><p className="text-[#2F4731]">{word.definition}</p></div>
           <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Used in a Sentence</p><p className="text-[#2F4731] italic">"{word.usedInSentence}"</p></div>
           <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 text-sm text-amber-800">💡 <strong>Origin:</strong> {word.origin}</div>
-          <Button onClick={() => { setPhase('type'); setTimeout(() => inputRef.current?.focus(), 100); }} className="w-full bg-amber-500 hover:bg-amber-600 text-white text-lg py-6 rounded-2xl">I&apos;m Ready to Spell It!</Button>
+          <div className="flex gap-2">
+            <Button onClick={() => speakWord(word)} variant="outline" className="border-2 border-amber-300 text-amber-700 gap-1"><Volume2 className="w-4 h-4" /> Hear Again</Button>
+            <Button onClick={() => { stopSpeaking(); setPhase('type'); setTimeout(() => inputRef.current?.focus(), 100); }} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-lg py-6 rounded-2xl">I&apos;m Ready to Spell It!</Button>
+          </div>
         </CardContent></Card>
       )}
 
@@ -120,7 +167,18 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
           <p className="text-[#2F4731]/70">Type the spelling of the word you just studied:</p>
           <p className="text-xs text-[#2F4731]/50 italic">{word?.definition}</p>
           <div className="flex gap-2">
-            <Input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} placeholder="Type the word..." className="text-lg text-center font-mono border-2 border-amber-300 focus:border-amber-500" autoComplete="off" autoCapitalize="none" />
+            <Input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} placeholder="Type or speak the word…" className="text-lg text-center font-mono border-2 border-amber-300 focus:border-amber-500" autoComplete="off" autoCapitalize="none" />
+            <button
+              type="button"
+              onMouseDown={() => startListening(t => { setInput(t); })}
+              onMouseUp={stopListening}
+              onTouchStart={() => startListening(t => { setInput(t); })}
+              onTouchEnd={stopListening}
+              className={`px-3 rounded-xl border-2 transition-all ${isListening ? 'border-red-400 bg-red-50 text-red-500 animate-pulse' : 'border-amber-300 text-amber-600 hover:border-amber-500'}`}
+              title="Hold to speak your spelling"
+            >
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
             <Button onClick={handleSubmit} disabled={!input.trim()} className="bg-amber-500 hover:bg-amber-600 text-white px-6">Submit</Button>
           </div>
           <button onClick={() => setPhase('read')} className="text-xs text-amber-600 hover:underline">← Review the word again</button>

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, BookOpen, Send, Book, RefreshCw } from 'lucide-react';
+import { Loader2, BookOpen, Send, Book, RefreshCw, Volume2, Mic, MicOff } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
 
 interface LivingBook {
@@ -50,10 +50,38 @@ export default function ReadingNookPage() {
   const [logBookTitle, setLogBookTitle] = useState('');
   const [logMinutes, setLogMinutes] = useState('');
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, setInput } = useChat({
     api: '/api/reading-nook/discuss',
     body: { bookTitle, chapter },
   });
+
+  const [isListening, setIsListening] = useState(false);
+  const recRef = useRef<any>(null);
+
+  const speak = (text: string) => {
+    if (typeof window === 'undefined') return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.88;
+    window.speechSynthesis.speak(utt);
+  };
+
+  const startListening = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    recRef.current = rec;
+    rec.lang = 'en-US';
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onstart = () => setIsListening(true);
+    rec.onresult = (e: any) => { setInput(e.results[0][0].transcript.trim()); };
+    rec.onerror = () => setIsListening(false);
+    rec.onend = () => setIsListening(false);
+    rec.start();
+  };
+
+  const stopListening = () => { recRef.current?.stop(); setIsListening(false); };
 
   useEffect(() => {
     const saved = localStorage.getItem('adeline-reading-log');
@@ -89,6 +117,7 @@ export default function ReadingNookPage() {
     const opener = `Excellent. You've been reading "${bookTitle}"${chapter ? ` — ${chapter}` : ''}. Tell me in your own words what happened, and what you thought of the main character's choices.`;
     setMessages([{ id: 'adeline-open', role: 'assistant', content: opener, parts: [{ type: 'text', text: opener }] }]);
     setNarrationStarted(true);
+    setTimeout(() => speak(opener), 300);
   };
 
   const logReading = () => {
@@ -226,7 +255,14 @@ export default function ReadingNookPage() {
                   {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-amber-700 text-white' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
-                        {msg.role === 'assistant' && <p className="text-xs font-bold text-amber-500 mb-1 uppercase tracking-wide">Adeline</p>}
+                        {msg.role === 'assistant' && (
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-bold text-amber-500 uppercase tracking-wide">Adeline</p>
+                            <button onClick={() => speak(msg.content)} className="text-amber-400 hover:text-amber-600 ml-3" title="Read aloud">
+                              <Volume2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                         {msg.content}
                       </div>
                     </div>
@@ -243,6 +279,18 @@ export default function ReadingNookPage() {
 
                 <form onSubmit={handleSubmit} className="flex gap-2">
                   <Input value={input} onChange={handleInputChange} placeholder="Tell Adeline what happened…" disabled={isLoading} className="flex-1 border-amber-200 focus:border-amber-500" />
+                  <button
+                    type="button"
+                    onMouseDown={startListening}
+                    onMouseUp={stopListening}
+                    onTouchStart={startListening}
+                    onTouchEnd={stopListening}
+                    disabled={isLoading}
+                    className={`px-3 rounded-xl border-2 transition-all ${isListening ? 'border-red-400 bg-red-50 text-red-500 animate-pulse' : 'border-amber-200 text-amber-500 hover:border-amber-400'}`}
+                    title="Hold to speak"
+                  >
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
                   <Button type="submit" disabled={isLoading} className="bg-amber-700 hover:bg-amber-800">
                     <Send className="w-4 h-4" />
                   </Button>
