@@ -1,371 +1,381 @@
 'use client';
 
-import { useState } from 'react';
-import { Gamepad2, Tractor, Hammer, RotateCcw } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Gamepad2, Loader2, Heart, Star, ChevronLeft, Check, X, Trophy, Keyboard, Code2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-// ─── Farm OS Simulator ──────────────────────────────────────────────────────
+// ─── Typing Game Passages ─────────────────────────────────────────────────────
+const PASSAGES = {
+  easy: [
+    "The cat sat on the warm mat by the fire. The dog curled up beside it. They slept all afternoon.",
+    "She picked red apples from the old tree. They were sweet and crisp. She shared them with her friends.",
+    "The little bird sang in the morning light. It flew from branch to branch. Its song filled the quiet yard.",
+  ],
+  medium: [
+    "Homeschooling gives families the freedom to learn together at their own pace. Lessons connect to real life, and learning becomes an adventure rather than a chore.",
+    "The barn owl hunts silently through the night. Its wide eyes detect movement in the dark. With razor-sharp talons, it swoops on its prey without a sound.",
+    "A great garden begins with healthy soil. Compost adds nutrients and improves drainage. With patience and care, seeds grow into food that nourishes the whole family.",
+  ],
+  hard: [
+    "The scientific method transforms curiosity into knowledge through careful observation, hypothesis formation, and controlled experimentation. Each discovery builds upon the last, expanding our understanding of the natural world.",
+    "Classical literature challenges readers to examine the human condition across centuries. The works of Homer, Shakespeare, and Austen reveal timeless truths about courage, love, and redemption that remain relevant in every age.",
+    "Entrepreneurship requires creativity, resilience, and analytical thinking working in harmony. Successful ventures begin not with capital, but with a compelling solution to a genuine problem experienced in daily life.",
+  ],
+};
 
-function FarmOS() {
-  const [activeCalc, setActiveCalc] = useState<'feed' | 'yield' | 'thermal'>('feed');
+// ─── Spelling Bee ─────────────────────────────────────────────────────────────
+interface SpellingWord {
+  word: string;
+  definition: string;
+  usedInSentence: string;
+  partOfSpeech: string;
+  origin: string;
+  hint: string;
+}
 
-  // Feed Calculator
-  const [animalType, setAnimalType] = useState<'sheep' | 'chickens' | 'horses'>('sheep');
-  const [animalCount, setAnimalCount] = useState(5);
-  const [winterWeeks, setWinterWeeks] = useState(16);
+function SpellingBee({ onBack }: { onBack: () => void }) {
+  const [word, setWord] = useState<SpellingWord | null>(null);
+  const [input, setInput] = useState('');
+  const [phase, setPhase] = useState<'loading' | 'read' | 'type' | 'result'>('loading');
+  const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
+  const [round, setRound] = useState(1);
+  const [correct, setCorrect] = useState<boolean | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Crop Yield
-  const [acres, setAcres] = useState(0.5);
-  const [cropType, setCropType] = useState<'tomatoes' | 'squash' | 'potatoes' | 'garlic'>('tomatoes');
-  const [pricePerLb, setPricePerLb] = useState(2.5);
+  const fetchWord = useCallback(async () => {
+    setPhase('loading');
+    setInput('');
+    setCorrect(null);
+    try {
+      const res = await fetch('/api/arcade/spelling', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed');
+      setWord(await res.json());
+      setPhase('read');
+    } catch { setPhase('read'); }
+  }, []);
 
-  // Thermal Mass (greenhouse heating)
-  const [length, setLength] = useState(60);
-  const [width, setWidth] = useState(16);
-  const [outsideTemp, setOutsideTemp] = useState(10);
-  const [targetTemp, setTargetTemp] = useState(50);
+  useEffect(() => { fetchWord(); }, [fetchWord]);
 
-  // ─── Feed calculations ─────────────────────────────────────
-  const DAILY_HAY_LBS: Record<string, number> = { sheep: 4, chickens: 0.25, horses: 20 };
-  const DAILY_GRAIN_LBS: Record<string, number> = { sheep: 0.5, chickens: 0.125, horses: 5 };
-  const totalHay = animalCount * DAILY_HAY_LBS[animalType] * winterWeeks * 7;
-  const totalGrain = animalCount * DAILY_GRAIN_LBS[animalType] * winterWeeks * 7;
-  const hayBales = Math.ceil(totalHay / 50);
-  const feedCost = (totalHay * 0.12) + (totalGrain * 0.25);
+  const handleSubmit = () => {
+    if (!word || !input.trim()) return;
+    const isCorrect = input.trim().toLowerCase() === word.word.toLowerCase();
+    setCorrect(isCorrect);
+    if (isCorrect) setScore(s => s + 10);
+    else setLives(l => l - 1);
+    setPhase('result');
+  };
 
-  // ─── Crop yield calculations ─────────────────────────────────
-  const YIELD_LBS_PER_ACRE: Record<string, number> = { tomatoes: 15000, squash: 8000, potatoes: 20000, garlic: 2000 };
-  const cropYield = acres * YIELD_LBS_PER_ACRE[cropType];
-  const grossRevenue = cropYield * pricePerLb;
-  const inputCost = acres * 800;
-  const profit = grossRevenue - inputCost;
+  const handleNext = () => { setRound(r => r + 1); fetchWord(); };
 
-  // ─── Thermal mass (simplified BTU/hr heat loss) ──────────────
-  const floorArea = length * width;
-  const glazingArea = (2 * (length * 8) + 2 * (width * 8)) * 0.7;
-  const deltaT = targetTemp - outsideTemp;
-  const btuPerHour = glazingArea * 0.75 * deltaT;
-  const waterGallons = Math.ceil((btuPerHour * 12) / (8.34 * 20));
+  if (lives <= 0) return (
+    <div className="max-w-2xl mx-auto space-y-5">
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+      <Card className="border-2 border-[#E7DAC3] text-center py-10"><CardContent>
+        <Trophy className="w-16 h-16 text-[#BD6809] mx-auto mb-4" />
+        <h2 className="text-3xl font-black text-[#2F4731] mb-2">Game Over!</h2>
+        <p className="text-[#2F4731]/70 mb-1">You reached round {round}</p>
+        <p className="text-2xl font-black text-[#BD6809] mb-6">{score} points</p>
+        <Button onClick={() => { setLives(3); setScore(0); setRound(1); fetchWord(); }} className="bg-[#2F4731] text-white px-8">Play Again</Button>
+      </CardContent></Card>
+    </div>
+  );
 
   return (
-    <div className="space-y-5">
-      <div className="flex gap-2 flex-wrap">
-        {[
-          { id: 'feed' as const, label: '🌾 Winter Feed', desc: 'Hay & grain ratios' },
-          { id: 'yield' as const, label: '🌱 Crop Yield', desc: 'Harvest & profit' },
-          { id: 'thermal' as const, label: '🌡 Thermal Mass', desc: 'Greenhouse heat' },
-        ].map(c => (
-          <button key={c.id} onClick={() => setActiveCalc(c.id)}
-            className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${activeCalc === c.id ? 'bg-[#2F4731] text-white border-[#2F4731]' : 'border-[#E7DAC3] text-[#2F4731] hover:border-[#2F4731]/40'}`}>
-            {c.label}
-          </button>
-        ))}
+    <div className="max-w-2xl mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+        <div className="flex items-center gap-4">
+          <div className="flex gap-1">{Array.from({ length: 3 }).map((_, i) => <Heart key={i} className={`w-5 h-5 ${i < lives ? 'text-red-500 fill-red-500' : 'text-gray-200 fill-gray-200'}`} />)}</div>
+          <div className="flex items-center gap-1 font-black text-[#BD6809] text-lg"><Star className="w-5 h-5 fill-[#BD6809]" /> {score}</div>
+        </div>
       </div>
+      <div className="bg-amber-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-amber-700">Spelling Bee · Round {round}</div>
 
-      {activeCalc === 'feed' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card className="border-2 border-[#E7DAC3]">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-[#2F4731] text-xs uppercase tracking-widest">Inputs</h3>
-              <label className="block">
-                <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Animal Type</span>
-                <select value={animalType} onChange={e => setAnimalType(e.target.value as typeof animalType)}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]">
-                  <option value="sheep">Sheep</option>
-                  <option value="chickens">Chickens</option>
-                  <option value="horses">Horses</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Number of Animals</span>
-                <input type="number" value={animalCount} min={1} max={200}
-                  onChange={e => setAnimalCount(Number(e.target.value))}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" />
-              </label>
-              <label className="block">
-                <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Winter Length (weeks)</span>
-                <input type="number" value={winterWeeks} min={4} max={26}
-                  onChange={e => setWinterWeeks(Number(e.target.value))}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" />
-              </label>
-            </CardContent>
-          </Card>
-          <Card className="border-2 border-[#2F4731] bg-[#2F4731] text-white">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-white/60 text-xs uppercase tracking-widest">Results</h3>
-              <div className="space-y-3">
-                <div><p className="text-white/60 text-xs">Total Hay Needed</p><p className="text-2xl font-black">{totalHay.toLocaleString()} lbs</p><p className="text-white/60 text-sm">≈ {hayBales} bales at 50 lb each</p></div>
-                <div><p className="text-white/60 text-xs">Total Grain Needed</p><p className="text-2xl font-black">{totalGrain.toLocaleString()} lbs</p></div>
-                <div className="border-t border-white/20 pt-3"><p className="text-white/60 text-xs">Estimated Feed Cost</p><p className="text-2xl font-black text-[#BD6809]">${feedCost.toFixed(2)}</p><p className="text-white/60 text-xs">at $0.12/lb hay · $0.25/lb grain</p></div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {phase === 'loading' && <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-amber-500" /></div>}
+
+      {phase === 'read' && word && (
+        <Card className="border-2 border-amber-200"><CardContent className="p-6 space-y-4">
+          <div className="text-center"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Part of Speech</p><p className="italic text-[#2F4731]/70 text-sm">{word.partOfSpeech}</p></div>
+          <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Definition</p><p className="text-[#2F4731]">{word.definition}</p></div>
+          <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Used in a Sentence</p><p className="text-[#2F4731] italic">"{word.usedInSentence}"</p></div>
+          <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 text-sm text-amber-800">💡 <strong>Origin:</strong> {word.origin}</div>
+          <Button onClick={() => { setPhase('type'); setTimeout(() => inputRef.current?.focus(), 100); }} className="w-full bg-amber-500 hover:bg-amber-600 text-white text-lg py-6 rounded-2xl">I&apos;m Ready to Spell It!</Button>
+        </CardContent></Card>
       )}
 
-      {activeCalc === 'yield' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card className="border-2 border-[#E7DAC3]">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-[#2F4731] text-xs uppercase tracking-widest">Inputs</h3>
-              <label className="block">
-                <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Crop</span>
-                <select value={cropType} onChange={e => setCropType(e.target.value as typeof cropType)}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]">
-                  <option value="tomatoes">Tomatoes</option>
-                  <option value="squash">Squash</option>
-                  <option value="potatoes">Potatoes</option>
-                  <option value="garlic">Garlic</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Acreage</span>
-                <input type="number" value={acres} min={0.1} max={10} step={0.1}
-                  onChange={e => setAcres(Number(e.target.value))}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" />
-              </label>
-              <label className="block">
-                <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Sale Price ($/lb)</span>
-                <input type="number" value={pricePerLb} min={0.5} max={20} step={0.25}
-                  onChange={e => setPricePerLb(Number(e.target.value))}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" />
-              </label>
-            </CardContent>
-          </Card>
-          <Card className="border-2 border-[#2F4731] bg-[#2F4731] text-white">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-white/60 text-xs uppercase tracking-widest">Results</h3>
+      {phase === 'type' && (
+        <Card className="border-2 border-amber-200"><CardContent className="p-6 space-y-4 text-center">
+          <p className="text-[#2F4731]/70">Type the spelling of the word you just studied:</p>
+          <p className="text-xs text-[#2F4731]/50 italic">{word?.definition}</p>
+          <div className="flex gap-2">
+            <Input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} placeholder="Type the word..." className="text-lg text-center font-mono border-2 border-amber-300 focus:border-amber-500" autoComplete="off" autoCapitalize="none" />
+            <Button onClick={handleSubmit} disabled={!input.trim()} className="bg-amber-500 hover:bg-amber-600 text-white px-6">Submit</Button>
+          </div>
+          <button onClick={() => setPhase('read')} className="text-xs text-amber-600 hover:underline">← Review the word again</button>
+        </CardContent></Card>
+      )}
+
+      {phase === 'result' && word && (
+        <Card className={`border-2 ${correct ? 'border-green-300 bg-green-50' : 'border-red-200 bg-red-50'}`}><CardContent className="p-6 text-center space-y-4">
+          {correct ? <Check className="w-16 h-16 text-green-500 mx-auto" /> : <X className="w-16 h-16 text-red-400 mx-auto" />}
+          <h3 className={`text-2xl font-black ${correct ? 'text-green-700' : 'text-red-600'}`}>{correct ? 'Correct! +10 pts' : 'Not quite...'}</h3>
+          <p className="text-3xl font-black text-[#2F4731] tracking-widest">{word.word}</p>
+          <div className="bg-white rounded-xl p-3 border text-sm text-[#2F4731]/70">{word.hint}</div>
+          <Button onClick={handleNext} className="bg-[#2F4731] hover:bg-[#BD6809] text-white px-8 py-3 rounded-2xl">Next Word →</Button>
+        </CardContent></Card>
+      )}
+    </div>
+  );
+}
+
+// ─── Typing Racer ─────────────────────────────────────────────────────────────
+function TypingRacer({ onBack }: { onBack: () => void }) {
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const [passage, setPassage] = useState('');
+  const [typed, setTyped] = useState('');
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [finished, setFinished] = useState(false);
+  const [gameActive, setGameActive] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const gameRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (gameActive && !finished) { timerRef.current = setInterval(() => setNow(Date.now()), 500); }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [gameActive, finished]);
+
+  const startGame = () => {
+    const pool = PASSAGES[difficulty];
+    setPassage(pool[Math.floor(Math.random() * pool.length)]);
+    setTyped(''); setStartTime(null); setFinished(false); setGameActive(true);
+    setTimeout(() => gameRef.current?.focus(), 100);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (finished || !passage) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    e.preventDefault();
+    if (!startTime) setStartTime(Date.now());
+    if (e.key === 'Backspace') {
+      setTyped(prev => prev.slice(0, -1));
+    } else if (e.key.length === 1) {
+      setTyped(prev => { const next = prev + e.key; if (next.length === passage.length) setFinished(true); return next; });
+    }
+  };
+
+  const elapsed = startTime ? (now - startTime) / 60000 : 0;
+  const wpm = elapsed > 0.01 ? Math.round((typed.length / 5) / elapsed) : 0;
+  const correctChars = typed.split('').filter((c, i) => c === passage[i]).length;
+  const accuracy = typed.length > 0 ? Math.round((correctChars / typed.length) * 100) : 100;
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+        {gameActive && !finished && <div className="flex gap-6 text-sm font-bold"><span className="text-blue-600">{wpm} WPM</span><span className={accuracy < 90 ? 'text-red-500' : 'text-green-600'}>{accuracy}% acc</span></div>}
+      </div>
+      <div className="bg-blue-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-blue-700">Typing Racer</div>
+
+      {!gameActive ? (
+        <Card className="border-2 border-blue-100"><CardContent className="p-8 text-center space-y-6">
+          <Keyboard className="w-16 h-16 text-blue-400 mx-auto" />
+          <h3 className="text-2xl font-black text-[#2F4731]">Choose Your Challenge</h3>
+          <div className="flex justify-center gap-3">
+            {(['easy', 'medium', 'hard'] as const).map(d => (
+              <button key={d} onClick={() => setDifficulty(d)} className={`px-5 py-2 rounded-xl border-2 font-bold capitalize transition-all ${difficulty === d ? 'bg-blue-600 text-white border-blue-600' : 'border-blue-200 text-blue-600 hover:border-blue-400'}`}>{d}</button>
+            ))}
+          </div>
+          <p className="text-[#2F4731]/60 text-sm">{difficulty === 'easy' ? 'Short simple sentences · Great for beginners' : difficulty === 'medium' ? 'Longer paragraphs · For developing typists' : 'Advanced vocabulary · Challenge yourself'}</p>
+          <Button onClick={startGame} className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-6 rounded-2xl">Start Typing!</Button>
+        </CardContent></Card>
+      ) : finished ? (
+        <Card className="border-2 border-green-300 bg-green-50"><CardContent className="p-8 text-center space-y-4">
+          <Trophy className="w-16 h-16 text-[#BD6809] mx-auto" />
+          <h2 className="text-3xl font-black text-[#2F4731]">Finished!</h2>
+          <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+            <div className="bg-white rounded-xl p-4 border border-green-200"><p className="text-xs uppercase tracking-widest text-green-600 font-bold mb-1">Speed</p><p className="text-3xl font-black text-[#2F4731]">{wpm}</p><p className="text-xs text-[#2F4731]/50">words/min</p></div>
+            <div className="bg-white rounded-xl p-4 border border-green-200"><p className="text-xs uppercase tracking-widest text-green-600 font-bold mb-1">Accuracy</p><p className="text-3xl font-black text-[#2F4731]">{accuracy}%</p><p className="text-xs text-[#2F4731]/50">correct</p></div>
+          </div>
+          <div className="flex gap-3 justify-center pt-2">
+            <Button onClick={startGame} className="bg-[#2F4731] hover:bg-[#BD6809] text-white px-8 rounded-2xl">Try Again</Button>
+            <Button onClick={() => setGameActive(false)} variant="outline" className="border-2 border-[#E7DAC3] px-6 rounded-2xl">Change Level</Button>
+          </div>
+        </CardContent></Card>
+      ) : (
+        <Card className="border-2 border-blue-100"><CardContent className="p-6 space-y-4">
+          <p className="text-xs text-[#2F4731]/50 text-center">Click the text box and start typing</p>
+          <div ref={gameRef} tabIndex={0} onKeyDown={handleKeyDown} className="p-5 bg-[#FFFEF7] border-2 border-blue-200 rounded-xl font-mono text-lg leading-relaxed focus:outline-none focus:border-blue-400 cursor-text select-none">
+            {passage.split('').map((char, i) => {
+              let cls = 'text-gray-300';
+              if (i < typed.length) cls = typed[i] === char ? 'text-[#2F4731]' : 'text-red-500 bg-red-100 rounded';
+              else if (i === typed.length) cls = 'border-b-2 border-blue-500 text-gray-500';
+              return <span key={i} className={cls}>{char}</span>;
+            })}
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2"><div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${(typed.length / passage.length) * 100}%` }} /></div>
+        </CardContent></Card>
+      )}
+    </div>
+  );
+}
+
+// ─── Code Quest ───────────────────────────────────────────────────────────────
+interface CodeChallenge {
+  concept: string; language: string; codeSnippet: string; question: string;
+  options: string[]; correctAnswer: string; explanation: string; difficulty: string;
+}
+
+function CodeQuest({ onBack }: { onBack: () => void }) {
+  const [language, setLanguage] = useState('Python');
+  const [challenge, setChallenge] = useState<CodeChallenge | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(0);
+  const [round, setRound] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const TOTAL = 5;
+
+  const fetchChallenge = async (lang = language) => {
+    setIsLoading(true); setSelected(null); setSubmitted(false);
+    try {
+      const res = await fetch('/api/arcade/coding-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: lang }) });
+      if (!res.ok) throw new Error('Failed');
+      setChallenge(await res.json());
+    } catch { console.error('Failed to load challenge'); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleSubmit = () => {
+    if (!selected || !challenge) return;
+    if (selected === challenge.correctAnswer) setScore(s => s + 20);
+    setSubmitted(true);
+  };
+
+  const handleNext = () => { if (round >= TOTAL) { setGameOver(true); return; } setRound(r => r + 1); fetchChallenge(); };
+  const handleRestart = () => { setScore(0); setRound(1); setGameOver(false); fetchChallenge(); };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+        <div className="flex items-center gap-4 text-sm font-bold">
+          <span className="text-[#2F4731]/50">Round {round}/{TOTAL}</span>
+          <span className="text-[#BD6809] flex items-center gap-1"><Star className="w-4 h-4 fill-[#BD6809]" /> {score}</span>
+        </div>
+      </div>
+      <div className="bg-violet-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-violet-700">Code Quest · {language}</div>
+
+      {!challenge && !isLoading && !gameOver && (
+        <Card className="border-2 border-violet-100"><CardContent className="p-8 text-center space-y-6">
+          <Code2 className="w-16 h-16 text-violet-400 mx-auto" />
+          <h3 className="text-2xl font-black text-[#2F4731]">Choose Your Language</h3>
+          <div className="flex justify-center gap-3 flex-wrap">
+            {['Python', 'JavaScript', 'HTML/CSS'].map(l => (
+              <button key={l} onClick={() => setLanguage(l)} className={`px-5 py-2 rounded-xl border-2 font-bold transition-all ${language === l ? 'bg-violet-600 text-white border-violet-600' : 'border-violet-200 text-violet-600 hover:border-violet-400'}`}>{l}</button>
+            ))}
+          </div>
+          <Button onClick={() => fetchChallenge(language)} className="bg-violet-600 hover:bg-violet-700 text-white text-lg px-10 py-6 rounded-2xl">Start Code Quest!</Button>
+        </CardContent></Card>
+      )}
+
+      {gameOver && (
+        <Card className="border-2 border-violet-200 bg-violet-50"><CardContent className="p-8 text-center space-y-4">
+          <Trophy className="w-16 h-16 text-[#BD6809] mx-auto" />
+          <h2 className="text-3xl font-black text-[#2F4731]">Quest Complete!</h2>
+          <div className="text-5xl font-black text-[#BD6809]">{score}/{TOTAL * 20}</div>
+          <Button onClick={handleRestart} className="bg-[#2F4731] hover:bg-[#BD6809] text-white px-8 rounded-2xl">Play Again</Button>
+        </CardContent></Card>
+      )}
+
+      {isLoading && <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>}
+
+      {challenge && !isLoading && !gameOver && (
+        <div className="space-y-4">
+          <Card className="border-2 border-violet-100"><CardContent className="p-0 overflow-hidden rounded-xl">
+            <div className="bg-[#1e1e1e] px-4 py-2 flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full" /><div className="w-3 h-3 bg-yellow-500 rounded-full" /><div className="w-3 h-3 bg-green-500 rounded-full" />
+              <span className="text-xs text-gray-400 ml-2 font-mono">{challenge.language} · {challenge.concept}</span>
+            </div>
+            <pre className="bg-[#1e1e1e] p-5 font-mono text-sm text-[#9cdcfe] overflow-x-auto whitespace-pre-wrap">{challenge.codeSnippet}</pre>
+          </CardContent></Card>
+
+          <Card className="border-2 border-violet-100"><CardContent className="p-5 space-y-4">
+            <p className="font-bold text-[#2F4731] text-lg">{challenge.question}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {challenge.options.map((opt, i) => {
+                let cls = 'border-2 border-violet-200 text-[#2F4731] hover:border-violet-400 hover:bg-violet-50';
+                if (submitted) {
+                  if (opt === challenge.correctAnswer) cls = 'border-2 border-green-400 bg-green-50 text-green-700';
+                  else if (opt === selected) cls = 'border-2 border-red-300 bg-red-50 text-red-600';
+                  else cls = 'border-2 border-gray-200 text-gray-400';
+                } else if (opt === selected) cls = 'border-2 border-violet-500 bg-violet-50 text-violet-700';
+                return <button key={i} onClick={() => !submitted && setSelected(opt)} className={`p-3 rounded-xl text-left text-sm font-mono transition-all ${cls}`}><span className="font-bold text-xs mr-2 opacity-50">{String.fromCharCode(65 + i)}.</span>{opt}</button>;
+              })}
+            </div>
+            {!submitted ? (
+              <Button onClick={handleSubmit} disabled={!selected} className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-2xl">Submit Answer</Button>
+            ) : (
               <div className="space-y-3">
-                <div><p className="text-white/60 text-xs">Est. Yield</p><p className="text-2xl font-black">{cropYield.toLocaleString()} lbs</p></div>
-                <div><p className="text-white/60 text-xs">Gross Revenue</p><p className="text-2xl font-black">${grossRevenue.toLocaleString()}</p></div>
-                <div><p className="text-white/60 text-xs">Input Costs (est.)</p><p className="text-lg font-bold text-white/70">– ${inputCost.toFixed(0)}</p></div>
-                <div className="border-t border-white/20 pt-3"><p className="text-white/60 text-xs">Net Profit</p>
-                  <p className={`text-2xl font-black ${profit >= 0 ? 'text-[#BD6809]' : 'text-red-300'}`}>${profit.toLocaleString()}</p>
+                <div className={`p-4 rounded-xl border-2 ${selected === challenge.correctAnswer ? 'border-green-300 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-700'}`}>
+                  <p className="font-bold mb-1">{selected === challenge.correctAnswer ? '✓ Correct! +20 pts' : '✗ Not quite...'}</p>
+                  <p className="text-sm">{challenge.explanation}</p>
                 </div>
+                <Button onClick={handleNext} className="w-full bg-[#2F4731] hover:bg-[#BD6809] text-white py-3 rounded-2xl">{round >= TOTAL ? 'See Results →' : 'Next Challenge →'}</Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {activeCalc === 'thermal' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card className="border-2 border-[#E7DAC3]">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-[#2F4731] text-xs uppercase tracking-widest">Greenhouse Inputs</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Length (ft)</span>
-                  <input type="number" value={length} onChange={e => setLength(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Width (ft)</span>
-                  <input type="number" value={width} onChange={e => setWidth(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Outside Temp (°F)</span>
-                  <input type="number" value={outsideTemp} onChange={e => setOutsideTemp(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-bold text-[#2F4731]/60 uppercase">Target Temp (°F)</span>
-                  <input type="number" value={targetTemp} onChange={e => setTargetTemp(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" />
-                </label>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-2 border-[#2F4731] bg-[#2F4731] text-white">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-white/60 text-xs uppercase tracking-widest">Results</h3>
-              <div className="space-y-3">
-                <div><p className="text-white/60 text-xs">Floor Area</p><p className="text-2xl font-black">{floorArea} sq ft</p></div>
-                <div><p className="text-white/60 text-xs">Heat Loss Rate</p><p className="text-2xl font-black">{btuPerHour.toLocaleString()} BTU/hr</p></div>
-                <div className="border-t border-white/20 pt-3"><p className="text-white/60 text-xs">Water Barrels for Thermal Mass</p><p className="text-2xl font-black text-[#BD6809]">{waterGallons} gallons</p><p className="text-white/60 text-xs">≈ {Math.ceil(waterGallons / 55)} × 55-gal barrels</p></div>
-              </div>
-            </CardContent>
-          </Card>
+            )}
+          </CardContent></Card>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Trade Logistics Simulator ──────────────────────────────────────────────
-
-function TradeLogistics() {
-  const [activeCalc, setActiveCalc] = useState<'boardfeet' | 'profit'>('boardfeet');
-
-  // Board-foot calculator
-  const [pieces, setPieces] = useState(10);
-  const [thicknessIn, setThicknessIn] = useState(1.5);
-  const [widthIn, setWidthIn] = useState(8);
-  const [lengthFt, setLengthFt] = useState(8);
-  const [costPerBF, setCostPerBF] = useState(8);
-
-  // Profit margin
-  const [materialCost, setMaterialCost] = useState(120);
-  const [laborHours, setLaborHours] = useState(6);
-  const [laborRate, setLaborRate] = useState(25);
-  const [overhead, setOverhead] = useState(15);
-  const [sellingPrice, setSellingPrice] = useState(350);
-
-  // Calculations
-  const boardFeet = (pieces * thicknessIn * widthIn * lengthFt) / 12;
-  const lumberCost = boardFeet * costPerBF;
-
-  const totalCost = materialCost + (laborHours * laborRate) + overhead;
-  const grossProfit = sellingPrice - totalCost;
-  const marginPct = sellingPrice > 0 ? (grossProfit / sellingPrice) * 100 : 0;
-  const markupPct = totalCost > 0 ? (grossProfit / totalCost) * 100 : 0;
-
-  return (
-    <div className="space-y-5">
-      <div className="flex gap-2">
-        {[
-          { id: 'boardfeet' as const, label: '📐 Board-Foot Calculator' },
-          { id: 'profit' as const, label: '💰 Project P&L' },
-        ].map(c => (
-          <button key={c.id} onClick={() => setActiveCalc(c.id)}
-            className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${activeCalc === c.id ? 'bg-[#2F4731] text-white border-[#2F4731]' : 'border-[#E7DAC3] text-[#2F4731] hover:border-[#2F4731]/40'}`}>
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      {activeCalc === 'boardfeet' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card className="border-2 border-[#E7DAC3]">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-[#2F4731] text-xs uppercase tracking-widest">Lumber Specs</h3>
-              <p className="text-xs text-[#2F4731]/50 italic">Formula: (pieces × T″ × W″ × L′) ÷ 12</p>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase"># Pieces</span>
-                  <input type="number" value={pieces} min={1} onChange={e => setPieces(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-                <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Thickness (in)</span>
-                  <input type="number" value={thicknessIn} min={0.5} step={0.25} onChange={e => setThicknessIn(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-                <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Width (in)</span>
-                  <input type="number" value={widthIn} min={1} onChange={e => setWidthIn(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-                <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Length (ft)</span>
-                  <input type="number" value={lengthFt} min={1} onChange={e => setLengthFt(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-              </div>
-              <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Walnut Price ($/BF)</span>
-                <input type="number" value={costPerBF} min={1} step={0.5} onChange={e => setCostPerBF(Number(e.target.value))}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-            </CardContent>
-          </Card>
-          <Card className="border-2 border-[#2F4731] bg-[#2F4731] text-white">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-white/60 text-xs uppercase tracking-widest">Results</h3>
-              <div className="space-y-3">
-                <div><p className="text-white/60 text-xs">Total Board Feet</p><p className="text-3xl font-black">{boardFeet.toFixed(2)} BF</p></div>
-                <div className="border-t border-white/20 pt-3"><p className="text-white/60 text-xs">Lumber Cost</p><p className="text-2xl font-black text-[#BD6809]">${lumberCost.toFixed(2)}</p><p className="text-white/60 text-xs">at ${costPerBF}/BF for black walnut</p></div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {activeCalc === 'profit' && (
-        <div className="grid md:grid-cols-2 gap-5">
-          <Card className="border-2 border-[#E7DAC3]">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-[#2F4731] text-xs uppercase tracking-widest">Project Costs</h3>
-              <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Materials ($)</span>
-                <input type="number" value={materialCost} onChange={e => setMaterialCost(Number(e.target.value))}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Labor Hours</span>
-                  <input type="number" value={laborHours} onChange={e => setLaborHours(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-                <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Rate ($/hr)</span>
-                  <input type="number" value={laborRate} onChange={e => setLaborRate(Number(e.target.value))}
-                    className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-              </div>
-              <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Overhead & Finishing ($)</span>
-                <input type="number" value={overhead} onChange={e => setOverhead(Number(e.target.value))}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-              <label className="block"><span className="text-xs font-bold text-[#2F4731]/60 uppercase">Selling Price ($)</span>
-                <input type="number" value={sellingPrice} onChange={e => setSellingPrice(Number(e.target.value))}
-                  className="mt-1 w-full border-2 border-[#E7DAC3] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2F4731]" /></label>
-            </CardContent>
-          </Card>
-          <Card className="border-2 border-[#2F4731] bg-[#2F4731] text-white">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-black text-white/60 text-xs uppercase tracking-widest">P&L Summary</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-white/60">Materials</span><span>${materialCost.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-white/60">Labor ({laborHours}h × ${laborRate})</span><span>${(laborHours * laborRate).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-white/60">Overhead</span><span>${overhead.toFixed(2)}</span></div>
-                <div className="flex justify-between font-bold border-t border-white/20 pt-2"><span>Total Cost</span><span>${totalCost.toFixed(2)}</span></div>
-                <div className="flex justify-between font-bold text-[#BD6809]"><span>Selling Price</span><span>${sellingPrice.toFixed(2)}</span></div>
-              </div>
-              <div className="border-t border-white/20 pt-3 space-y-2">
-                <div><p className="text-white/60 text-xs">Gross Profit</p>
-                  <p className={`text-2xl font-black ${grossProfit >= 0 ? 'text-[#BD6809]' : 'text-red-300'}`}>${grossProfit.toFixed(2)}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-center">
-                  <div className="bg-white/10 rounded-xl p-2"><p className="text-white/60 text-xs">Margin</p><p className="font-black text-lg">{marginPct.toFixed(1)}%</p></div>
-                  <div className="bg-white/10 rounded-xl p-2"><p className="text-white/60 text-xs">Markup</p><p className="font-black text-lg">{markupPct.toFixed(1)}%</p></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Main Page ───────────────────────────────────────────────────────────────
+// ─── Game Hub ─────────────────────────────────────────────────────────────────
 
 export default function ArcadePage() {
-  const [activeSection, setActiveSection] = useState<'farmos' | 'trade'>('farmos');
+  const [activeGame, setActiveGame] = useState<null | 'spelling' | 'typing' | 'coding'>(null);
+
+  const games = [
+    { id: 'spelling' as const, emoji: '🐝', title: 'Spelling Bee', desc: 'Study a word — then spell it from memory. Hearts and streaks keep it exciting.', color: 'border-amber-200 hover:border-amber-400', btn: 'bg-amber-500 hover:bg-amber-600' },
+    { id: 'typing' as const, emoji: '⌨️', title: 'Typing Racer', desc: 'Type passages as fast and accurately as you can. Track your WPM and accuracy live.', color: 'border-blue-200 hover:border-blue-400', btn: 'bg-blue-500 hover:bg-blue-600' },
+    { id: 'coding' as const, emoji: '💻', title: 'Code Quest', desc: 'Read real code and figure out what it does. A quiz game for future programmers.', color: 'border-violet-200 hover:border-violet-400', btn: 'bg-violet-500 hover:bg-violet-600' },
+  ];
+
+  if (activeGame === 'spelling') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><SpellingBee onBack={() => setActiveGame(null)} /></div>;
+  if (activeGame === 'typing') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><TypingRacer onBack={() => setActiveGame(null)} /></div>;
+  if (activeGame === 'coding') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><CodeQuest onBack={() => setActiveGame(null)} /></div>;
 
   return (
     <div className="flex flex-col min-h-full bg-[#FFFEF7]">
-      {/* Header */}
       <div className="p-6 border-b border-[#E7DAC3] bg-[#E7DAC3]/40">
         <h1 className="text-3xl font-bold text-[#2F4731] flex items-center gap-3">
-          <Gamepad2 className="w-8 h-8" /> Arcade
+          <Gamepad2 className="w-8 h-8" /> The Arcade
         </h1>
-        <p className="text-[#2F4731]/60 text-sm mt-1 italic">Applied math workshop — real numbers, real problems.</p>
+        <p className="text-[#2F4731]/60 text-sm mt-1 italic">Learn by playing. Choose a game to begin.</p>
       </div>
-
-      <div className="p-6 max-w-5xl mx-auto w-full space-y-6">
-        {/* Section Switcher */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <button onClick={() => setActiveSection('farmos')}
-            className={`p-6 rounded-2xl border-2 text-left transition-all ${activeSection === 'farmos' ? 'border-[#2F4731] bg-[#2F4731] text-white shadow-xl' : 'border-[#E7DAC3] bg-white hover:border-[#2F4731]/30'}`}>
-            <Tractor className={`w-8 h-8 mb-2 ${activeSection === 'farmos' ? 'text-[#BD6809]' : 'text-[#2F4731]'}`} />
-            <h2 className="text-xl font-black">Farm OS</h2>
-            <p className={`text-sm mt-1 ${activeSection === 'farmos' ? 'text-white/70' : 'text-[#2F4731]/60'}`}>
-              Winter feed ratios · crop yields · greenhouse thermal mass
-            </p>
-          </button>
-          <button onClick={() => setActiveSection('trade')}
-            className={`p-6 rounded-2xl border-2 text-left transition-all ${activeSection === 'trade' ? 'border-[#2F4731] bg-[#2F4731] text-white shadow-xl' : 'border-[#E7DAC3] bg-white hover:border-[#2F4731]/30'}`}>
-            <Hammer className={`w-8 h-8 mb-2 ${activeSection === 'trade' ? 'text-[#BD6809]' : 'text-[#2F4731]'}`} />
-            <h2 className="text-xl font-black">Trade Logistics</h2>
-            <p className={`text-sm mt-1 ${activeSection === 'trade' ? 'text-white/70' : 'text-[#2F4731]/60'}`}>
-              Board-foot costs · walnut woodshop P&L · profit margins
-            </p>
-          </button>
+      <div className="flex-1 p-6 max-w-4xl mx-auto w-full">
+        <div className="grid md:grid-cols-3 gap-6">
+          {games.map(g => (
+            <Card key={g.id} className={`border-2 transition-all cursor-pointer hover:shadow-lg ${g.color}`} onClick={() => setActiveGame(g.id)}>
+              <CardContent className="p-6 space-y-4">
+                <div className="text-5xl">{g.emoji}</div>
+                <div>
+                  <h2 className="text-xl font-black text-[#2F4731]">{g.title}</h2>
+                  <p className="text-sm text-[#2F4731]/60 mt-1 leading-relaxed">{g.desc}</p>
+                </div>
+                <Button className={`w-full text-white rounded-2xl ${g.btn}`}>Play Now</Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-
-        {/* Active Simulator */}
-        {activeSection === 'farmos' ? <FarmOS /> : <TradeLogistics />}
-
-        <p className="text-xs text-[#2F4731]/30 text-center pt-4 flex items-center justify-center gap-1">
-          <RotateCcw className="w-3 h-3" /> All calculations update live — no submit button needed.
-        </p>
       </div>
     </div>
   );
 }
+
+
