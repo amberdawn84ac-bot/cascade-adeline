@@ -9,7 +9,7 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { gradeLevel: true, interests: true, name: true },
+      select: { gradeLevel: true, interests: true, name: true, joinedGroups: true },
     });
 
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -18,6 +18,7 @@ export async function GET() {
       gradeLevel: user.gradeLevel ?? null,
       interests: user.interests ?? [],
       name: user.name ?? null,
+      joinedGroups: user.joinedGroups ?? [],
     });
   } catch (err) {
     console.error('[user/me]', err);

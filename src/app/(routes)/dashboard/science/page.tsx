@@ -110,6 +110,10 @@ export default function SciencePage() {
 
     if (activeTab === 'groups' && groups.length === 0) {
       loadGroupsData();
+      fetch('/api/user/me')
+        .then(r => r.json())
+        .then(d => { if (Array.isArray(d.joinedGroups)) setJoinedGroups(d.joinedGroups); })
+        .catch(() => {});
     }
     if (activeTab === 'fieldwork' && !fieldWorkLoaded) {
       loadFieldWork();
