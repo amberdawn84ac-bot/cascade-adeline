@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,11 @@ export default function ExpeditionsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [journalEntries, setJournalEntries] = useState<FieldJournalEntry[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('adeline-field-journal');
+    if (saved) setJournalEntries(JSON.parse(saved));
+  }, []);
 
   const [newEntry, setNewEntry] = useState({
     title: '',
@@ -108,8 +113,11 @@ export default function ExpeditionsPage() {
       photos: 0
     };
     
-    setJournalEntries([entry, ...journalEntries]);
+    const updated = [entry, ...journalEntries];
+    setJournalEntries(updated);
+    localStorage.setItem('adeline-field-journal', JSON.stringify(updated));
     setNewEntry({ title: '', location: '', weather: '', observations: '' });
+    
   };
 
   return (

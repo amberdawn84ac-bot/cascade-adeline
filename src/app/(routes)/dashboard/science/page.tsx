@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, Plus, X, Upload, Play, Users, Calendar, Award, AlertTriangle, ScrollText } from 'lucide-react';
-import { Telescope, MasonJar, VineDivider, MagnifyingGlass, LeafBranch, Wildflower } from '@/components/illustrations';
+import { Loader2, Plus, X, AlertTriangle, ScrollText } from 'lucide-react';
+import { Telescope, MasonJar, VineDivider, MagnifyingGlass } from '@/components/illustrations';
 
 // Types from our central types file
 interface ScienceEntry {
@@ -65,7 +64,6 @@ interface Opportunity {
 export default function SciencePage() {
   const [activeTab, setActiveTab] = useState<'book' | 'laboratory' | 'groups' | 'fieldwork'>('book');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Encyclopedia State
@@ -78,7 +76,6 @@ export default function SciencePage() {
   // Laboratory State
   const [experimentQuery, setExperimentQuery] = useState('');
   const [currentExperiment, setCurrentExperiment] = useState<ScienceExperiment | null>(null);
-  const [isVideoSubmitted, setIsVideoSubmitted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -227,8 +224,9 @@ export default function SciencePage() {
       });
       if (res.ok) {
         setSaveEntrySuccess(true);
-        // Add to Global Herbarium immediately
         setGlobalHerbarium(prev => [generatedEntry, ...prev]);
+        setEntries(prev => [...prev, { ...generatedEntry, id: generatedEntry.id || Date.now().toString() }]);
+        setSelectedId(generatedEntry.id || Date.now().toString());
       }
     } catch (e) {
       console.error(e);
@@ -237,58 +235,10 @@ export default function SciencePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    
-    setIsLoading(true);
-    try {
-      // Mock API call - will be implemented later
-      const response = await fetch('/api/science/discover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
-      });
-      
-      if (response.ok) {
-        const newEntry = await response.json();
-        setEntries(prev => [...prev, newEntry]);
-        setSelectedId(newEntry.id);
-      } else {
-        // For now, use mock data when API doesn't exist
-        const mockEntry: ScienceEntry = {
-          id: Date.now().toString(),
-          title: query,
-          hypothesis: `${query} may involve complex interactions between natural phenomena that require systematic investigation.`,
-          observation: 'This phenomenon appears to follow predictable patterns based on established scientific principles. Further observation reveals consistent behaviors that can be measured and analyzed.',
-          conclusion: `${query} demonstrates fundamental scientific concepts that help us understand the natural world better.`,
-          fieldNotes: [
-            `Scientists have been studying ${query.toLowerCase()} for centuries and are still discovering new aspects!`,
-            `This concept has practical applications in everyday life and modern technology.`,
-            `Understanding ${query.toLowerCase()} helps us appreciate the complexity of natural systems.`
-          ],
-          references: [
-            'Science Encyclopedia',
-            'National Geographic',
-            'Classical Naturalist Texts'
-          ]
-        };
-        setEntries(prev => [...prev, mockEntry]);
-        setSelectedId(mockEntry.id || null);
-      }
-    } catch (error) {
-      console.error('Error discovering:', error);
-    } finally {
-      setIsLoading(false);
-      setQuery('');
-    }
-  };
-
   const handleGenerateExperiment = async () => {
     if (!experimentQuery.trim()) return;
     
     setCurrentExperiment(null);
-    setIsVideoSubmitted(false);
     setIsLoading(true);
     
     try {
@@ -315,11 +265,6 @@ export default function SciencePage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleVideoUpload = () => {
-    // Simulate upload
-    setIsVideoSubmitted(true);
   };
 
   const handleSaveToJournal = async () => {
@@ -822,53 +767,10 @@ export default function SciencePage() {
                                </Button>
                              </div>
 
-                             {/* Submission Section */}
-                             <div className="mt-12 pt-8 border-t border-dashed border-emerald-300 text-center">
-                                 {!isVideoSubmitted ? (
-                                    <>
-                                        <h3 className="text-xl text-emerald-900 mb-2 font-bold">Capture the Magic</h3>
-                                        <p className="text-sm text-emerald-600 mb-6">Did you perform this experiment? Upload your video to be featured on our community broadcast.</p>
-                                        <Button 
-                                            onClick={handleVideoUpload}
-                                            className="bg-emerald-600 text-white px-8 py-3 uppercase tracking-widest text-xs font-bold hover:bg-emerald-700"
-                                        >
-                                            <Upload className="w-4 h-4 mr-2" />
-                                            Upload Video Evidence
-                                        </Button>
-                                    </>
-                                 ) : (
-                                     <div className="bg-green-50 p-6 border border-green-100">
-                                         <h3 className="text-green-800 font-bold text-lg mb-1">Submission Received!</h3>
-                                         <p className="text-green-700 text-sm">Your experiment is being reviewed by the Adeline Science Committee for feature.</p>
-                                     </div>
-                                 )}
-                             </div>
                         </Card>
                     </div>
                 )}
 
-                {/* Community Feed / Mock Social Media */}
-                <div className="max-w-6xl mx-auto border-t border-emerald-200 pt-12">
-                    <h3 className="text-2xl text-center text-emerald-900 mb-8 font-bold">Featured Student Discoveries</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {[
-                            { user: "Timmy B.", title: "Mega Volcano", color: "bg-red-100" },
-                            { user: "Sarah J.", title: "Glow Slime", color: "bg-green-100" },
-                            { user: "Alex R.", title: "Bottle Rocket", color: "bg-blue-100" },
-                            { user: "Priya M.", title: "Crystal Garden", color: "bg-purple-100" }
-                        ].map((item, i) => (
-                            <Card key={i} className="p-3 border border-emerald-200 shadow-sm hover:shadow-md transition-all group cursor-pointer">
-                                <div className={`h-40 w-full mb-3 ${item.color} flex items-center justify-center relative overflow-hidden rounded`}>
-                                    <div className="w-12 h-12 rounded-full bg-black/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <Play className="w-6 h-6 text-white ml-1" />
-                                    </div>
-                                </div>
-                                <h4 className="font-bold text-sm text-emerald-900 leading-tight">{item.title}</h4>
-                                <p className="text-xs text-emerald-500 mt-1">by {item.user}</p>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
 
             </div>
         )}
