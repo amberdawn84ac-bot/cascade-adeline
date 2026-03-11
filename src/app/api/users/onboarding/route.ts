@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { childName, gradeLevel, interests, cognitiveProfile } = await req.json();
+  const { childName, gradeLevel, interests, cognitiveProfile, learningStyle } = await req.json();
 
   const existing = await prisma.user.findUnique({
     where: { id: user.userId },
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
       ...(childName ? { name: childName.trim() } : {}),
       gradeLevel: gradeLevel || null,
       interests: Array.isArray(interests) ? interests : [],
+      ...(learningStyle ? { learningStyle } : {}),
       onboardingComplete: true,
       metadata: updatedMetadata,
     },

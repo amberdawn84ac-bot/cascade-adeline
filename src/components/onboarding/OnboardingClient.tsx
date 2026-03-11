@@ -20,6 +20,7 @@ export function OnboardingClient() {
           gradeLevel: data.gradeLevel,
           interests: data.interests ?? [],
           cognitiveProfile: data.cognitiveProfile ?? null,
+          learningStyle: data.learningStyle ?? null,
         }),
       });
 

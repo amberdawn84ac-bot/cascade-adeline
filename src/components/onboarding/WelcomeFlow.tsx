@@ -8,8 +8,20 @@ import type { OnboardingData, OnboardingStep } from './types';
 const GRADE_OPTIONS = ['K-2', '3-5', '6-8', '9-12'];
 
 const INTEREST_SUGGESTIONS = [
-  'Cooking', 'Animals', 'Science', 'Art', 'Music', 'Building',
-  'Reading', 'Nature', 'Math', 'History', 'Writing', 'Sports',
+  'Chickens & Poultry', 'Horses', 'Sheep & Wool', 'Goats', 'Rabbits',
+  'Gardening', 'Canning & Preservation', 'Greenhouse', 'Soil & Composting',
+  'Off-Grid Systems', 'Building & Woodworking', 'Welding & Metalwork',
+  'Cooking & Baking', 'Soap & Candle Making', 'Sewing & Textiles',
+  'Animals & Zoology', 'Science', 'History', 'Math', 'Art',
+  'Music', 'Reading', 'Writing', 'Coding', 'Minecraft',
+  'Debate', 'Film Making', 'Nature & Ecology', 'Entrepreneurship',
+];
+
+const LEARNING_STYLES = [
+  { value: 'hands-on', emoji: '🔨', label: 'Hands-On', desc: 'Learning by doing, building, and experimenting' },
+  { value: 'visual', emoji: '👁️', label: 'Visual', desc: 'Learning through diagrams, maps, and pictures' },
+  { value: 'auditory', emoji: '🎧', label: 'Auditory', desc: 'Learning by listening and talking ideas through' },
+  { value: 'reading-writing', emoji: '📖', label: 'Reading & Writing', desc: 'Learning through books, notes, and written work' },
 ];
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -23,7 +35,13 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     fields: [
       { name: 'childName', label: "What's your child's name?", type: 'text' },
       { name: 'gradeLevel', label: 'What grade level?', type: 'grade-selector' },
-      { name: 'interests', label: 'What are they passionate about?', type: 'tag-input' },
+      { name: 'interests', label: 'What are they passionate about? (pick all that apply)', type: 'tag-input' },
+    ],
+  },
+  {
+    title: "How do they learn best?",
+    fields: [
+      { name: 'learningStyle', label: 'Pick the one that fits most naturally', type: 'learning-style' },
     ],
   },
 ];
@@ -46,6 +64,7 @@ export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData)
 
   const handleNext = () => {
     const updatedData = { ...data, interests: selectedInterests };
+    setData(updatedData);
     if (step < ONBOARDING_STEPS.length - 1) {
       setStep(step + 1);
     } else {
@@ -187,7 +206,7 @@ export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData)
                     )}
 
                     {field.type === 'tag-input' && (
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', maxHeight: 220, overflowY: 'auto', padding: '4px 2px' }}>
                         {INTEREST_SUGGESTIONS.map((interest) => (
                           <motion.button
                             key={interest}
@@ -208,6 +227,40 @@ export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData)
                             {interest}
                           </motion.button>
                         ))}
+                      </div>
+                    )}
+
+                    {field.type === 'learning-style' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {LEARNING_STYLES.map((style) => {
+                          const selected = data.learningStyle === style.value;
+                          return (
+                            <motion.button
+                              key={style.value}
+                              whileHover={{ scale: 1.01 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => setData({ ...data, learningStyle: style.value })}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 16,
+                                padding: '14px 18px',
+                                borderRadius: 14,
+                                border: selected ? '2px solid #BD6809' : '2px solid #E7DAC3',
+                                background: selected ? 'rgba(189,104,9,0.08)' : '#FFF',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                              }}
+                            >
+                              <span style={{ fontSize: 28 }}>{style.emoji}</span>
+                              <div>
+                                <div style={{ fontWeight: 700, color: selected ? '#BD6809' : '#2F4731', fontFamily: 'Kalam, system-ui', fontSize: 16 }}>{style.label}</div>
+                                <div style={{ color: '#7A6650', fontFamily: 'Kalam, system-ui', fontSize: 13, marginTop: 2 }}>{style.desc}</div>
+                              </div>
+                              {selected && <span style={{ marginLeft: 'auto', color: '#BD6809', fontSize: 20 }}>✓</span>}
+                            </motion.button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

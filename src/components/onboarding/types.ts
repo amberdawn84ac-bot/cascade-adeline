@@ -3,6 +3,7 @@ export type OnboardingData = {
   gradeLevel?: string;
   interests?: string[];
   cognitiveProfile?: string;
+  learningStyle?: string;
 };
 
 export type OnboardingStep = {
@@ -11,7 +12,7 @@ export type OnboardingStep = {
   fields?: Array<{
     name: keyof OnboardingData;
     label: string;
-    type: 'text' | 'grade-selector' | 'tag-input';
+    type: 'text' | 'grade-selector' | 'tag-input' | 'learning-style';
   }>;
   illustration?: React.ReactNode;
 };
