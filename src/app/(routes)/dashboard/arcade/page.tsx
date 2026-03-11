@@ -59,6 +59,14 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
 
   useEffect(() => { fetchWord(); }, [fetchWord]);
 
+  const awardSpellingCredits = (w: string, isCorrect: boolean) => {
+    fetch('/api/arcade/award-credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'spelling', result: { word: w, correct: isCorrect } }),
+    }).catch(console.error);
+  };
+
   const handleSubmit = () => {
     if (!word || !input.trim()) return;
     const isCorrect = input.trim().toLowerCase() === word.word.toLowerCase();
@@ -66,6 +74,7 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
     if (isCorrect) setScore(s => s + 10);
     else setLives(l => l - 1);
     setPhase('result');
+    awardSpellingCredits(word.word, isCorrect);
   };
 
   const handleNext = () => { setRound(r => r + 1); fetchWord(); };
@@ -142,11 +151,28 @@ function TypingRacer({ onBack }: { onBack: () => void }) {
   const [now, setNow] = useState(Date.now());
   const gameRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const finishTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (gameActive && !finished) { timerRef.current = setInterval(() => setNow(Date.now()), 500); }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [gameActive, finished]);
+
+  useEffect(() => {
+    if (!finished || !startTime || !finishTimeRef.current) return;
+    const elapsedMin = (finishTimeRef.current - startTime) / 60000;
+    const typedSnap = typed;
+    const passageSnap = passage;
+    const finalWpm = elapsedMin > 0.01 ? Math.round((typedSnap.length / 5) / elapsedMin) : 0;
+    const correct = typedSnap.split('').filter((c, i) => c === passageSnap[i]).length;
+    const finalAcc = typedSnap.length > 0 ? Math.round((correct / typedSnap.length) * 100) : 100;
+    fetch('/api/arcade/award-credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'typing', result: { difficulty, wpm: finalWpm, accuracy: finalAcc } }),
+    }).catch(console.error);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
 
   const startGame = () => {
     const pool = PASSAGES[difficulty];
@@ -163,7 +189,11 @@ function TypingRacer({ onBack }: { onBack: () => void }) {
     if (e.key === 'Backspace') {
       setTyped(prev => prev.slice(0, -1));
     } else if (e.key.length === 1) {
-      setTyped(prev => { const next = prev + e.key; if (next.length === passage.length) setFinished(true); return next; });
+      setTyped(prev => {
+        const next = prev + e.key;
+        if (next.length === passage.length) { finishTimeRef.current = Date.now(); setFinished(true); }
+        return next;
+      });
     }
   };
 
@@ -252,8 +282,14 @@ function CodeQuest({ onBack }: { onBack: () => void }) {
 
   const handleSubmit = () => {
     if (!selected || !challenge) return;
-    if (selected === challenge.correctAnswer) setScore(s => s + 20);
+    const isCorrect = selected === challenge.correctAnswer;
+    if (isCorrect) setScore(s => s + 20);
     setSubmitted(true);
+    fetch('/api/arcade/award-credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'coding', result: { correct: isCorrect, concept: challenge.concept, language: challenge.language } }),
+    }).catch(console.error);
   };
 
   const handleNext = () => { if (round >= TOTAL) { setGameOver(true); return; } setRound(r => r + 1); fetchChallenge(); };
