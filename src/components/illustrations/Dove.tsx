@@ -23,3 +23,4 @@ export function Dove({ size = 24, color = 'currentColor', className }: Illustrat
     </svg>
   );
 }
+

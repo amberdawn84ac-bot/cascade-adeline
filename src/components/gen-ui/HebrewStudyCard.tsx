@@ -64,3 +64,4 @@ export function HebrewStudyCard({
     </Card>
   );
 }
+

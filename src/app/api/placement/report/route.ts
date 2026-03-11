@@ -51,3 +51,4 @@ export async function GET(req: NextRequest) {
     learningProfile: assessment.learningProfile,
   });
 }
+

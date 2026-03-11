@@ -25,3 +25,4 @@ export function BarnSilhouette({ size = 24, color = 'currentColor', className }:
     </svg>
   );
 }
+

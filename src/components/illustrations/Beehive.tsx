@@ -26,3 +26,4 @@ export function Beehive({ size = 24, color = 'currentColor', className }: Illust
     </svg>
   );
 }
+

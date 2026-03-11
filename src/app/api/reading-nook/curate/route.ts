@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const studentContext = await buildStudentContextPrompt(user.userId);
 
-    const llm = new ChatOpenAI({ modelName: 'gpt-4o', temperature: 0.8 })
+    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.8 })
       .withStructuredOutput(booksSchema);
 
     const result = await llm.invoke([
@@ -49,3 +49,4 @@ RULES:
     return NextResponse.json({ error: 'Failed to curate books' }, { status: 500 });
   }
 }
+

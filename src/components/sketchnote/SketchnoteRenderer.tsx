@@ -331,3 +331,4 @@ export function SketchnoteRenderer({ content, mode, genUIPayload }: SketchnoteRe
     </div>
   );
 }
+

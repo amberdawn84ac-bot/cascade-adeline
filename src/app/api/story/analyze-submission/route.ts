@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.3, // Lower temperature for consistent analysis
     }).withStructuredOutput(storyAnalysisSchema);
 
@@ -107,3 +107,4 @@ Please provide a detailed, encouraging analysis.`
     return NextResponse.json({ error: 'Failed to analyze story' }, { status: 500 });
   }
 }
+

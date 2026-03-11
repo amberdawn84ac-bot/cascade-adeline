@@ -15,7 +15,7 @@ export async function investigator(state: AdelineStateType): Promise<Partial<Ade
     
     // Initialize LangChain ChatOpenAI model with tools
     const model = new ChatOpenAI({
-      modelName: "gpt-4o",
+      model: "gpt-4o",
       temperature: 0.5,
       openAIApiKey: process.env.OPENAI_API_KEY,
     }).bindTools([hippocampusTool]);
@@ -137,3 +137,4 @@ Let me start by searching our knowledge base for information related to this inv
     };
   }
 }
+

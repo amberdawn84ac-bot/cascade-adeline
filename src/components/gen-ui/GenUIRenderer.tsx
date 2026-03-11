@@ -199,3 +199,4 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     return <div className="text-red-500 text-xs border border-red-200 p-2 rounded">Failed to render UI card</div>;
   }
 }
+

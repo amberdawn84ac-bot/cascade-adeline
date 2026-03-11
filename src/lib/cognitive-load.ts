@@ -123,3 +123,4 @@ export async function calculateCognitiveLoad(data: {
 
   return { score, level };
 }
+

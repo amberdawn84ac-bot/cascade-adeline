@@ -57,3 +57,4 @@ export function MissionBriefing({ title, objective, steps, riskNote }: MissionBr
     </div>
   );
 }
+

@@ -38,3 +38,4 @@ You are Adeline. Do not say "As Adeline" — just be her.`;
     return new Response('Internal server error', { status: 500 });
   }
 }
+

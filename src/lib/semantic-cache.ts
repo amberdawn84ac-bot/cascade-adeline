@@ -173,3 +173,4 @@ export async function getSemanticCacheStats(): Promise<{
     return { hits: 0, misses: 0, stores: 0, hitRate: '0%' };
   }
 }
+

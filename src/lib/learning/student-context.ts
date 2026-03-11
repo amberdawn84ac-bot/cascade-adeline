@@ -49,3 +49,4 @@ export async function buildStudentContextPrompt(userId: string): Promise<string>
 
   return `\n\nCRITICAL STUDENT ADAPTATION RULES — THESE OVERRIDE ALL OTHER DEFAULTS:\n${parts.join('\n')}`;
 }
+

@@ -28,3 +28,4 @@ export function WheatStalk({ size = 24, color = 'currentColor', className }: Ill
     </svg>
   );
 }
+

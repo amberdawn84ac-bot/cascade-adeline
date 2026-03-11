@@ -24,3 +24,4 @@ export function Lightbulb({ size = 24, color = 'currentColor', className }: Illu
     </svg>
   );
 }
+

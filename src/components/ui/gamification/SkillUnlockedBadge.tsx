@@ -69,3 +69,4 @@ export function SkillUnlockedBadge({ activityName, subjects, credits, scheduledC
     </div>
   );
 }
+

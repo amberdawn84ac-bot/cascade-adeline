@@ -71,3 +71,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Purge failed' }, { status: 500 });
   }
 }
+

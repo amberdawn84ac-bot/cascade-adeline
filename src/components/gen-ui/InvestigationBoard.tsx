@@ -90,3 +90,4 @@ export function InvestigationBoard({ topic, sources }: InvestigationBoardProps) 
     </motion.div>
   );
 }
+

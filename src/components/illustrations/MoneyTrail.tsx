@@ -29,3 +29,4 @@ export function MoneyTrail({ size = 24, color = 'currentColor', className }: Ill
     </svg>
   );
 }
+

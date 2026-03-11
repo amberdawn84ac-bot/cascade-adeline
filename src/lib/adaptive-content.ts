@@ -365,3 +365,4 @@ export function getInteractiveTypeForGrade(gradeLevel: string): string {
   const gradeBand = getGradeBand(gradeLevel);
   return GRADE_CONFIGS[gradeBand].interactiveElements;
 }
+

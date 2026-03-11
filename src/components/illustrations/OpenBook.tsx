@@ -24,3 +24,4 @@ export function OpenBook({ size = 24, color = 'currentColor', className }: Illus
     </svg>
   );
 }
+

@@ -45,3 +45,4 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to fetch entries' }, { status: 500 });
   }
 }
+

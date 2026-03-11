@@ -29,3 +29,4 @@ export function Wildflower({ size = 24, color = 'currentColor', className }: Ill
     </svg>
   );
 }
+

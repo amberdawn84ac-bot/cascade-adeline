@@ -62,3 +62,4 @@ export function WaitingTips({ show }: Props) {
     </AnimatePresence>
   );
 }
+

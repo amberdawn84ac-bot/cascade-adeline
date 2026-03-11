@@ -106,3 +106,4 @@ export function identifyUser(userId: string, properties?: Record<string, unknown
 export function resetUser() {
   posthog.reset();
 }
+

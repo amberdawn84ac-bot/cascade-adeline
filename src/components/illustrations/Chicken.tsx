@@ -28,3 +28,4 @@ export function Chicken({ size = 24, color = 'currentColor', className }: Illust
     </svg>
   );
 }
+

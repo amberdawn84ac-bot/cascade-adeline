@@ -36,7 +36,7 @@ studentContext = `Student has unaddressed gaps. Relevant: ${relevantGaps.map(g =
 
 const gradeLevelContext = `You are speaking to a student in grade ${state.gradeLevel}. Adjust your vocabulary appropriately.`;
 
-const model = new ChatOpenAI({ modelName: "gpt-4o", temperature: 0.7 });
+const model = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
 
 const systemPrompt = buildSystemPrompt(config, `${studentContext}
 
@@ -126,3 +126,4 @@ messages: [new AIMessage("I am having a little trouble thinking clearly.")],
 };
 }
 }
+

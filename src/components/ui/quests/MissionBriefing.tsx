@@ -54,3 +54,4 @@ export function MissionBriefing({ title, description, deadline, briefing }: Miss
     </div>
   );
 }
+

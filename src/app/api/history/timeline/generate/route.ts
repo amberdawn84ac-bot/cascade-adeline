@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Generate Structured Output
     const llm = new ChatOpenAI({
-      modelName: config.models.default || "gpt-4o",
+      model: config.models.default || "gpt-4o",
       temperature: 0.7,
     }).withStructuredOutput(timelineSchema);
 
@@ -82,3 +82,4 @@ Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${stu
     return NextResponse.json({ error: "Failed to generate timeline" }, { status: 500 });
   }
 }
+

@@ -14,7 +14,7 @@ export async function GET() {
 
   // Generate with OpenAI
   try {
-    const llm = new ChatOpenAI({ modelName: 'gpt-4o', temperature: 0.7 });
+    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.7 });
 
     const response = await llm.invoke([
       {
@@ -53,3 +53,4 @@ Return ONLY this JSON object with no other text:
     return NextResponse.json({ error: 'Failed to generate daily bread' }, { status: 500 });
   }
 }
+

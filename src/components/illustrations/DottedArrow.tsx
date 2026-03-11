@@ -23,3 +23,4 @@ export function DottedArrow({ size = 24, color = 'currentColor', className }: Il
     </svg>
   );
 }
+

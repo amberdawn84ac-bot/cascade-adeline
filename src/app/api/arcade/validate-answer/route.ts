@@ -47,3 +47,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to validate answer' }, { status: 500 });
   }
 }
+

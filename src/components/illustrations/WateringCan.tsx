@@ -24,3 +24,4 @@ export function WateringCan({ size = 24, color = 'currentColor', className }: Il
     </svg>
   );
 }
+

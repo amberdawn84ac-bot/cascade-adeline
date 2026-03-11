@@ -120,3 +120,4 @@ export function ShareWidget({ investigationId, title }: ShareWidgetProps) {
     </div>
   );
 }
+

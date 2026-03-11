@@ -53,3 +53,4 @@ declare module 'ai/react' {
   }
   export function useChat(options?: UseChatOptions): UseChatHelpers;
 }
+

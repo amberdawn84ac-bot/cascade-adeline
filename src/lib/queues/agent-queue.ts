@@ -329,3 +329,4 @@ export async function shutdownQueue(): Promise<void> {
     console.error('[AgentQueue] Shutdown error:', error);
   }
 }
+

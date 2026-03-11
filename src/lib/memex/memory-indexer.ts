@@ -32,7 +32,7 @@ export async function indexConversationMemory(
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.3, // Lower temperature for factual extraction
     }).withStructuredOutput(memoryExtractionSchema);
 
@@ -125,3 +125,4 @@ export function shouldIndexConversation(messages: ChatMessage[]): boolean {
   // Only index if conversation has substance (>200 chars)
   return totalLength > 200;
 }
+

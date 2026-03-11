@@ -107,3 +107,4 @@ export function InvestigationBoard({ investigation, isSharedView = false, shareI
     </div>
   );
 }
+

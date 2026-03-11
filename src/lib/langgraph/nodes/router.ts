@@ -17,7 +17,7 @@ const routerSchema = z.object({
 intent: z.enum(["CHAT", "BRAINSTORM", "INVESTIGATE", "LOG_CREDIT"])
 });
 
-const llm = new ChatOpenAI({ modelName: "gpt-4o", temperature: 0 }).withStructuredOutput(routerSchema);
+const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0 }).withStructuredOutput(routerSchema);
 
 try {
 const result = await llm.invoke([
@@ -29,3 +29,4 @@ return { intent: result.intent };
 return { intent: "CHAT" };
 }
 };
+

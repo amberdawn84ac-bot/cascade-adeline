@@ -28,3 +28,4 @@ export function CorporateBuilding({ size = 24, color = 'currentColor', className
     </svg>
   );
 }
+

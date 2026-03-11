@@ -344,3 +344,4 @@ function calculateCompatibility(
 
   return (normalizedComplementary * 0.7) + (normalizedOverlap * 0.3);
 }
+

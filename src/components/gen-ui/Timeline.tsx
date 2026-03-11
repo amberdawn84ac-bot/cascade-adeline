@@ -38,3 +38,4 @@ export function Timeline({ events = [], title }: any) {
     </div>
   );
 }
+

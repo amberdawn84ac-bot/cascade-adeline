@@ -29,3 +29,4 @@ export function Sunflower({ size = 24, color = 'currentColor', className }: Illu
     </svg>
   );
 }
+

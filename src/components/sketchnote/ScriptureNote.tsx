@@ -30,3 +30,4 @@ export function ScriptureNote({ text, accent = 'olive', className }: ScriptureNo
     </div>
   );
 }
+

@@ -63,3 +63,4 @@ export function TranscriptCard({ activityName, mappedSubjects, creditsEarned, ex
     </motion.div>
   );
 }
+

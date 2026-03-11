@@ -22,3 +22,4 @@ export function Pencil({ size = 24, color = 'currentColor', className }: Illustr
     </svg>
   );
 }
+

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { examName, weeksTilExam, priorKnowledge } = requestSchema.parse(body);
 
-    const llm = new ChatOpenAI({ modelName: 'gpt-4o', temperature: 0.4, maxTokens: 1200 });
+    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.4, maxTokens: 1200 });
 
     const userPrompt = [
       `Generate a rigorous, college-level CLEP study guide for: **${examName}**.`,
@@ -59,3 +59,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to generate study guide' }, { status: 500 });
   }
 }
+

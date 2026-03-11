@@ -175,3 +175,4 @@ function HighlightCard({ highlight }: { highlight: Highlight }) {
     </motion.div>
   );
 }
+

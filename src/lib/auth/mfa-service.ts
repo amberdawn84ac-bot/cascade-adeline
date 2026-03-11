@@ -331,3 +331,4 @@ export async function sendMFASetupEmail(userId: string): Promise<void> {
     throw new Error('Failed to send MFA setup email');
   }
 }
+

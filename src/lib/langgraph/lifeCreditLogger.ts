@@ -195,3 +195,4 @@ ${llmResult.extensionSuggestion ? `**Extension Idea:** ${llmResult.extensionSugg
     };
   }
 }
+

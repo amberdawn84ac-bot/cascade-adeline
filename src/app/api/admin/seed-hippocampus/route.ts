@@ -74,3 +74,4 @@ export async function GET() {
     return NextResponse.json({ error: error.message || "Failed to inject data" }, { status: 500 });
   }
 }
+

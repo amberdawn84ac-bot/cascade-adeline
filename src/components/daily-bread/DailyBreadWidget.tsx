@@ -147,3 +147,4 @@ export function DailyBreadWidget({ onStudy }: DailyBreadWidgetProps) {
     </div>
   );
 }
+

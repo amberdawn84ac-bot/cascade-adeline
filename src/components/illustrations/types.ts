@@ -3,3 +3,4 @@ export type IllustrationProps = {
   color?: string;
   className?: string;
 };
+

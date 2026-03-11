@@ -24,3 +24,4 @@ export function Lamp({ size = 24, color = 'currentColor', className }: Illustrat
     </svg>
   );
 }
+

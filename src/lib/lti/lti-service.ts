@@ -384,3 +384,4 @@ export async function registerLTIConsumer(
     return { success: false, error: 'Consumer registration failed' };
   }
 }
+

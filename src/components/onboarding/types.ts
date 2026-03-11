@@ -16,3 +16,4 @@ export type OnboardingStep = {
   }>;
   illustration?: React.ReactNode;
 };
+

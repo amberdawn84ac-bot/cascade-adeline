@@ -63,3 +63,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to record review' }, { status: 500 });
   }
 }
+

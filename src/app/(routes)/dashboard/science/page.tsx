@@ -880,3 +880,4 @@ export default function SciencePage() {
     </div>
   );
 }
+

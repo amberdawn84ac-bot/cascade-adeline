@@ -87,3 +87,4 @@ export function ProjectImpactCard({ title, serviceGoal, beneficiaries, stage }: 
     </div>
   );
 }
+

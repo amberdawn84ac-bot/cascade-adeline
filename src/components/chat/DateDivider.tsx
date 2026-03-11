@@ -32,3 +32,4 @@ export function DateDivider({ label }: Props) {
     </motion.div>
   );
 }
+

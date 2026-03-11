@@ -23,3 +23,4 @@ export function Telescope({ size = 24, color = 'currentColor', className }: Illu
     </svg>
   );
 }
+

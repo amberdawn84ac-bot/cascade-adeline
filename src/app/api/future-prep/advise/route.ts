@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { systemPrompt, context, messages, initiating } = requestSchema.parse(body);
 
-    const llm = new ChatOpenAI({ modelName: 'gpt-4o', temperature: 0.8, maxTokens: 400 });
+    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.8, maxTokens: 400 });
 
     const formattedMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
       {
@@ -50,3 +50,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to get response' }, { status: 500 });
   }
 }
+

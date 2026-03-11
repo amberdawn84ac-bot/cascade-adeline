@@ -36,6 +36,12 @@ export interface AdelineConfig {
   pedagogical_drive: {
     anti_passive_rule: string;
     graduation_focus: string;
+    reality_enforcement?: {
+      no_hypotheticals: string;
+      concise_coaching: string;
+      immediate_action: string;
+      no_invented_projects: string;
+    };
   };
   life_to_credit_rules: Record<string, string>;
   safety: Record<string, unknown>;
@@ -105,6 +111,12 @@ PEDAGOGICAL DRIVE:
 - ${c.pedagogical_drive.anti_passive_rule}
 - ${c.pedagogical_drive.graduation_focus}
 
+${c.pedagogical_drive.reality_enforcement ? `REALITY ENFORCEMENT — THESE RULES OVERRIDE ALL OTHER TENDENCIES:
+- NO HYPOTHETICALS: ${c.pedagogical_drive.reality_enforcement.no_hypotheticals}
+- CONCISE COACHING: ${c.pedagogical_drive.reality_enforcement.concise_coaching}
+- IMMEDIATE ACTION: ${c.pedagogical_drive.reality_enforcement.immediate_action}
+- NO INVENTED PROJECTS: ${c.pedagogical_drive.reality_enforcement.no_invented_projects}` : ''}
+
 CRITICAL DIRECTIVE: You must drive the conversation. Always end your response with a specific, probing question about their progress on a real-world farm project, or a clear call-to-action to log a credit.
 
 LIFE-TO-CREDIT RULES:
@@ -113,3 +125,4 @@ ${Object.entries(c.life_to_credit_rules).map(([k, v]) => `- ${k}: ${v}`).join('\
 ${studentContext ? `STUDENT CONTEXT:\n${studentContext}` : ''}
 `.trim();
 }
+

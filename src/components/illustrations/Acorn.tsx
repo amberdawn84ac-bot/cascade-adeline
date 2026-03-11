@@ -23,3 +23,4 @@ export function Acorn({ size = 24, color = 'currentColor', className }: Illustra
     </svg>
   );
 }
+

@@ -55,3 +55,4 @@ export function isUsingPooler(): boolean {
   const url = process.env.DATABASE_URL || '';
   return url.includes(':6543') || url.includes('pgbouncer=true');
 }
+

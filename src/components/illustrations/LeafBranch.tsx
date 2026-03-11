@@ -23,3 +23,4 @@ export function LeafBranch({ size = 24, color = 'currentColor', className }: Ill
     </svg>
   );
 }
+

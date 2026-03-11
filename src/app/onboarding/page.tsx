@@ -20,3 +20,4 @@ export default async function OnboardingPage() {
   // New user: show the WelcomeFlow modal experience
   return <OnboardingClient />;
 }
+

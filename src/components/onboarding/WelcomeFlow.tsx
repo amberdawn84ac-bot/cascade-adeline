@@ -294,3 +294,4 @@ export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData)
     </motion.div>
   );
 }
+

@@ -121,3 +121,4 @@ export function PaywallModal({ open, onClose, remaining, limit }: Props) {
     </motion.div>
   );
 }
+

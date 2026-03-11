@@ -52,7 +52,7 @@ Format the response clearly and conversationally, not as a sterile list.`;
 
     // Generate the opportunities using LangChain
     const model = new ChatOpenAI({
-      modelName: config.models.default,
+      model: config.models.default,
       temperature: 0.7,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
@@ -103,3 +103,4 @@ Format the response clearly and conversationally, not as a sterile list.`;
     };
   }
 }
+

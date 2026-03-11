@@ -32,3 +32,4 @@ export function RoomStub({ title, subtitle, description, icon: Icon, color }: Pr
     </div>
   );
 }
+

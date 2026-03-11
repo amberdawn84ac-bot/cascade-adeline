@@ -21,3 +21,4 @@ export function Trowel({ size = 24, color = 'currentColor', className }: Illustr
     </svg>
   );
 }
+

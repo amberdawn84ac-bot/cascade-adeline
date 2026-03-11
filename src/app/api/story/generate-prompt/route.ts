@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.9, // High creativity for story prompts
     }).withStructuredOutput(storyPromptSchema);
 
@@ -82,3 +82,4 @@ You must strictly frame this activity around serving others. ELA writing should 
     return NextResponse.json({ error: 'Failed to generate story prompt' }, { status: 500 });
   }
 }
+

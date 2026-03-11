@@ -32,7 +32,7 @@ function isHebrewStudyCandidate(text: string | undefined): boolean {
 async function generateHebrewStudyContent(prompt: string): Promise<z.infer<typeof HebrewStudySchema> | null> {
   try {
     const model = new ChatOpenAI({
-      modelName: 'gpt-4o',
+      model: 'gpt-4o',
       temperature: 0.3,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
@@ -199,3 +199,4 @@ export async function genUIPlanner(state: AdelineGraphState): Promise<AdelineGra
     },
   };
 }
+

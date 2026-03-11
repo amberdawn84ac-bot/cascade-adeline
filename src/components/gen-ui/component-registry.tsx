@@ -13,3 +13,4 @@ export const COMPONENT_REGISTRY: Record<string, React.ComponentType<any>> = {
   ShareWidget,
   HEBREW_STUDY: HebrewStudyCard,
 };
+

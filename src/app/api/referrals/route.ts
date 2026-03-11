@@ -108,3 +108,4 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ referralId: referral.id, message: 'Referral recorded' });
 }
+

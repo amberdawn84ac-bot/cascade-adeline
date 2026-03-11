@@ -27,3 +27,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to save geometry work' }, { status: 500 });
   }
 }
+

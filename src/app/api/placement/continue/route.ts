@@ -157,3 +157,4 @@ Return ONLY valid JSON (no markdown):
     return { summary: text, subjects: {}, recommendations: [] };
   }
 }
+

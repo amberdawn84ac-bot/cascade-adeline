@@ -27,3 +27,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to save data analysis' }, { status: 500 });
   }
 }
+

@@ -27,3 +27,4 @@ export function WheatDivider({ size = 24, color = 'currentColor', className }: I
     </svg>
   );
 }
+

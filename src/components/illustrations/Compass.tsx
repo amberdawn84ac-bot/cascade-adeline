@@ -24,3 +24,4 @@ export function Compass({ size = 24, color = 'currentColor', className }: Illust
     </svg>
   );
 }
+

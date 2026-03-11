@@ -55,3 +55,4 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   return { userId: user.id, role: user.role, email: user.email };
 }
+

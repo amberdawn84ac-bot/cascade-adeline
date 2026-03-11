@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.3,
     }).withStructuredOutput(reviewSchema);
 
@@ -37,3 +37,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to review code' }, { status: 500 });
   }
 }
+

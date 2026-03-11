@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       'fiber-arts': 'processing raw wool from shearing through washing, carding, spinning, and dyeing for practical use',
     };
 
-    const llm = new ChatOpenAI({ modelName: 'gpt-4o', temperature: 0.6 })
+    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.6 })
       .withStructuredOutput(projectSchema);
 
     const result = await llm.invoke([
@@ -72,3 +72,4 @@ CRITICAL RULES:
     return NextResponse.json({ error: 'Failed to generate project' }, { status: 500 });
   }
 }
+

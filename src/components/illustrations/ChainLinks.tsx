@@ -24,3 +24,4 @@ export function ChainLinks({ size = 24, color = 'currentColor', className }: Ill
     </svg>
   );
 }
+

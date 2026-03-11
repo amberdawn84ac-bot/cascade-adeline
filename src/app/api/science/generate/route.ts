@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || "gpt-4o",
+      model: config.models.default || "gpt-4o",
       temperature: 0.7,
     }).withStructuredOutput(experimentSchema);
 
@@ -49,3 +49,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to generate experiment" }, { status: 500 });
   }
 }
+

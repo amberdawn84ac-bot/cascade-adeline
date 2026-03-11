@@ -145,3 +145,4 @@ export function ErrorDisplay({ error, onRetry, onClear }: Props) {
     </motion.div>
   );
 }
+

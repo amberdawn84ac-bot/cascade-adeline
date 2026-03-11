@@ -125,3 +125,4 @@ export function SettingsForm({ user }: Props) {
     </div>
   );
 }
+

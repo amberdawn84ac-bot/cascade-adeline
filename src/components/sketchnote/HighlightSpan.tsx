@@ -47,3 +47,4 @@ export function HighlightSpan({ variant = 'vocab', children, className }: Highli
     </span>
   );
 }
+

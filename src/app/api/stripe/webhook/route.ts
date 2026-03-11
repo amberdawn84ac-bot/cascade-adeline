@@ -131,3 +131,4 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
   console.log(`[Subscription] Canceled ${subscription.id}`);
 }
+

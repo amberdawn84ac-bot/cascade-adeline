@@ -55,3 +55,4 @@ export function getEmbeddingModel(modelId: string) {
   console.warn(`[getEmbeddingModel] Unknown model ID: ${modelId}. Defaulting to Google text-embedding-004.`);
   return google.textEmbeddingModel(modelId);
 }
+

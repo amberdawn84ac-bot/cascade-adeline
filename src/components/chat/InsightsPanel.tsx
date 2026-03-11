@@ -169,3 +169,4 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
     </motion.div>
   );
 }
+

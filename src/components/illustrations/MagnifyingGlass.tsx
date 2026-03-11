@@ -21,3 +21,4 @@ export function MagnifyingGlass({ size = 24, color = 'currentColor', className }
     </svg>
   );
 }
+

@@ -32,3 +32,4 @@ export function CalloutBox({ color = '#BD6809', icon, children, className }: Cal
     </div>
   );
 }
+

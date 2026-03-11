@@ -38,7 +38,7 @@ export async function POST() {
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.9,
     }).withStructuredOutput(spellingSchema);
 
@@ -61,3 +61,4 @@ Pick varied, interesting words — not the same ones repeatedly. Make the senten
     return NextResponse.json({ error: 'Failed to generate spelling word' }, { status: 500 });
   }
 }
+

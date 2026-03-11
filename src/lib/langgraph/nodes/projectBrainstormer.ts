@@ -48,7 +48,7 @@ Format each project as:
 
     // Generate the project ideas using LangChain
     const model = new ChatOpenAI({
-      modelName: config.models.default,
+      model: config.models.default,
       temperature: 0.7,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
@@ -105,3 +105,4 @@ Format each project as:
     };
   }
 }
+

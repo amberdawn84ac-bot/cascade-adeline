@@ -47,7 +47,7 @@ export async function POST(req: Request) {
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.7,
     }).withStructuredOutput(quizSchema);
 
@@ -71,3 +71,4 @@ CRITICAL: correctAnswer must match one of the 4 options exactly, character for c
     return NextResponse.json({ error: 'Failed to generate quiz' }, { status: 500 });
   }
 }
+

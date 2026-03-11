@@ -48,3 +48,4 @@ export function AnalogyCard({ concept, analogy, interests }: AnalogyCardProps) {
     </div>
   );
 }
+

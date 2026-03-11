@@ -102,3 +102,4 @@ function getFirstQuestion(name: string, grade?: string, interests?: string[]): s
   }
   return `Hi ${name}! To get started, I see you're going into ${grade || 'school'}. Let's try a few fun questions to see if that feels like the right fit!`;
 }
+

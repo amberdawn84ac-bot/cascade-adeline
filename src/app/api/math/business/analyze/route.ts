@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.4,
     }).withStructuredOutput(businessSchema);
 
@@ -56,3 +56,4 @@ Calculate revenue, costs, profit, profit margin, and give me business advice.`,
     return NextResponse.json({ error: 'Failed to analyze business' }, { status: 500 });
   }
 }
+

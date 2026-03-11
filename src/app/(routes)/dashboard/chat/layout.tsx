@@ -5,3 +5,4 @@ export default function DashboardChatLayout({ children }: { children: React.Reac
     </div>
   );
 }
+

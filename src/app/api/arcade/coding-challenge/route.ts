@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
-      modelName: config.models.default || 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.5,
     }).withStructuredOutput(challengeSchema);
 
@@ -48,3 +48,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to generate challenge' }, { status: 500 });
   }
 }
+
