@@ -15,6 +15,12 @@ interface DataResult {
   interpretation: string;
   chartType: string;
   insight: string;
+  policyAnalysis?: {
+    injusticeDetected: string;
+    affectedPopulation: string;
+    policyRecommendation: string;
+    budgetImpact: string;
+  };
 }
 
 export default function DataPage() {
@@ -127,9 +133,45 @@ export default function DataPage() {
               <p className="text-amber-800">{result.interpretation}</p>
             </div>
             <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-              <p className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-1">� Surprising Insight</p>
+              <p className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-1">💡 Surprising Insight</p>
               <p className="text-purple-800">{result.insight}</p>
             </div>
+            
+            {/* Policy Analysis Section */}
+            {result.policyAnalysis && (
+              <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 mt-4">
+                <h3 className="font-bold text-red-900 mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Systemic Injustice Detected
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">What The Data Reveals:</p>
+                    <p className="text-sm text-red-900 leading-relaxed">{result.policyAnalysis.injusticeDetected}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Who Is Harmed:</p>
+                    <p className="text-sm text-red-900">{result.policyAnalysis.affectedPopulation}</p>
+                  </div>
+                  <div className="bg-white border border-red-200 rounded-lg p-4">
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Policy Solution:</p>
+                    <p className="text-sm text-red-900 leading-relaxed mb-3">{result.policyAnalysis.policyRecommendation}</p>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Budget Impact:</p>
+                    <p className="text-sm text-red-900 font-mono">{result.policyAnalysis.budgetImpact}</p>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      const letter = `Dear Representative,\n\nThe data I analyzed reveals a critical systemic injustice:\n\n${result.policyAnalysis!.injusticeDetected}\n\nAffected Population:\n${result.policyAnalysis!.affectedPopulation}\n\nProposed Policy Solution:\n${result.policyAnalysis!.policyRecommendation}\n\nBudget Analysis:\n${result.policyAnalysis!.budgetImpact}\n\nI urge you to address this inequality immediately.\n\nSincerely,\n[Your Name]`;
+                      navigator.clipboard.writeText(letter);
+                      alert('Policy advocacy letter copied! Send it to make a difference.');
+                    }}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
+                  >
+                    📋 Draft Advocacy Letter
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex justify-center">
             <Button onClick={handleSave} disabled={isSaving || saveSuccess} className="bg-[#2F4731] hover:bg-[#BD6809] text-white px-8 py-5 rounded-2xl">

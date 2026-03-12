@@ -26,6 +26,12 @@ interface ExpeditionReport {
   };
   characterFocus: string;
   communityImpact: string;
+  stewardshipAction?: {
+    environmentalThreat: string;
+    affectedCommunity: string;
+    actionSteps: string[];
+    deliveryTarget: string;
+  };
 }
 
 interface FieldJournalEntry {
@@ -278,6 +284,51 @@ export default function ExpeditionsPage() {
                       <p className="text-green-800 leading-relaxed">{report.communityImpact}</p>
                     </div>
                   </div>
+
+                  {/* Stewardship Action Section */}
+                  {report.stewardshipAction && (
+                    <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6">
+                      <h4 className="font-bold text-red-900 mb-4 text-lg flex items-center gap-2">
+                        <Mountain className="w-5 h-5" />
+                        Stewardship Mission
+                      </h4>
+                      <div className="space-y-4">
+                        <div className="bg-white border border-red-200 rounded-lg p-4">
+                          <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Environmental Threat:</p>
+                          <p className="text-sm text-red-900 leading-relaxed">{report.stewardshipAction.environmentalThreat}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Who Depends On This Place:</p>
+                          <p className="text-sm text-red-900">{report.stewardshipAction.affectedCommunity}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Action Steps:</p>
+                          <ol className="space-y-2">
+                            {report.stewardshipAction.actionSteps.map((step, i) => (
+                              <li key={i} className="text-sm text-red-900 flex gap-2">
+                                <span className="font-bold text-red-600">{i + 1}.</span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+                          <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">🏡 Delivery Target:</p>
+                          <p className="text-sm text-amber-900">{report.stewardshipAction.deliveryTarget}</p>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            const actionPlan = `STEWARDSHIP MISSION: ${report.location}\n\nTHREAT: ${report.stewardshipAction!.environmentalThreat}\n\nWHO DEPENDS ON THIS: ${report.stewardshipAction!.affectedCommunity}\n\nACTION STEPS:\n${report.stewardshipAction!.actionSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nDELIVERY TARGET: ${report.stewardshipAction!.deliveryTarget}`;
+                            navigator.clipboard.writeText(actionPlan);
+                            alert('Stewardship mission copied! Execute it to serve your community.');
+                          }}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
+                        >
+                          📋 Copy Mission Plan
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Save Button */}
                   <div className="flex justify-center pt-4 border-t-2 border-[#E7DAC3]">

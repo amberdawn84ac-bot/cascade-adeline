@@ -760,6 +760,39 @@ export default function SciencePage() {
                                  <p className="text-sm text-emerald-800 leading-relaxed">{currentExperiment.theScience}</p>
                              </div>
 
+                             {/* Systemic Action Section */}
+                             {(currentExperiment as any).systemicAction && (
+                               <div className="bg-red-50 p-6 border-l-4 border-red-600 mt-6">
+                                 <h4 className="font-bold text-xs uppercase tracking-widest text-red-800 mb-3 flex items-center gap-2">
+                                   <AlertTriangle className="w-4 h-4" />
+                                   Take Action: {(currentExperiment as any).systemicAction.actionType.replace('-', ' ').toUpperCase()}
+                                 </h4>
+                                 <div className="space-y-3">
+                                   <div>
+                                     <p className="text-xs font-semibold text-red-700 mb-1">TARGET:</p>
+                                     <p className="text-sm text-red-900">{(currentExperiment as any).systemicAction.target}</p>
+                                   </div>
+                                   <div>
+                                     <p className="text-xs font-semibold text-red-700 mb-1">WHY THIS MATTERS:</p>
+                                     <p className="text-sm text-red-900">{(currentExperiment as any).systemicAction.reasoning}</p>
+                                   </div>
+                                   <div className="bg-white p-4 rounded border border-red-200">
+                                     <p className="text-xs font-semibold text-red-700 mb-2">DRAFT LETTER (Ready to Send):</p>
+                                     <pre className="text-xs text-red-900 whitespace-pre-wrap font-mono">{(currentExperiment as any).systemicAction.draftText}</pre>
+                                   </div>
+                                   <Button 
+                                     onClick={() => {
+                                       navigator.clipboard.writeText((currentExperiment as any).systemicAction.draftText);
+                                       alert('Letter copied to clipboard! Send it to make a difference.');
+                                     }}
+                                     className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
+                                   >
+                                     📋 Copy Letter to Clipboard
+                                   </Button>
+                                 </div>
+                               </div>
+                             )}
+
                              {/* Save to Journal Button */}
                              <div className="mt-8 flex justify-center border-t-2 border-[#E7DAC3] pt-6 relative">
                                <Button 
@@ -869,6 +902,40 @@ export default function SciencePage() {
                                 </ul>
                               </div>
                             </div>
+                            
+                            {/* Systemic Action Section */}
+                            {(project as any).systemicAction && (
+                              <div className="bg-red-50 border-2 border-red-300 p-4 rounded-lg mt-4">
+                                <h5 className="text-xs font-bold uppercase tracking-widest text-red-800 mb-3 flex items-center gap-2">
+                                  <AlertTriangle className="w-4 h-4" />
+                                  {(project as any).systemicAction.actionType.replace('-', ' ').toUpperCase()}
+                                </h5>
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="text-xs font-semibold text-red-700 mb-1">TARGET:</p>
+                                    <p className="text-sm text-red-900">{(project as any).systemicAction.target}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-semibold text-red-700 mb-1">WHY:</p>
+                                    <p className="text-sm text-red-900">{(project as any).systemicAction.reasoning}</p>
+                                  </div>
+                                  <div className="bg-white p-3 rounded border border-red-200">
+                                    <p className="text-xs font-semibold text-red-700 mb-2">ACTION PLAN:</p>
+                                    <pre className="text-xs text-red-900 whitespace-pre-wrap">{(project as any).systemicAction.draftText}</pre>
+                                  </div>
+                                  <Button 
+                                    onClick={() => {
+                                      navigator.clipboard.writeText((project as any).systemicAction.draftText);
+                                      alert('Action plan copied! Execute it to serve your community.');
+                                    }}
+                                    size="sm"
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
+                                  >
+                                    📋 Copy Action Plan
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>

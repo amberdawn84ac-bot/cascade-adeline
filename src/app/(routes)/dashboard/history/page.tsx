@@ -20,6 +20,13 @@ interface TimelineEntry {
     title: string;
     description: string;
   }>;
+  modernParallel?: string;
+  actionPath?: {
+    clemencyCampaign?: string;
+    policyReform: string;
+    advocacyTarget: string;
+    draftLetter: string;
+  };
 }
 
 export default function HistoryPage() {
@@ -224,6 +231,49 @@ export default function HistoryPage() {
                 ))}
               </div>
             </div>
+
+            {/* Modern Action Section */}
+            {generatedTimeline.modernParallel && generatedTimeline.actionPath && (
+              <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6">
+                <h4 className="font-bold text-red-900 mb-4 text-lg flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Modern Parallel: Take Action Today
+                </h4>
+                <div className="space-y-4">
+                  <div className="bg-white border border-red-200 rounded-lg p-4">
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Current Injustice:</p>
+                    <p className="text-sm text-red-900 leading-relaxed">{generatedTimeline.modernParallel}</p>
+                  </div>
+                  {generatedTimeline.actionPath.clemencyCampaign && (
+                    <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+                      <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">🕊️ Clemency Campaign:</p>
+                      <p className="text-sm text-amber-900">{generatedTimeline.actionPath.clemencyCampaign}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Policy That Perpetuates This Harm:</p>
+                    <p className="text-sm text-red-900 font-semibold">{generatedTimeline.actionPath.policyReform}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Who To Petition:</p>
+                    <p className="text-sm text-red-900">{generatedTimeline.actionPath.advocacyTarget}</p>
+                  </div>
+                  <div className="bg-white border border-red-200 rounded-lg p-4">
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Draft Advocacy Letter:</p>
+                    <pre className="text-xs text-red-900 whitespace-pre-wrap">{generatedTimeline.actionPath.draftLetter}</pre>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedTimeline.actionPath!.draftLetter);
+                      alert('Advocacy letter copied! Send it to fight injustice.');
+                    }}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
+                  >
+                    📋 Copy Advocacy Letter
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Save Button */}
             <div className="flex justify-center border-t-2 border-[#E7DAC3] pt-6">

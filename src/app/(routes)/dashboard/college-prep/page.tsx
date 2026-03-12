@@ -173,6 +173,7 @@ export default function FuturePrepPage() {
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
   const [studyGuide, setStudyGuide] = useState('');
   const [guideExamName, setGuideExamName] = useState('');
+  const [careerEthics, setCareerEthics] = useState<{industryHarms: string; ethicalAlternatives: string; advocacyOpportunities: string} | null>(null);
 
   const [deClasses, setDeClasses] = useState<DualEnrollmentClass[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -219,6 +220,7 @@ export default function FuturePrepPage() {
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       setStudyGuide(data.guide);
+      setCareerEthics(data.careerEthics || null);
     } catch (e) {
       console.error('Guide error:', e);
     } finally {
@@ -336,14 +338,50 @@ export default function FuturePrepPage() {
                   </Button>
 
                   {studyGuide && (
-                    <div className="mt-2 border-t-2 border-blue-100 pt-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-black text-blue-900 text-sm">{guideExamName} — Study Guide</h4>
-                        <span className="text-xs text-amber-700 font-bold uppercase tracking-wider bg-amber-50 px-3 py-1 rounded-full border border-amber-200">University Level</span>
+                    <div className="mt-2 border-t-2 border-blue-100 pt-4 space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-black text-blue-900 text-sm">{guideExamName} — Study Guide</h4>
+                          <span className="text-xs text-amber-700 font-bold uppercase tracking-wider bg-amber-50 px-3 py-1 rounded-full border border-amber-200">University Level</span>
+                        </div>
+                        <div className="bg-blue-50 rounded-2xl p-4 text-sm text-blue-900 leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-[480px] overflow-y-auto">
+                          {studyGuide}
+                        </div>
                       </div>
-                      <div className="bg-blue-50 rounded-2xl p-4 text-sm text-blue-900 leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-[480px] overflow-y-auto">
-                        {studyGuide}
-                      </div>
+                      
+                      {/* Career Ethics Section */}
+                      {careerEthics && (
+                        <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6">
+                          <h4 className="font-bold text-red-900 mb-4 text-base flex items-center gap-2">
+                            <Shield className="w-5 h-5" />
+                            Career Ethics Analysis
+                          </h4>
+                          <div className="space-y-4">
+                            <div className="bg-white border border-red-200 rounded-lg p-4">
+                              <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Industry Harms:</p>
+                              <p className="text-sm text-red-900 leading-relaxed">{careerEthics.industryHarms}</p>
+                            </div>
+                            <div className="bg-white border border-red-200 rounded-lg p-4">
+                              <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Ethical Alternatives:</p>
+                              <p className="text-sm text-red-900 leading-relaxed">{careerEthics.ethicalAlternatives}</p>
+                            </div>
+                            <div className="bg-white border border-red-200 rounded-lg p-4">
+                              <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Advocacy Opportunities:</p>
+                              <p className="text-sm text-red-900 leading-relaxed">{careerEthics.advocacyOpportunities}</p>
+                            </div>
+                            <Button 
+                              onClick={() => {
+                                const ethicsNote = `CAREER ETHICS: ${guideExamName}\n\nINDUSTRY HARMS:\n${careerEthics.industryHarms}\n\nETHICAL ALTERNATIVES:\n${careerEthics.ethicalAlternatives}\n\nADVOCACY OPPORTUNITIES:\n${careerEthics.advocacyOpportunities}`;
+                                navigator.clipboard.writeText(ethicsNote);
+                                alert('Career ethics analysis copied! Use this to guide your professional choices.');
+                              }}
+                              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
+                            >
+                              📋 Copy Ethics Analysis
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

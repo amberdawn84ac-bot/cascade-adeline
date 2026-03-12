@@ -13,6 +13,12 @@ interface BusinessResult {
   analysis: string;
   advice: string;
   mathBreakdown: string[];
+  policyAnalysis?: {
+    injusticeDetected: string;
+    affectedPopulation: string;
+    policyRecommendation: string;
+    budgetImpact: string;
+  };
 }
 
 export default function BusinessMathPage() {
@@ -127,6 +133,42 @@ export default function BusinessMathPage() {
             </div>
             <div className="border-t pt-4"><p className="text-slate-700 leading-relaxed">{result.analysis}</p></div>
             <div className="bg-amber-50 rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Adeline's Advice</p><p className="text-amber-800">{result.advice}</p></div>
+            
+            {/* Policy Analysis Section */}
+            {result.policyAnalysis && (
+              <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 mt-6">
+                <h3 className="font-bold text-red-900 mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Policy Impact Analysis
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Systemic Harm Detected:</p>
+                    <p className="text-sm text-red-900 leading-relaxed">{result.policyAnalysis.injusticeDetected}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Who Gets Harmed:</p>
+                    <p className="text-sm text-red-900">{result.policyAnalysis.affectedPopulation}</p>
+                  </div>
+                  <div className="bg-white border border-red-200 rounded-lg p-4">
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Policy Recommendation:</p>
+                    <p className="text-sm text-red-900 leading-relaxed mb-3">{result.policyAnalysis.policyRecommendation}</p>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Budget Impact:</p>
+                    <p className="text-sm text-red-900 font-mono">{result.policyAnalysis.budgetImpact}</p>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      const letter = `Dear Representative,\n\nI am writing to advocate for policy reform to address ${result.policyAnalysis!.injusticeDetected}.\n\nCurrent Situation:\n${result.policyAnalysis!.affectedPopulation}\n\nProposed Solution:\n${result.policyAnalysis!.policyRecommendation}\n\nBudget Analysis:\n${result.policyAnalysis!.budgetImpact}\n\nI urge you to take action on this issue.\n\nSincerely,\n[Your Name]`;
+                      navigator.clipboard.writeText(letter);
+                      alert('Policy letter copied to clipboard! Send it to your representative.');
+                    }}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
+                  >
+                    📋 Draft Letter to Representative
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-center">
