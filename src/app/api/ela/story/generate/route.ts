@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const storySchema = z.object({
   title: z.string().describe("A compelling title for the story"),
@@ -21,13 +21,7 @@ export async function POST(req: NextRequest) {
     const { prompt, genre } = await req.json();
     if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : '';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -38,7 +32,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical rhetoric and literature tutor. ${gradeContext} ${styleContext} Generate a rich, engaging story starter in the ${genre || 'adventure'} genre. Your writing should model excellent craft — vivid imagery, strong verbs, compelling characters. CRITICALLY: adapt the vocabulary complexity, sentence length, and thematic depth to perfectly match the student's grade level. For younger students (K-5): simpler words, shorter sentences, magical/fun themes. For older students (6-12): sophisticated vocabulary, complex themes, literary devices.`,
+        content: `You are Adeline, a classical rhetoric and literature tutor.${studentContext} Generate a rich, engaging story starter in the ${genre || 'adventure'} genre. Your writing should model excellent craft — vivid imagery, strong verbs, compelling characters. CRITICALLY: adapt the vocabulary complexity, sentence length, and thematic depth to perfectly match the student's grade level. For younger students (K-5): simpler words, shorter sentences, magical/fun themes. For older students (6-12): sophisticated vocabulary, complex themes, literary devices.`,
       },
       { role: 'user', content: `Story prompt: ${prompt}\nGenre: ${genre || 'Adventure'}` },
     ]);

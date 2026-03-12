@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const LAUNCHPAD_SYSTEM_PROMPT = `You are an elite academic coach specializing in CLEP exam preparation and Dual Enrollment success.
 
@@ -27,6 +28,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { examName, weeksTilExam, priorKnowledge } = requestSchema.parse(body);
 
+    const studentContext = await buildStudentContextPrompt(user.userId);
+
     const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.4, maxTokens: 1200 });
 
     const userPrompt = [
@@ -44,9 +47,9 @@ export async function POST(req: NextRequest) {
     ].filter(Boolean).join('\n');
 
     const result = await llm.invoke([
-      { role: 'system', content: LAUNCHPAD_SYSTEM_PROMPT },
+      { role: 'system', content: `${LAUNCHPAD_SYSTEM_PROMPT}${studentContext}` },
       { role: 'user', content: userPrompt },
-    ]);
+    });
 
     const guide = typeof result.content === 'string' ? result.content : String(result.content);
 
