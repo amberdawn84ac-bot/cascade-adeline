@@ -87,27 +87,28 @@ export default function SciencePage() {
   const [isLoadingFieldWork, setIsLoadingFieldWork] = useState(false);
   const [fieldWorkLoaded, setFieldWorkLoaded] = useState(false);
   const [entries, setEntries] = useState<ScienceEntry[]>([]);
-  const [globalHerbarium, setGlobalHerbarium] = useState<ScienceEntry[]>([]);
-  const [isLoadingHerbarium, setIsLoadingHerbarium] = useState(true);
+  const [isLoadingEntries, setIsLoadingEntries] = useState(false);
 
-  // Load Global Herbarium from database on mount
+  // Load student's encyclopedia entries from database
   useEffect(() => {
-    const loadGlobalHerbarium = async () => {
-      setIsLoadingHerbarium(true);
-      try {
-        const response = await fetch('/api/science/encyclopedia/all');
-        if (response.ok) {
-          const data = await response.json();
-          setGlobalHerbarium(data);
+    const loadEntries = async () => {
+      if (activeTab === 'book') {
+        setIsLoadingEntries(true);
+        try {
+          const response = await fetch('/api/science/encyclopedia/my-entries');
+          if (response.ok) {
+            const data = await response.json();
+            setEntries(data);
+          }
+        } catch (error) {
+          console.error('Failed to load encyclopedia entries:', error);
+        } finally {
+          setIsLoadingEntries(false);
         }
-      } catch (error) {
-        console.error('Failed to load Global Herbarium:', error);
-      } finally {
-        setIsLoadingHerbarium(false);
       }
     };
 
-    loadGlobalHerbarium();
+    loadEntries();
 
     if (activeTab === 'groups' && groups.length === 0) {
       loadGroupsData();
@@ -229,9 +230,9 @@ export default function SciencePage() {
       });
       if (res.ok) {
         setSaveEntrySuccess(true);
-        setGlobalHerbarium(prev => [generatedEntry, ...prev]);
-        setEntries(prev => [...prev, { ...generatedEntry, id: generatedEntry.id || Date.now().toString() }]);
-        setSelectedId(generatedEntry.id || Date.now().toString());
+        const newEntry = { ...generatedEntry, id: generatedEntry.id || Date.now().toString() };
+        setEntries(prev => [newEntry, ...prev]);
+        setSelectedId(newEntry.id);
       }
     } catch (e) {
       console.error(e);
@@ -364,7 +365,12 @@ export default function SciencePage() {
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                    {entries.length === 0 ? (
+                    {isLoadingEntries ? (
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mb-3" />
+                            <p className="text-xs text-emerald-600 italic">Loading your encyclopedia...</p>
+                        </div>
+                    ) : entries.length === 0 ? (
                         <div className="text-center p-8 opacity-50 italic text-sm text-emerald-600">
                             No chapters written yet. Start a new discovery.
                         </div>
@@ -612,60 +618,6 @@ export default function SciencePage() {
                 </form>
             </div>
 
-            {/* Global Herbarium - Crowdsourced Knowledge */}
-            <div className="absolute bottom-24 left-0 right-0 max-h-[40vh] overflow-y-auto bg-[#FFFEF7] border-t-2 border-emerald-300 z-20">
-                <div className="p-6">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-2xl font-bold text-emerald-900" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
-                                🌿 Global Herbarium
-                            </h3>
-                            <Badge className="bg-emerald-600 text-white">
-                                {globalHerbarium.length} Discoveries
-                            </Badge>
-                        </div>
-                        <p className="text-sm text-emerald-700 mb-6 italic">
-                            A living encyclopedia built by students around the world. Every discovery adds to our collective understanding.
-                        </p>
-                        
-                        {isLoadingHerbarium ? (
-                            <div className="flex items-center justify-center py-12">
-                                <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-                                <span className="ml-3 text-emerald-700">Loading collective knowledge...</span>
-                            </div>
-                        ) : globalHerbarium.length === 0 ? (
-                            <div className="text-center py-12 text-emerald-600 italic">
-                                The Herbarium awaits its first discovery. Be the pioneer!
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {globalHerbarium.map((entry) => (
-                                    <div 
-                                        key={entry.id}
-                                        className="bg-white p-4 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 transition-all hover:shadow-lg cursor-pointer"
-                                    >
-                                        <div className="flex items-start justify-between mb-2">
-                                            <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-600">
-                                                {entry.category || 'Science'}
-                                            </Badge>
-                                        </div>
-                                        <h4 className="font-bold text-emerald-900 mb-2" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
-                                            {entry.title || entry.topic}
-                                        </h4>
-                                        <p className="text-sm text-emerald-700 line-clamp-3">
-                                            {entry.observation}
-                                        </p>
-                                        <div className="mt-3 pt-3 border-t border-emerald-100 flex items-center justify-between">
-                                            <span className="text-xs text-emerald-500 italic">Community Entry</span>
-                                            <MagnifyingGlass className="w-4 h-4 text-emerald-400" />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
         </div>
         )}
 
