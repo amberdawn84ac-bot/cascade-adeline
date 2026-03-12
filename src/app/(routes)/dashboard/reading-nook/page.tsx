@@ -10,6 +10,8 @@ import { useChat } from '@ai-sdk/react';
 interface LivingBook {
   title: string;
   author: string;
+  gutenbergId?: number;
+  gutenbergUrl?: string;
   coverDescription: string;
   whyYouWillLoveIt: string;
   justiceTheme?: {
@@ -208,6 +210,19 @@ export default function ReadingNookPage() {
                       </div>
                       <div className="flex-1 p-4 flex flex-col gap-3">
                         <p className="text-xs text-gray-500 leading-relaxed italic">{book.coverDescription}</p>
+                        
+                        {book.gutenbergUrl && (
+                          <a 
+                            href={book.gutenbergUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                          >
+                            <BookOpen className="w-4 h-4" />
+                            Read Online Free
+                          </a>
+                        )}
+                        
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-auto">
                           <p className="text-xs font-bold text-amber-800 mb-1">Why you&apos;ll love it</p>
                           <p className="text-xs text-amber-700 leading-relaxed">{book.whyYouWillLoveIt}</p>

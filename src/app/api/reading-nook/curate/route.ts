@@ -9,6 +9,8 @@ const booksSchema = z.object({
     z.object({
       title: z.string().describe('The exact published title of the book'),
       author: z.string().describe('The author\'s full name'),
+      gutenbergId: z.number().optional().describe('Project Gutenberg ID number if this book is in the public domain'),
+      gutenbergUrl: z.string().optional().describe('Full Project Gutenberg URL to read this book online (e.g., https://www.gutenberg.org/files/1342/1342-h/1342-h.htm)'),
       coverDescription: z.string().describe('2-sentence vivid description of the book\'s world and tone'),
       whyYouWillLoveIt: z.string().describe('2-3 sentences explicitly tying this book to the student\'s specific interests and grade level'),
       justiceTheme: z.object({
@@ -36,11 +38,20 @@ export async function POST(req: NextRequest) {
         content: `You are Adeline, a classical librarian with encyclopedic knowledge of children's and young adult literature. Recommend exactly 4 real, published books perfectly matched to this specific student.${studentContext}
 
 RULES:
+- PRIORITIZE PUBLIC DOMAIN BOOKS available on Project Gutenberg that can be read online immediately
+- For each public domain book, provide the gutenbergId and gutenbergUrl (HTML version preferred, e.g., https://www.gutenberg.org/files/1342/1342-h/1342-h.htm)
 - Only recommend books that actually exist and are well-regarded
 - Prioritize living books — rich in narrative, character, and ideas over textbooks or dry non-fiction
 - Match vocabulary complexity and themes precisely to the student's grade level
 - The whyYouWillLoveIt field MUST explicitly reference their specific interests by name
 - Vary genres: mix fiction, narrative non-fiction, adventure, biography as appropriate
+
+EXAMPLES OF PUBLIC DOMAIN BOOKS:
+- Pride and Prejudice (gutenbergId: 1342, url: https://www.gutenberg.org/files/1342/1342-h/1342-h.htm)
+- Treasure Island (gutenbergId: 120, url: https://www.gutenberg.org/files/120/120-h/120-h.htm)
+- The Adventures of Tom Sawyer (gutenbergId: 74, url: https://www.gutenberg.org/files/74/74-h/74-h.htm)
+- Little Women (gutenbergId: 514, url: https://www.gutenberg.org/files/514/514-h/514-h.htm)
+- The Secret Garden (gutenbergId: 113, url: https://www.gutenberg.org/files/113/113-h/113-h.htm)
 
 CRITICAL JUSTICE CONNECTION DIRECTIVE: Prioritize books that expose systemic injustice, regulatory capture, corporate harm, or human dignity issues. For each book that addresses justice themes, generate a justiceTheme with:
 1. The specific systemic issue the book exposes (mass incarceration, environmental racism, worker exploitation, etc.)
