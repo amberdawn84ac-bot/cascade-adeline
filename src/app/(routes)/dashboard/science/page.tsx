@@ -401,7 +401,7 @@ export default function SciencePage() {
                 ${!activeEntry && 'hidden md:flex'}
             `}>
                 {activeEntry ? (
-                    <div className="max-w-3xl mx-auto p-6 md:p-12 w-full">
+                    <div className="p-6 md:p-12 w-full">
                         {/* Mobile Back Button */}
                         <button 
                             onClick={() => setSelectedId(null)}
