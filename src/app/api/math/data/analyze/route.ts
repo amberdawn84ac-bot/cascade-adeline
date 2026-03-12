@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const dataSchema = z.object({
   mean: z.number().describe("The arithmetic mean of the dataset"),
@@ -24,13 +24,7 @@ export async function POST(req: NextRequest) {
     const { data, question } = await req.json();
     if (!data) return NextResponse.json({ error: 'Missing data' }, { status: 400 });
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : '';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -41,7 +35,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical mathematics tutor specializing in data science. ${gradeContext} ${styleContext} Analyze the dataset the student has provided. Calculate mean, median, mode, and range. Then explain what the data means in grade-appropriate language, recommend the best visualization, and find one surprising insight.`,
+        content: `You are Adeline, a classical mathematics tutor specializing in data science.${studentContext} Analyze the dataset the student has provided. Calculate mean, median, mode, and range. Then explain what the data means in grade-appropriate language, recommend the best visualization, and find one surprising insight.`,
       },
       {
         role: 'user',

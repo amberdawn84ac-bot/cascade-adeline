@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
-import prisma from '@/lib/db';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
 const fieldProjectSchema = z.object({
   projects: z.array(
@@ -20,15 +20,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, interests: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `Grade level: ${dbUser.gradeLevel}.` : '';
-    const interestContext = dbUser?.interests?.length
-      ? `Student interests: ${dbUser.interests.join(', ')}.`
-      : '';
+    const studentContext = await buildStudentContextPrompt(user.userId);
 
     const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.8 })
       .withStructuredOutput(fieldProjectSchema);
@@ -36,7 +28,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical homestead educator. Generate exactly 3 gritty, real-world science field projects for a homeschool student. ${gradeContext} ${interestContext}
+        content: `You are Adeline, a classical homestead educator. Generate exactly 3 gritty, real-world science field projects for a homeschool student.${studentContext}
 
 RULES:
 - Projects must be grounded in the real homestead: sheep pasture, saltbox greenhouse, chickens, ducks, horses, soil, water, food preservation, or local land.
