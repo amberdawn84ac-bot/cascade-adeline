@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, X, AlertTriangle, ScrollText } from 'lucide-react';
+import { Loader2, Plus, X, AlertTriangle, ScrollText, FileText, Users } from 'lucide-react';
 import { Telescope, MasonJar, VineDivider, MagnifyingGlass } from '@/components/illustrations';
 
 // Types from our central types file
@@ -82,6 +82,7 @@ export default function SciencePage() {
   // Community State
   const [groups, setGroups] = useState<Group[]>([]);
   const [joinedGroups, setJoinedGroups] = useState<string[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [fieldProjects, setFieldProjects] = useState<FieldProject[]>([]);
   const [isLoadingFieldWork, setIsLoadingFieldWork] = useState(false);
   const [fieldWorkLoaded, setFieldWorkLoaded] = useState(false);
@@ -814,15 +815,90 @@ export default function SciencePage() {
 
         {/* --- GROUPS TAB --- */}
         {activeTab === 'groups' && (
+          selectedGroup ? (
+            <div className="overflow-y-auto h-full p-6">
+              <div className="max-w-5xl mx-auto">
+                <Button
+                  onClick={() => setSelectedGroup(null)}
+                  variant="ghost"
+                  className="mb-4 text-emerald-600 hover:text-emerald-800"
+                >
+                  ← Back to All Groups
+                </Button>
+                
+                <div className="bg-white rounded-2xl border-2 border-emerald-300 p-8 shadow-lg">
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold text-emerald-900 mb-2">{selectedGroup.name}</h2>
+                    <p className="text-emerald-600 italic">{selectedGroup.focus}</p>
+                  </div>
+
+                  <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 mb-6">
+                    <h3 className="font-bold text-red-900 mb-3 text-lg flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      Current Mission
+                    </h3>
+                    <p className="text-red-900 leading-relaxed">{selectedGroup.currentChallenge}</p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <Card className="border-2 border-emerald-200">
+                      <CardHeader>
+                        <CardTitle className="text-emerald-900 flex items-center gap-2">
+                          <FileText className="w-5 h-5" />
+                          Log Your Work
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-emerald-700 mb-4">Document your progress on the current challenge. What did you test? What did you find? What action did you take?</p>
+                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                          📝 Create Log Entry
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-2 border-amber-200">
+                      <CardHeader>
+                        <CardTitle className="text-amber-900 flex items-center gap-2">
+                          <Users className="w-5 h-5" />
+                          Group Activity
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-amber-700 mb-4">See what other members are working on and share your findings.</p>
+                        <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white">
+                          👥 View Group Feed
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
+                    <h3 className="font-bold text-emerald-900 mb-3">About This Group</h3>
+                    <p className="text-emerald-800 leading-relaxed mb-4">{selectedGroup.description}</p>
+                    <div className="flex gap-3">
+                      <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-100">
+                        📚 View Past Challenges
+                      </Button>
+                      <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-100">
+                        🏆 Group Achievements
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
              <div className="overflow-y-auto h-full p-6">
                 <div className="max-w-5xl mx-auto">
                   <h3 className="text-2xl text-emerald-900 mb-2 font-bold">Science Groups</h3>
-                  <p className="text-sm text-emerald-600 italic mb-6">Join a group to track your focus area and log related credits together.</p>
+                  <p className="text-sm text-emerald-600 italic mb-6">Join a group to work on systemic action challenges together. Each group focuses on real-world justice and community service.</p>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {groups.map((group) => {
                       const isJoined = joinedGroups.includes(group.name);
                       return (
-                        <Card key={group.id} className={`border-2 transition-all ${isJoined ? 'border-emerald-500 shadow-md' : 'border-emerald-200'}`}>
+                        <Card key={group.id} className={`border-2 transition-all ${isJoined ? 'border-emerald-500 shadow-md' : 'border-emerald-200'} cursor-pointer hover:shadow-lg`}
+                          onClick={() => isJoined && setSelectedGroup(group)}
+                        >
                             <CardHeader>
                                 <CardTitle className="text-emerald-900 text-lg">{group.name}</CardTitle>
                                 <CardDescription className="text-emerald-600">{group.focus}</CardDescription>
@@ -831,14 +907,21 @@ export default function SciencePage() {
                                 <p className="text-sm text-emerald-700">{group.description}</p>
                                 <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm">
                                     <span className="font-semibold text-amber-800 block mb-1">Current Challenge:</span>
-                                    <p className="text-amber-700">{group.currentChallenge}</p>
+                                    <p className="text-amber-700 text-xs">{group.currentChallenge}</p>
                                 </div>
                                 <Button 
-                                    onClick={() => handleJoinToggle(group)}
-                                    className={isJoined ? 'w-full bg-emerald-600 hover:bg-red-600 transition-colors' : 'w-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isJoined) {
+                                        setSelectedGroup(group);
+                                      } else {
+                                        handleJoinToggle(group);
+                                      }
+                                    }}
+                                    className={isJoined ? 'w-full bg-emerald-600 hover:bg-emerald-700 transition-colors' : 'w-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}
                                     variant={isJoined ? 'default' : 'secondary'}
                                 >
-                                    {isJoined ? '✓ Joined' : 'Join Group'}
+                                    {isJoined ? '→ Open Group Workspace' : 'Join Group'}
                                 </Button>
                             </CardContent>
                         </Card>
@@ -847,6 +930,7 @@ export default function SciencePage() {
                   </div>
                 </div>
             </div>
+          )
         )}
         
         {/* --- FIELD WORK TAB --- */}
