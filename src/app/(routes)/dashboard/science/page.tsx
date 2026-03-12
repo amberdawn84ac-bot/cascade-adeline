@@ -305,7 +305,7 @@ export default function SciencePage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#FAF8F2] relative overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#FAF8F2] relative overflow-hidden">
       {/* Background Texture */}
       <div className="absolute inset-0 pointer-events-none opacity-5 bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')]"></div>
 
