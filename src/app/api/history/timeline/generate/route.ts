@@ -65,8 +65,10 @@ export async function POST(req: NextRequest) {
     const llm = new ChatOpenAI({
       model: config.models.default || "gpt-4o",
       temperature: 0.7,
+      timeout: 60000, // 60 second timeout for complex timeline generation
     }).withStructuredOutput(timelineSchema);
 
+    console.log('[history/generate] Starting timeline generation for:', query);
     const result = await llm.invoke([
       { 
         role: 'system', 
@@ -91,10 +93,15 @@ Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${stu
       { role: 'user', content: `Event to investigate: ${query}` }
     ]);
 
+    console.log('[history/generate] Timeline generated successfully');
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Timeline generation error:", error);
-    return NextResponse.json({ error: "Failed to generate timeline" }, { status: 500 });
+    console.error("[history/generate] Timeline generation error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ 
+      error: "Failed to generate timeline", 
+      details: errorMessage 
+    }, { status: 500 });
   }
 }
 
