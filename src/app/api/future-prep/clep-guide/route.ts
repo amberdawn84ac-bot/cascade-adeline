@@ -20,6 +20,15 @@ const requestSchema = z.object({
   priorKnowledge: z.string().optional(),
 });
 
+const studyGuideSchema = z.object({
+  guide: z.string().describe("Complete CLEP study guide with all sections"),
+  careerEthics: z.object({
+    industryHarms: z.string().describe("Common ways this career field profits from harming others (regulatory capture, exploitation, environmental damage, predatory practices)"),
+    ethicalAlternatives: z.string().describe("How to practice this profession without causing harm - specific ethical frameworks and practices"),
+    advocacyOpportunities: z.string().describe("Policy reforms, whistleblower paths, or advocacy organizations in this field - name specific groups and campaigns")
+  }).describe("Ethical analysis of the career field this exam prepares students for"),
+});
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser();
@@ -30,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     const studentContext = await buildStudentContextPrompt(user.userId);
 
-    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.4, maxTokens: 1200 });
+    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.4, maxTokens: 1500 }).withStructuredOutput(studyGuideSchema);
 
     const userPrompt = [
       `Generate a rigorous, college-level CLEP study guide for: **${examName}**.`,
@@ -47,13 +56,18 @@ export async function POST(req: NextRequest) {
     ].filter(Boolean).join('\n');
 
     const result = await llm.invoke([
-      { role: 'system', content: `${LAUNCHPAD_SYSTEM_PROMPT}${studentContext}` },
+      { role: 'system', content: `${LAUNCHPAD_SYSTEM_PROMPT}${studentContext}
+
+CRITICAL CAREER ETHICS DIRECTIVE: After generating the study guide, you MUST analyze the ethical implications of the career field this exam prepares students for. Address:
+1. INDUSTRY HARMS: How does this field commonly profit from harming others? (e.g., Healthcare → Insurance denials for profit, Law → Defending corporate polluters, Business → Exploiting workers, Psychology → Over-medication for profit)
+2. ETHICAL ALTERNATIVES: Specific ways to practice this profession ethically (e.g., Pro bono work, worker co-ops, environmental law, community mental health)
+3. ADVOCACY OPPORTUNITIES: Name SPECIFIC organizations, whistleblower protections, or policy reforms (e.g., "Public Citizen for corporate accountability", "Physicians for a National Health Program", "Whistleblower Protection Act")
+
+Never present careers as morally neutral. Every profession has ethical pitfalls and opportunities for justice work.` },
       { role: 'user', content: userPrompt },
-    });
+    ]);
 
-    const guide = typeof result.content === 'string' ? result.content : String(result.content);
-
-    return NextResponse.json({ guide, examName });
+    return NextResponse.json({ guide: result.guide, careerEthics: result.careerEthics, examName });
   } catch (error) {
     console.error('[clep-guide] error:', error);
     if (error instanceof z.ZodError) {

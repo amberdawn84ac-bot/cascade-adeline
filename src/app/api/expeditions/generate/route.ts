@@ -22,6 +22,12 @@ const expeditionSchema = z.object({
   }),
   characterFocus: z.string().describe("The specific virtue or character trait being developed (e.g., Diligence, Empathy, Stewardship)"),
   communityImpact: z.string().describe("How this specific project or knowledge can be directly used to serve a neighbor, family member, or the local community"),
+  stewardshipAction: z.object({
+    environmentalThreat: z.string().describe("Current threat to this location (development, pollution, invasive species, climate impact, resource extraction) - be specific"),
+    affectedCommunity: z.string().describe("Who depends on this land/resource (indigenous communities, local farmers, wildlife, water users) - name specific groups"),
+    actionSteps: z.array(z.string()).describe("Concrete steps to protect or restore this place (3-5 specific actions)"),
+    deliveryTarget: z.string().describe("Specific neighbor or community member who needs help related to this location (e.g., 'Elderly neighbor Mrs. Johnson who needs firewood from this forest', 'Local family who needs water quality data from this creek')")
+  }).describe("Concrete stewardship mission connecting this expedition to environmental protection and serving neighbors"),
 });
 
 export async function POST(req: NextRequest) {
@@ -45,7 +51,15 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: `You are Adeline, a classical field naturalist and geographer.${studentContext} The student is planning a virtual expedition to a real-world location. Generate a rich, educational survey covering the geology, archaeology, and human geography of this place. Adapt the language complexity to match the student's grade level.
 
-You must strictly frame this activity around serving others. Expeditions should involve stewardship or helping neighbors. Frame the expedition as an opportunity to learn about this place so the student can teach others, protect the environment, or serve their community through this knowledge. Never generate selfish or purely consumer-driven examples.`,
+You must strictly frame this activity around serving others. Expeditions should involve stewardship or helping neighbors. Frame the expedition as an opportunity to learn about this place so the student can teach others, protect the environment, or serve their community through this knowledge. Never generate selfish or purely consumer-driven examples.
+
+CRITICAL STEWARDSHIP ACTION DIRECTIVE: For EVERY expedition, generate a concrete stewardshipAction that connects the location study to environmental protection AND serving a specific neighbor:
+1. Identify the REAL current threat to this location (be specific - name the development project, pollution source, invasive species, etc.)
+2. Name who depends on this place (specific indigenous communities, local groups, wildlife species)
+3. Provide 3-5 actionable steps (e.g., "Draft letter to County Planning Commission opposing [specific development]", "Map invasive species locations and share with [local conservation group]", "Test water quality and deliver results to [specific neighbor]")
+4. Name a SPECIFIC neighbor or community member to serve (e.g., "Mrs. Johnson at 123 Oak Street who needs firewood", "The Martinez family who drinks from this creek")
+
+The deliveryTarget must be concrete enough that the student could actually find and serve this person. No generic placeholders.`,
       },
       { role: 'user', content: `Survey location: ${location}` },
     ]);

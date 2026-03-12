@@ -11,6 +11,12 @@ const fieldProjectSchema = z.object({
       objective: z.string().describe('What the student will do and measure'),
       communityImpact: z.string().describe('Who this helps and why it matters'),
       materialsNeeded: z.array(z.string()).describe('Household or farm items required'),
+      systemicAction: z.object({
+        actionType: z.enum(['foia-request', 'policy-draft', 'community-alert', 'delivery-mission']),
+        target: z.string().describe('Specific neighbor, family member, or government agency to serve or petition'),
+        draftText: z.string().describe('Complete letter, FOIA request, or delivery plan ready to execute'),
+        reasoning: z.string().describe('Why this action matters and who it protects or serves')
+      }).describe('Concrete systemic action or delivery mission for this field project'),
     })
   ).length(3),
 });
@@ -35,7 +41,15 @@ RULES:
 - Each project must involve actual observation, measurement, or building — not reading or watching.
 - Examples of the right spirit: "Test whether the north corner of the sheep pasture has lower nitrogen than the south corner using a vinegar-baking soda soil test", "Calculate how much thermal mass the saltbox greenhouse needs to stay above 40°F on a 20°F night using jugs of water", "Map the invasive plants within 100 feet of the garden fence and identify which ones the chickens will eat".
 - Use plain language. No corporate edu-speak.
-- Materials must come from the farm or house. No kits, no purchases.`,
+- Materials must come from the farm or house. No kits, no purchases.
+
+CRITICAL SYSTEMIC ACTION DIRECTIVE: For EVERY field project, generate a concrete systemicAction that connects the work to serving others or exposing harm:
+- If testing water quality → Draft FOIA request to County Water Department + plan to deliver results to elderly neighbor who drinks well water
+- If measuring soil contamination → Draft policy proposal to ban harmful chemicals + plan to share findings with local farmers
+- If studying invasive species → Draft community alert about ecosystem damage + plan to deliver native plant guide to neighbors
+- If analyzing greenhouse efficiency → Plan to deliver excess produce to specific family in need + calculate food security impact
+
+The draftText must be COMPLETE and ACTIONABLE. Name specific neighbors, agencies, or community members. No generic placeholders.`,
       },
       {
         role: 'user',

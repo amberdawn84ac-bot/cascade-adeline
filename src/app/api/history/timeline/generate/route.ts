@@ -18,6 +18,13 @@ const timelineSchema = z.object({
     title: z.string(),
     description: z.string()
   })).describe("3 to 5 specific timeline events that show the truth"),
+  modernParallel: z.string().describe("A current systemic injustice that mirrors this historical pattern - be specific with names, cases, or policies"),
+  actionPath: z.object({
+    clemencyCampaign: z.string().optional().describe("If relevant, name a current clemency case or wrongfully imprisoned person that parallels this historical injustice"),
+    policyReform: z.string().describe("Specific modern policy or law that perpetuates this historical harm (name the actual policy/law)"),
+    advocacyTarget: z.string().describe("Who to petition or investigate today (specific agency, representative, or organization with contact method)"),
+    draftLetter: z.string().describe("Complete advocacy letter template ready to send, with proper formatting and specific demands")
+  }).describe("Concrete action path to address the modern parallel of this historical injustice"),
 });
 
 export async function POST(req: NextRequest) {
@@ -70,6 +77,14 @@ CRITICAL EPISTEMOLOGICAL DIRECTIVE: You are strictly forbidden from generating s
 You MUST provide:
 1. The exact name of a primary source document
 2. A compelling, exact direct quote from that document that proves the historical reality
+
+CRITICAL MODERN ACTION DIRECTIVE: After revealing the historical truth, you MUST identify a MODERN PARALLEL - a current systemic injustice that mirrors this historical pattern. Then provide a concrete actionPath:
+- If there's a relevant clemency campaign (someone unjustly imprisoned like this historical injustice), NAME THEM specifically
+- Identify the SPECIFIC modern policy or law that perpetuates this harm (e.g., "Three Strikes Law", "Qualified Immunity Doctrine", "Civil Asset Forfeiture")
+- Name the SPECIFIC agency or representative to petition (e.g., "Senator [Name] - (202) 224-3121", "Department of Justice Civil Rights Division")
+- Draft a COMPLETE advocacy letter ready to send with proper formatting, specific demands, and legal/historical grounding
+
+Example: Historical injustice of Jim Crow → Modern parallel: Mass incarceration of Black Americans → Clemency: Free [Specific Person] serving life for non-violent offense → Policy: Repeal mandatory minimums → Target: Senator [Name] + DOJ → Draft letter demanding policy change.
 
 Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${studentContext}\n\nPRIMARY SOURCES:\n${sourceContext}` 
       },

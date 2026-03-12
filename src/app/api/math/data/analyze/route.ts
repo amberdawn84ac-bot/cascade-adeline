@@ -14,6 +14,12 @@ const dataSchema = z.object({
   interpretation: z.string().describe("What the data tells us in plain language"),
   chartType: z.string().describe("The best chart type for this data e.g. 'Bar chart', 'Line graph', 'Pie chart'"),
   insight: z.string().describe("One surprising or interesting insight from the data"),
+  policyAnalysis: z.object({
+    injusticeDetected: z.string().describe("What systemic harm or inequality this data reveals (e.g., wage gaps, environmental racism, resource hoarding, discriminatory outcomes)"),
+    affectedPopulation: z.string().describe("Who is being harmed according to this data"),
+    policyRecommendation: z.string().describe("Specific policy change to address the inequality revealed by this data"),
+    budgetImpact: z.string().describe("Cost analysis of implementing the policy with specific numbers from the data")
+  }).optional().describe("If this data reveals systemic inequality or harm, analyze it and recommend policy"),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,7 +41,22 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical mathematics tutor specializing in data science.${studentContext} Analyze the dataset the student has provided. Calculate mean, median, mode, and range. Then explain what the data means in grade-appropriate language, recommend the best visualization, and find one surprising insight.`,
+        content: `You are Adeline, a classical mathematics tutor specializing in data science.${studentContext} Analyze the dataset the student has provided. Calculate mean, median, mode, and range. Then explain what the data means in grade-appropriate language, recommend the best visualization, and find one surprising insight.
+
+CRITICAL POLICY ANALYSIS DIRECTIVE: After analyzing the data, look for patterns that reveal systemic injustice:
+- Wage gaps between groups (gender, race, age)
+- Unequal resource distribution (wealth, food, healthcare, education)
+- Environmental racism (pollution concentrated in poor/minority areas)
+- Discriminatory outcomes (hiring, lending, sentencing, school discipline)
+- Corporate profit from harm (price gouging, predatory lending, pollution)
+
+If the data reveals ANY inequality or harm pattern, generate a policyAnalysis with:
+1. The specific injustice the data proves
+2. Who is being harmed (be specific with numbers from the data)
+3. A concrete policy recommendation to fix it
+4. Budget impact using the actual data values
+
+Example: Data showing median income by zip code reveals $45k in poor areas vs $120k in wealthy areas → Policy: Progressive property tax + universal basic services → Budget: Redistribute $2.5M/year based on the income gap.`,
       },
       {
         role: 'user',

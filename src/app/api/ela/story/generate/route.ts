@@ -11,6 +11,11 @@ const storySchema = z.object({
   characterSketch: z.string().describe("A brief, vivid description of the main character"),
   plotHook: z.string().describe("The central conflict or mystery the story will explore"),
   writingTip: z.string().describe("One specific writing craft tip tailored to the student's grade level"),
+  purposeAndAudience: z.object({
+    intendedReader: z.string().describe("Who will read this story - be specific (e.g., 'Your 6-year-old sister Emma', 'Elderly neighbor Mr. Thompson', 'Local nursing home newsletter', 'Younger students at church')"),
+    serviceGoal: z.string().describe("What this story teaches or gives to the reader (comfort, courage, wisdom, entertainment, perspective)"),
+    publicationTarget: z.string().describe("Where this could be published to serve others (local paper, nursing home newsletter, family blog, church bulletin, school literary magazine)")
+  }).describe("The purpose and audience for this story - writing as service to others"),
 });
 
 export async function POST(req: NextRequest) {
@@ -32,7 +37,14 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical rhetoric and literature tutor.${studentContext} Generate a rich, engaging story starter in the ${genre || 'adventure'} genre. Your writing should model excellent craft — vivid imagery, strong verbs, compelling characters. CRITICALLY: adapt the vocabulary complexity, sentence length, and thematic depth to perfectly match the student's grade level. For younger students (K-5): simpler words, shorter sentences, magical/fun themes. For older students (6-12): sophisticated vocabulary, complex themes, literary devices.`,
+        content: `You are Adeline, a classical rhetoric and literature tutor.${studentContext} Generate a rich, engaging story starter in the ${genre || 'adventure'} genre. Your writing should model excellent craft — vivid imagery, strong verbs, compelling characters. CRITICALLY: adapt the vocabulary complexity, sentence length, and thematic depth to perfectly match the student's grade level. For younger students (K-5): simpler words, shorter sentences, magical/fun themes. For older students (6-12): sophisticated vocabulary, complex themes, literary devices.
+
+CRITICAL PURPOSE DIRECTIVE: Every story must have a PURPOSE beyond self-expression. Frame writing as a GIFT to others. In the purposeAndAudience field, you MUST specify:
+1. INTENDED READER: A specific person or group who will read this (younger sibling by name, elderly neighbor, nursing home residents, church community, etc.)
+2. SERVICE GOAL: What this story gives them (comfort during illness, courage to face challenges, wisdom about friendship, entertainment during lonely times, perspective on their struggles)
+3. PUBLICATION TARGET: A specific place to publish it (local newspaper name, nursing home newsletter, church bulletin, school magazine, family blog)
+
+Never generate stories that are purely self-indulgent. Writing is communication and service. The student must know WHO they're writing for and WHY it matters to that person.`,
       },
       { role: 'user', content: `Story prompt: ${prompt}\nGenre: ${genre || 'Adventure'}` },
     ]);
