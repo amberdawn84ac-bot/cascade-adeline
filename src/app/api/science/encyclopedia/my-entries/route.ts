@@ -9,11 +9,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all encyclopedia entries for this student
-    const entries = await prisma.scienceEntry.findMany({
-      where: { userId: session.userId },
+    // Fetch all encyclopedia entries for this student from TranscriptEntry
+    // Science entries are stored with activityName starting with "Encyclopedia:"
+    const transcriptEntries = await prisma.transcriptEntry.findMany({
+      where: { 
+        userId: session.userId,
+        activityName: {
+          startsWith: 'Encyclopedia:'
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
+
+    // Extract the entry data from metadata field
+    const entries = transcriptEntries.map(te => ({
+      id: te.id,
+      ...(te.metadata as any),
+      createdAt: te.createdAt
+    }));
 
     return NextResponse.json(entries);
   } catch (error) {
