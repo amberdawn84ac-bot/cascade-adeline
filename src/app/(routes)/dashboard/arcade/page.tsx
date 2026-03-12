@@ -44,7 +44,11 @@ function useSpellingSpeech() {
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     utt.rate = 0.85;
-    utt.pitch = 1.0;
+    utt.pitch = 1.1;
+    // Try to select a female voice
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Karen'));
+    if (femaleVoice) utt.voice = femaleVoice;
     window.speechSynthesis.speak(utt);
   }, []);
 
@@ -82,7 +86,9 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
   const { speak, stopSpeaking, isListening, startListening, stopListening } = useSpellingSpeech();
 
   const speakWord = useCallback((w: SpellingWord) => {
-    speak(`${w.word}. ${w.word}. Part of speech: ${w.partOfSpeech}. Definition: ${w.definition}. Used in a sentence: ${w.usedInSentence}. ${w.word}.`);
+    // Replace the target word with "blank" in the sentence
+    const maskedSentence = w.usedInSentence.replace(new RegExp(`\\b${w.word}\\b`, 'gi'), 'blank');
+    speak(`${w.word}. ${w.word}. Part of speech: ${w.partOfSpeech}. Definition: ${w.definition}. Used in a sentence: ${maskedSentence}. ${w.word}.`);
   }, [speak]);
 
   const fetchWord = useCallback(async () => {
@@ -153,7 +159,7 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
         <Card className="border-2 border-amber-200"><CardContent className="p-6 space-y-4">
           <div className="text-center"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Part of Speech</p><p className="italic text-[#2F4731]/70 text-sm">{word.partOfSpeech}</p></div>
           <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Definition</p><p className="text-[#2F4731]">{word.definition}</p></div>
-          <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Used in a Sentence</p><p className="text-[#2F4731] italic">"{word.usedInSentence}"</p></div>
+          <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Used in a Sentence</p><p className="text-[#2F4731] italic">"{word.usedInSentence.replace(new RegExp(`\\b${word.word}\\b`, 'gi'), '______')}"</p></div>
           <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 text-sm text-amber-800">💡 <strong>Origin:</strong> {word.origin}</div>
           <div className="flex gap-2">
             <Button onClick={() => speakWord(word)} variant="outline" className="border-2 border-amber-300 text-amber-700 gap-1"><Volume2 className="w-4 h-4" /> Hear Again</Button>
