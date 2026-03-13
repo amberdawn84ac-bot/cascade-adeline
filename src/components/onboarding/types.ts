@@ -5,6 +5,8 @@ export type OnboardingData = {
   cognitiveProfile?: string;
   learningStyle?: string;
   coppaConsent?: boolean;
+  state?: string;
+  graduationYear?: number;
 };
 
 export type OnboardingStep = {
@@ -13,7 +15,7 @@ export type OnboardingStep = {
   fields?: Array<{
     name: keyof OnboardingData;
     label: string;
-    type: 'text' | 'grade-selector' | 'tag-input' | 'learning-style' | 'checkbox';
+    type: 'text' | 'grade-selector' | 'tag-input' | 'learning-style' | 'checkbox' | 'state-selector' | 'graduation-year';
   }>;
   illustration?: React.ReactNode;
 };
