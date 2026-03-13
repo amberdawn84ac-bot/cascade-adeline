@@ -4,8 +4,6 @@ import { ChatOpenAI } from '@langchain/openai';
 import { streamText } from 'ai';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
-export const runtime = 'edge';
-
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser();
