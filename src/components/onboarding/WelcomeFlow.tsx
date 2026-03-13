@@ -31,6 +31,13 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     illustration: <WheatStalk size={120} color="#BD6809" />,
   },
   {
+    title: "Parent/Guardian Consent",
+    content: "Dear Adeline is designed to be a safe, COPPA-compliant environment for your child. Please review and consent to continue.",
+    fields: [
+      { name: 'coppaConsent', label: 'I am the parent or legal guardian. I consent to my child using this platform and understand that any generated content or data is used strictly for educational purposes.', type: 'checkbox' },
+    ],
+  },
+  {
     title: "Tell me about your learner",
     fields: [
       { name: 'childName', label: "What's your child's name?", type: 'text' },
@@ -62,8 +69,28 @@ export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData)
     );
   };
 
-  const handleNext = () => {
+    const handleNext = () => {
     const updatedData = { ...data, interests: selectedInterests };
+    
+    // Validate required fields for current step
+    if (currentStep.fields?.some(f => f.name === 'coppaConsent')) {
+      if (!data.coppaConsent) {
+        alert("Please provide parent/guardian consent to continue.");
+        return;
+      }
+    }
+    
+    if (currentStep.fields?.some(f => f.name === 'childName')) {
+      if (!data.childName?.trim()) {
+        alert("Please enter your child's name.");
+        return;
+      }
+      if (!data.gradeLevel) {
+        alert("Please select a grade level.");
+        return;
+      }
+    }
+
     setData(updatedData);
     if (step < ONBOARDING_STEPS.length - 1) {
       setStep(step + 1);
@@ -150,15 +177,51 @@ export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData)
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 24 }}>
                 {currentStep.fields.map((field) => (
                   <div key={field.name}>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: 8,
-                      fontWeight: 600,
-                      color: '#2F4731',
-                      fontFamily: 'Kalam, "Comic Sans MS", system-ui',
-                    }}>
-                      {field.label}
-                    </label>
+                    {field.type !== 'checkbox' && (
+                      <label style={{
+                        display: 'block',
+                        marginBottom: 8,
+                        fontWeight: 600,
+                        color: '#2F4731',
+                        fontFamily: 'Kalam, "Comic Sans MS", system-ui',
+                      }}>
+                        {field.label}
+                      </label>
+                    )}
+
+                    {field.type === 'checkbox' && (
+                      <label style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 12,
+                        cursor: 'pointer',
+                        padding: '16px',
+                        background: '#FFF',
+                        border: '2px solid #E7DAC3',
+                        borderRadius: 12,
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={(data[field.name] as boolean) || false}
+                          onChange={(e) => setData({ ...data, [field.name]: e.target.checked })}
+                          style={{
+                            marginTop: 4,
+                            width: 20,
+                            height: 20,
+                            accentColor: '#BD6809',
+                            cursor: 'pointer'
+                          }}
+                        />
+                        <span style={{
+                          color: '#2F4731',
+                          fontFamily: 'system-ui, sans-serif',
+                          fontSize: 14,
+                          lineHeight: 1.5,
+                        }}>
+                          {field.label}
+                        </span>
+                      </label>
+                    )}
 
                     {field.type === 'text' && (
                       <input
