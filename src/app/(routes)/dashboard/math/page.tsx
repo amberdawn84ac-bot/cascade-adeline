@@ -202,7 +202,21 @@ function BusinessPanel({ tier }: { tier: keyof typeof TIER_CONFIG }) {
   const cfg = TIER_CONFIG[tier].business;
   const [fields, setFields] = useState({ price: '', quantity: '', costPerUnit: '', fixedCosts: '' });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ revenue: number; costs: number; profit: number; profitMargin: string; analysis: string; advice: string; mathBreakdown: string[] } | null>(null);
+  const [result, setResult] = useState<{ 
+    revenue: number; 
+    costs: number; 
+    profit: number; 
+    profitMargin: string; 
+    analysis: string; 
+    advice: string; 
+    mathBreakdown: string[];
+    policyAnalysis?: {
+      injusticeDetected: string;
+      affectedPopulation: string;
+      policyRecommendation: string;
+      budgetImpact: string;
+    }
+  } | null>(null);
   const [error, setError] = useState('');
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setFields(p => ({ ...p, [k]: e.target.value }));
 
@@ -264,6 +278,24 @@ function BusinessPanel({ tier }: { tier: keyof typeof TIER_CONFIG }) {
               {result.mathBreakdown.map((s, i) => <li key={i} className="text-sm text-[#2F4731] font-mono">{s}</li>)}
             </ul>
           </div>
+          
+          {result.policyAnalysis && (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-xs font-bold text-rose-800 uppercase tracking-wider">⚖️ Ethical Business Analysis</p>
+              </div>
+              <div className="space-y-2 text-sm text-rose-900">
+                <p><strong>Systemic Risk:</strong> {result.policyAnalysis.injusticeDetected}</p>
+                <p><strong>Who it affects:</strong> {result.policyAnalysis.affectedPopulation}</p>
+                <div className="bg-white/60 p-3 rounded-lg border border-rose-100 mt-2">
+                  <p className="font-bold mb-1">Recommended Policy:</p>
+                  <p>{result.policyAnalysis.policyRecommendation}</p>
+                  <p className="mt-2 text-xs font-mono bg-rose-100 p-2 rounded">Budget Impact: {result.policyAnalysis.budgetImpact}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
             <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-amber-800"><strong>Adeline says:</strong> {result.advice}</p>
