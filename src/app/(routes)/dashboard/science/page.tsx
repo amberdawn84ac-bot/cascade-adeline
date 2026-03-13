@@ -127,16 +127,16 @@ export default function SciencePage() {
       {
         id: '1',
         name: 'Water Justice Lab',
-        focus: 'Water quality testing, FOIA requests, and community protection',
-        description: 'Test local water sources for contamination. Draft FOIA requests to water departments. Deliver clean water data to neighbors who need it.',
-        currentChallenge: 'Test 3 local water sources (well, creek, tap). Draft FOIA request to County Water Dept for contamination records. Deliver results to 2 elderly neighbors.',
+        focus: 'Water quality testing, FOIA requests, and policy action',
+        description: 'Test local water sources for contamination. Draft FOIA requests to water departments. Testify at County Board meetings to demand transparency and policy change.',
+        currentChallenge: 'Test 3 local water sources (well, creek, tap). Draft FOIA request to County Water Dept for contamination records. Prepare 3-minute testimony for next County Board meeting demanding mandatory public water testing.',
       },
       {
         id: '2',
         name: 'Soil Stewardship Collective',
-        focus: 'Soil testing, pesticide investigation, and land restoration',
-        description: 'Test soil for pesticide residue and heavy metals. Investigate corporate pollution. Restore contaminated land and deliver harvests to food-insecure neighbors.',
-        currentChallenge: 'Test soil near industrial site. Draft policy proposal to ban harmful pesticides. Plant remediation crops and deliver first harvest to Martinez family.',
+        focus: 'Soil testing, pesticide investigation, and policy reform',
+        description: 'Test soil for pesticide residue and heavy metals. Investigate corporate pollution. Draft petitions to ban harmful chemicals and organize community pressure campaigns.',
+        currentChallenge: 'Test soil near industrial site. Draft petition to City Council to ban glyphosate in residential areas. Collect 50 signatures and submit with soil test data as evidence.',
       },
       {
         id: '3',
@@ -156,8 +156,8 @@ export default function SciencePage() {
         id: '5',
         name: 'Seed Sovereignty Network',
         focus: 'Heirloom seeds, corporate seed monopolies, and food independence',
-        description: 'Save heirloom seeds. Investigate Monsanto/Bayer seed patents. Build community seed library. Deliver seed packets to neighbors.',
-        currentChallenge: 'Save seeds from 3 heirloom varieties. Research one seed patent case. Deliver 10 seed packets to neighbors with planting instructions.',
+        description: 'Save heirloom seeds. Investigate Monsanto/Bayer seed patents. Build community seed library. Draft policy to protect seed saving rights and challenge corporate monopolies.',
+        currentChallenge: 'Save seeds from 3 heirloom varieties. Research one seed patent case. Draft letter to State Agriculture Department demanding protection for seed saving and opposing seed patent enforcement.',
       },
       {
         id: '6',

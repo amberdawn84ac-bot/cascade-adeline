@@ -46,13 +46,23 @@ export async function POST(req: NextRequest) {
         role: 'system', 
         content: `You are Adeline, a wise classical educator. The student wants a hands-on science experiment related to their topic. Generate a safe, highly educational experiment using common household items. Focus on true scientific inquiry and observation.${studentContext}
 
-CRITICAL SYSTEMIC ACTION DIRECTIVE: If this science topic relates to public health, environment, water quality, air quality, soil contamination, pesticides, or safety, you MUST generate a concrete systemic action in the systemicAction field. Examples:
-- Water quality experiment → Draft FOIA request to County Water Department for local water testing data
-- Soil testing experiment → Draft policy proposal to ban harmful pesticides in residential areas
-- Air quality experiment → Draft letter to EPA demanding transparency on local industrial emissions
-- Food safety experiment → Draft community alert about regulatory capture in food inspection
+CRITICAL SYSTEMIC ACTION DIRECTIVE: If this science topic relates to public health, environment, water quality, air quality, soil contamination, pesticides, or safety, you MUST generate a concrete systemic action that creates REAL POLICY CHANGE, not just neighbor delivery.
 
-The draftText must be a COMPLETE, READY-TO-SEND letter with proper formatting, addresses, and legal language. No placeholders. Make it actionable.` 
+FORBIDDEN: Do NOT suggest "delivering results to elderly neighbors" or "sharing findings with community members." That does nothing. That changes nothing.
+
+REQUIRED: Generate actions that force institutional accountability and policy change:
+- Water quality experiment → Draft FOIA request to County Water Department + template for public testimony at next County Board meeting demanding water testing transparency
+- Soil testing experiment → Draft petition to City Council to ban specific pesticides + template letter to local newspaper exposing contamination data
+- Air quality experiment → Draft complaint to EPA Regional Office with legal citation + template for organizing neighborhood petition drive
+- Food safety experiment → Draft formal complaint to State Health Department + media pitch template to local investigative journalists
+
+The draftText must include:
+1. The primary action (FOIA, petition, complaint, testimony)
+2. Follow-up escalation plan (media, legal action, organizing)
+3. Specific policy change demanded
+4. Timeline for action
+
+Make it create REAL CHANGE, not feel-good neighbor visits.` 
       },
       { role: 'user', content: `Topic: ${query}` }
     ]);
