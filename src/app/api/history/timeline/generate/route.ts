@@ -99,45 +99,43 @@ Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${stu
       console.log('[history/generate] Timeline generated successfully');
       return NextResponse.json(result);
     } catch (llmError) {
-      console.error("[history/generate] LLM error:", llmError);
+      console.error("[history/generate] LLM error, using fallback:", llmError);
       
-      // Graceful fallback if AI fails
+      // Graceful fallback if AI fails - matches timelineSchema structure
       return NextResponse.json({
         topic: query,
         sanitizedMyth: `The standard textbook story about ${query} usually presents a simplified version of events, skipping over the complex realities and the diverse perspectives of all the people involved.`,
-        historicalReality: `The historical reality of ${query} is much more complex. Primary sources from the time reveal that there were many competing interests, and the outcomes affected different groups of people in vastly different ways.`,
+        historicalReality: `The historical reality of ${query} is much more complex. Primary sources from the time reveal that there were many competing interests, and the outcomes affected different groups of people in vastly different ways. To fully understand this event, you should investigate primary source documents, letters, journals, and firsthand accounts from the period.`,
+        primarySourcesCiting: [
+          "Contemporary newspaper archives",
+          "Personal letters and diaries from the period",
+          "Official government documents and records",
+          "Eyewitness testimonies and oral histories"
+        ],
+        primarySourceCitation: "Various primary source documents from the historical period",
+        directQuote: "The historical record shows that events were experienced differently depending on one's social position, economic status, and geographical location.",
         events: [
           {
-            year: "The Beginning",
+            year: "Early Period",
             title: "The context leading up to the event",
-            description: "Understanding the economic, social, and political conditions that made this event possible.",
-            primarySourceQuote: "Primary sources (letters, journals, newspaper articles) from this era show a society in transition.",
-            primarySourceDocument: "Various contemporary accounts"
+            description: "Understanding the economic, social, and political conditions that made this event possible requires examining the power structures and competing interests of the time."
           },
           {
-            year: "The Climax",
-            title: `The main events of ${query}`,
-            description: "When the event actually occurred, it was experienced differently depending on a person's social standing and geographical location.",
-            primarySourceQuote: "Eyewitness accounts describe a chaotic and deeply impactful period of time.",
-            primarySourceDocument: "First-hand testimonies"
+            year: "Main Period",
+            title: `The central events of ${query}`,
+            description: "When the event actually occurred, it was experienced differently depending on a person's social standing and geographical location. Primary sources reveal multiple perspectives."
           },
           {
-            year: "The Aftermath",
+            year: "Aftermath",
             title: "The long-term consequences",
-            description: "The effects of this event rippled through generations, shaping policies and social structures that we still live with today.",
-            primarySourceQuote: "Later historical analysis reveals the lasting impact of these decisions.",
-            primarySourceDocument: "Historical retrospectives"
+            description: "The effects of this event rippled through generations, shaping policies and social structures that we still live with today."
           }
         ],
-        modernParallel: {
-          issue: "Historical patterns repeating today",
-          description: "Many of the same power dynamics, economic incentives, and social struggles that defined this historical event are still present in modern society, just in different forms.",
-          actionPath: {
-            clemencyTarget: "Those currently impacted by similar modern policies",
-            policyTarget: "Laws that perpetuate historical inequalities",
-            agencyTarget: "Local and Federal Representatives",
-            letterTemplate: `Dear Representative,\n\nI am a student currently studying the history of ${query}. I have learned that the systemic issues from that era are still present today in our modern policies.\n\nI urge you to review these laws and work towards a more equitable system that learns from our past mistakes.\n\nSincerely,\nA Concerned Student`
-          }
+        modernParallel: "Many of the same power dynamics, economic incentives, and social struggles that defined this historical event are still present in modern society, just in different forms. Historical patterns of inequality and injustice often repeat themselves through new policies and systems.",
+        actionPath: {
+          policyReform: "Laws and policies that perpetuate historical inequalities and systemic injustice",
+          advocacyTarget: "Contact your local and federal representatives to advocate for policy reform that addresses these historical patterns",
+          draftLetter: `Dear Representative,\n\nI am a student currently studying the history of ${query}. Through my research into primary sources and historical records, I have learned that the systemic issues from that era are still present today in our modern policies.\n\nI urge you to review current laws that perpetuate these historical inequalities and work towards a more equitable system that learns from our past mistakes. History shows us that when we ignore the lessons of the past, we risk repeating the same injustices.\n\nI respectfully request that you:\n1. Review policies that mirror historical patterns of inequality\n2. Support reforms that address systemic injustice\n3. Advocate for those currently impacted by these policies\n\nSincerely,\nA Concerned Student and Citizen`
         }
       });
     }
