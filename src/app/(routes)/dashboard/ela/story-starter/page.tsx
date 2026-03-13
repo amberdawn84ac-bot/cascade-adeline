@@ -18,6 +18,7 @@ interface StoryStarter {
     serviceGoal: string;
     publicationTarget: string;
   };
+  choices?: string[];
 }
 
 export default function StoryStarterPage() {
@@ -153,6 +154,27 @@ export default function StoryStarterPage() {
                   <p className="text-xs font-bold text-amber-800 mb-2">💡 Remember:</p>
                   <p className="text-xs text-amber-900 italic">Writing is a gift to others. Keep your reader in mind as you write. How will this story serve them?</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Choices Section */}
+          {story.choices && story.choices.length > 0 && (
+            <div className="bg-amber-50 p-6 rounded-xl border-2 border-amber-200 mt-6">
+              <h4 className="font-bold text-amber-900 mb-4 text-lg">What happens next?</h4>
+              <div className="grid gap-3">
+                {story.choices.map((choice, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => {
+                      setPrompt(`${story.opening} The character decided to: ${choice}. Continue the story.`);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="text-left p-4 rounded-lg bg-white border-2 border-amber-100 hover:border-amber-400 hover:bg-amber-100 transition-all text-amber-900 font-medium"
+                  >
+                    {choice}
+                  </button>
+                ))}
               </div>
             </div>
           )}

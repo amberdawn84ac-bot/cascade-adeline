@@ -16,6 +16,7 @@ const storySchema = z.object({
     serviceGoal: z.string().describe("What this story teaches or gives to the reader (comfort, courage, wisdom, entertainment, perspective)"),
     publicationTarget: z.string().describe("Where this could be published to serve others (local paper, nursing home newsletter, family blog, church bulletin, school literary magazine)")
   }).describe("The purpose and audience for this story - writing as service to others"),
+  choices: z.array(z.string()).describe("2 to 3 exciting options for what the main character should do next to continue the story").optional(),
 });
 
 export async function POST(req: NextRequest) {
