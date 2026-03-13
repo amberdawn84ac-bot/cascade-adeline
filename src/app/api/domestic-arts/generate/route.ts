@@ -70,10 +70,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(conversationalResponse);
     }
 
-    const result = await llm.invoke([
-      {
-        role: 'system',
-        content: `You are Adeline, a wise and encouraging homesteading mentor with deep practical knowledge of ${CATEGORY_CONTEXT[category]}. Generate a real, executable homesteading project for a homeschool student. Keep your tone supportive and inspiring.
+    try {
+      const result = await llm.invoke([
+        {
+          role: 'system',
+          content: `You are Adeline, a wise and encouraging homesteading mentor with deep practical knowledge of ${CATEGORY_CONTEXT[category]}. Generate a real, executable homesteading project for a homeschool student. Keep your tone supportive and inspiring.
 
 CRITICAL RULES:
 - Break the project down into manageable, bite-sized steps that don't feel overwhelming
@@ -82,14 +83,35 @@ CRITICAL RULES:
 - The communityImpact field must show how their work matters: explain how this skill helps their family or neighbors
 - Match complexity to ${skillLevel} skill level
 - This is real homestead work, not a craft project${studentContext}`,
-      },
-      {
-        role: 'user',
-        content: `Generate a ${skillLevel} ${category} project focused on: ${focus}`,
-      },
-    ]);
+        },
+        {
+          role: 'user',
+          content: `Generate a ${skillLevel} ${category} project focused on: ${focus}`,
+        },
+      ]);
 
-    return NextResponse.json(result);
+      return NextResponse.json(result);
+    } catch (llmError) {
+      console.error('[Homesteading/generate] LLM Error:', llmError);
+      // Graceful fallback if AI fails
+      return NextResponse.json({
+        title: `${skillLevel === 'beginner' ? 'Basic' : skillLevel === 'intermediate' ? 'Standard' : 'Advanced'} ${category.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Project`,
+        category: category,
+        difficulty: skillLevel.charAt(0).toUpperCase() + skillLevel.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',
+        seasonalWindow: 'Any appropriate season',
+        timeRequired: '1-2 hours',
+        materials: ['Basic supplies for ' + category.split('-').join(' ')],
+        steps: [
+          'Gather your materials and set up a clean workspace.',
+          `Begin the core process for your ${focus} project.`,
+          'Carefully monitor your progress and make adjustments as needed.',
+          'Clean up your workspace and properly store your tools.'
+        ],
+        safetyNotes: ['Always wash your hands before and after.', 'Ask an adult for help with sharp tools or heat.'],
+        yield: `A completed ${focus} project`,
+        communityImpact: 'Learning this skill helps build independence and creates something useful for your family.',
+      });
+    }
   } catch (error) {
     console.error('[Homesteading/generate] Error:', error);
     if (error instanceof z.ZodError) {

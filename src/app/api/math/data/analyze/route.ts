@@ -38,10 +38,11 @@ export async function POST(req: NextRequest) {
       temperature: 0.4,
     }).withStructuredOutput(dataSchema);
 
-    const result = await llm.invoke([
-      {
-        role: 'system',
-        content: `You are Adeline, a classical mathematics tutor specializing in data science.${studentContext} Analyze the dataset the student has provided. Calculate mean, median, mode, and range. Then explain what the data means in grade-appropriate language, recommend the best visualization, and find one surprising insight.
+    try {
+      const result = await llm.invoke([
+        {
+          role: 'system',
+          content: `You are Adeline, a classical mathematics tutor specializing in data science.${studentContext} Analyze the dataset the student has provided. Calculate mean, median, mode, and range. Then explain what the data means in grade-appropriate language, recommend the best visualization, and find one surprising insight.
 
 CRITICAL POLICY ANALYSIS DIRECTIVE: After analyzing the data, look for patterns that reveal systemic injustice:
 - Wage gaps between groups (gender, race, age)
@@ -57,14 +58,51 @@ If the data reveals ANY inequality or harm pattern, generate a policyAnalysis wi
 4. Budget impact using the actual data values
 
 Example: Data showing median income by zip code reveals $45k in poor areas vs $120k in wealthy areas → Policy: Progressive property tax + universal basic services → Budget: Redistribute $2.5M/year based on the income gap.`,
-      },
-      {
-        role: 'user',
-        content: `Dataset: ${data}\n${question ? `Question: ${question}` : ''}`,
-      },
-    ]);
+        },
+        {
+          role: 'user',
+          content: `Dataset: ${data}\n${question ? `Question: ${question}` : ''}`,
+        },
+      ]);
 
-    return NextResponse.json(result);
+      return NextResponse.json(result);
+    } catch (llmError) {
+      console.error('Data analyze LLM error:', llmError);
+      
+      // Attempt to extract numbers from the data for basic fallback math
+      const numMatches = data.match(/-?\d+(?:\.\d+)?/g);
+      const numbers = numMatches ? numMatches.map(Number).sort((a: number, b: number) => a - b) : [0];
+      
+      const sum = numbers.reduce((a: number, b: number) => a + b, 0);
+      const mean = sum / numbers.length;
+      const median = numbers.length % 2 === 0 
+        ? (numbers[numbers.length / 2 - 1] + numbers[numbers.length / 2]) / 2
+        : numbers[Math.floor(numbers.length / 2)];
+      const range = numbers[numbers.length - 1] - numbers[0];
+      
+      // Basic mode calculation
+      const counts: Record<number, number> = {};
+      let maxCount = 0;
+      let modeNum = numbers[0];
+      numbers.forEach((n: number) => {
+        counts[n] = (counts[n] || 0) + 1;
+        if (counts[n] > maxCount) {
+          maxCount = counts[n];
+          modeNum = n;
+        }
+      });
+      const mode = maxCount > 1 ? modeNum.toString() : "No repeating numbers";
+
+      return NextResponse.json({
+        mean,
+        median,
+        mode,
+        range,
+        analysis: "Here is a basic statistical breakdown of the numbers you provided. A full analysis wasn't available at the moment.",
+        insight: `Your data spans from ${numbers[0]} to ${numbers[numbers.length - 1]}, giving a range of ${range}.`,
+        chartType: "Bar Chart",
+      });
+    }
   } catch (error) {
     console.error('Data analyze error:', error);
     return NextResponse.json({ error: 'Failed to analyze data' }, { status: 500 });
