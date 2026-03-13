@@ -303,29 +303,29 @@ export default function GraduationAscentPage() {
                       )}
                     </div>
                   </div>
-                </Card>
-              );
-            })}
-          </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-
-        {/* Adeline's Motivation */}
-        <Card className="border-2 border-amber-200 bg-amber-50">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <Lightbulb className="w-8 h-8 text-amber-600 flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-amber-900 mb-2">Adeline's Reminder</h3>
-                <p className="text-amber-800 leading-relaxed">
-                  Graduation is not a finish line — it's a launchpad. Every credit you earn, every skill you build, 
-                  every business dollar you generate is proof of real-world competence. I will not let you coast. 
-                  Let's keep climbing.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Adeline's Motivation */}
+      <Card className="border-2 border-amber-200 bg-amber-50">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <Lightbulb className="w-8 h-8 text-amber-600 flex-shrink-0" />
+            <div>
+              <h3 className="font-bold text-amber-900 mb-2">Adeline's Reminder</h3>
+              <p className="text-amber-800 leading-relaxed">
+                Graduation is not a finish line — it's a launchpad. Every credit you earn, every skill you build, 
+                every business dollar you generate is proof of real-world competence. I will not let you coast. 
+                Let's keep climbing.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
