@@ -104,6 +104,7 @@ model User {
   mfaCredential           UserMFACredential?
   investigations          Investigation[]
   createdShareLinks       ShareLink[]               @relation("ShareLinkCreator")
+  learningPlans           LearningPlan[]
 
   @@index([email])
   @@index([role])
@@ -197,27 +198,31 @@ model Opportunity {
 }
 
 model TranscriptEntry {
-  id                 String    @id @default(uuid()) @db.Uuid
-  metadata           Json?     @default("{}")
-  userId             String?   @db.Uuid
-  activityName       String    @map("activity_name")
-  mappedSubject      String    @map("mapped_subject")
-  creditsEarned      Decimal   @map("credits_earned") @db.Decimal(10, 2)
-  gradeLevel         String?   @map("grade_level")
-  evidenceArtifactId String?   @db.Uuid
-  dateCompleted      DateTime  @map("date_completed")
-  approvedById       String?   @db.Uuid
+  id                 String        @id @default(uuid()) @db.Uuid
+  metadata           Json?         @default("{}")
+  userId             String?       @db.Uuid
+  activityName       String        @map("activity_name")
+  mappedSubject      String        @map("mapped_subject")
+  creditsEarned      Decimal       @map("credits_earned") @db.Decimal(10, 2)
+  gradeLevel         String?       @map("grade_level")
+  evidenceArtifactId String?       @db.Uuid
+  planStandardId     String?       @map("plan_standard_id") @db.Uuid
+  masteryEvidence    Json?         @map("mastery_evidence")
+  dateCompleted      DateTime      @map("date_completed")
+  approvedById       String?       @db.Uuid
   notes              String?
-  validationType     String    @default("internal") @map("validation_type")
-  externalProofUrl   String?   @map("external_proof_url")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
-  approvedBy         User?     @relation("TranscriptApprover", fields: [approvedById], references: [id])
-  evidenceArtifact   Artifact? @relation(fields: [evidenceArtifactId], references: [id])
-  user               User?     @relation(fields: [userId], references: [id])
+  validationType     String        @default("internal") @map("validation_type")
+  externalProofUrl   String?       @map("external_proof_url")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  approvedBy         User?         @relation("TranscriptApprover", fields: [approvedById], references: [id])
+  evidenceArtifact   Artifact?     @relation(fields: [evidenceArtifactId], references: [id])
+  user               User?         @relation(fields: [userId], references: [id])
+  planStandard       PlanStandard? @relation(fields: [planStandardId], references: [id])
 
   @@index([userId])
   @@index([mappedSubject])
+  @@index([planStandardId])
 }
 
 model Concept {
@@ -478,16 +483,19 @@ model AIJob {
 }
 
 model StateStandard {
-  id                 String                    @id @default(uuid()) @db.Uuid
-  standardCode       String                    @map("standard_code")
-  jurisdiction       String
-  subject            String
-  gradeLevel         String                    @map("grade_level")
-  statementText      String                    @map("statement_text")
-  description        String?
-  learningComponents LearningComponent[]
-  skillMappings      SkillStandardMapping[]
-  studentProgress    StudentStandardProgress[]
+  id                      String                    @id @default(uuid()) @db.Uuid
+  standardCode            String                    @map("standard_code")
+  jurisdiction            String
+  subject                 String
+  gradeLevel              String                    @map("grade_level")
+  statementText           String                    @map("statement_text")
+  description             String?
+  typicalMicrocreditValue Decimal?                  @map("typical_microcredit_value") @db.Decimal(10, 4)
+  masteryIndicators       Json?                     @map("mastery_indicators")
+  learningComponents      LearningComponent[]
+  skillMappings           SkillStandardMapping[]
+  studentProgress         StudentStandardProgress[]
+  planStandards           PlanStandard[]
 
   @@unique([standardCode, jurisdiction])
   @@index([jurisdiction, subject])
@@ -519,16 +527,18 @@ model SkillStandardMapping {
 }
 
 model StudentStandardProgress {
-  id             String        @id @default(uuid()) @db.Uuid
-  userId         String        @map("user_id") @db.Uuid
-  standardId     String        @map("standard_id") @db.Uuid
-  mastery        MasteryLevel  @default(INTRODUCED)
-  sourceType     String?       @map("source_type")
-  sourceId       String?       @map("source_id")
-  evidence       Json?
-  demonstratedAt DateTime      @default(now()) @map("demonstrated_at")
-  standard       StateStandard @relation(fields: [standardId], references: [id])
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String        @id @default(uuid()) @db.Uuid
+  userId             String        @map("user_id") @db.Uuid
+  standardId         String        @map("standard_id") @db.Uuid
+  mastery            MasteryLevel  @default(INTRODUCED)
+  sourceType         String?       @map("source_type")
+  sourceId           String?       @map("source_id")
+  evidence           Json?
+  microcreditsEarned Decimal       @default(0) @map("microcredits_earned") @db.Decimal(10, 4)
+  lastActivityAt     DateTime?     @map("last_activity_at")
+  demonstratedAt     DateTime      @default(now()) @map("demonstrated_at")
+  standard           StateStandard @relation(fields: [standardId], references: [id])
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, standardId])
   @@index([userId])
@@ -588,6 +598,56 @@ model ShareLink {
   investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
 
   @@map("share_links")
+}
+
+model LearningPlan {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  state          String
+  graduationYear Int            @map("graduation_year")
+  lastReviewedAt DateTime?      @map("last_reviewed_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planStandards  PlanStandard[]
+
+  @@unique([userId])
+  @@index([userId])
+  @@index([state])
+}
+
+model PlanStandard {
+  id                String            @id @default(uuid()) @db.Uuid
+  planId            String            @map("plan_id") @db.Uuid
+  standardId        String            @map("standard_id") @db.Uuid
+  microcreditValue  Decimal           @map("microcredit_value") @db.Decimal(10, 4)
+  customNotes       String?           @map("custom_notes")
+  isActive          Boolean           @default(true) @map("is_active")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  plan              LearningPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  standard          StateStandard     @relation(fields: [standardId], references: [id])
+  activities        StandardActivity[]
+  transcriptEntries TranscriptEntry[]
+
+  @@unique([planId, standardId])
+  @@index([planId])
+  @@index([standardId])
+  @@index([isActive])
+}
+
+model StandardActivity {
+  id               String       @id @default(uuid()) @db.Uuid
+  planStandardId   String       @map("plan_standard_id") @db.Uuid
+  activityType     String       @map("activity_type")
+  activityMetadata Json?        @map("activity_metadata")
+  masteryThreshold Json?        @map("mastery_threshold")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  planStandard     PlanStandard @relation(fields: [planStandardId], references: [id], onDelete: Cascade)
+
+  @@index([planStandardId])
+  @@index([activityType])
 }
 
 enum UserRole {
