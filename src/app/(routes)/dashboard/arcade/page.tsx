@@ -526,17 +526,21 @@ function CodeQuest({ onBack }: { onBack: () => void }) {
 // ─── Game Hub ─────────────────────────────────────────────────────────────────
 
 export default function ArcadePage() {
-  const [activeGame, setActiveGame] = useState<null | 'spelling' | 'typing' | 'coding'>(null);
+  const [activeGame, setActiveGame] = useState<null | 'spelling' | 'typing' | 'coding' | 'math-puzzle' | 'map-challenge'>(null);
 
   const games = [
     { id: 'spelling' as const, emoji: '🐝', title: 'Spelling Bee', desc: 'Study a word — then spell it from memory. Hearts and streaks keep it exciting.', color: 'border-amber-200 hover:border-amber-400', btn: 'bg-amber-500 hover:bg-amber-600' },
     { id: 'typing' as const, emoji: '⌨️', title: 'Typing Racer', desc: 'Type passages as fast and accurately as you can. Track your WPM and accuracy live.', color: 'border-blue-200 hover:border-blue-400', btn: 'bg-blue-500 hover:bg-blue-600' },
     { id: 'coding' as const, emoji: '💻', title: 'Code Quest', desc: 'Write actual code to build simple games. A real coding playground.', color: 'border-violet-200 hover:border-violet-400', btn: 'bg-violet-500 hover:bg-violet-600' },
+    { id: 'math-puzzle' as const, emoji: '🧩', title: 'Logic Labyrinth', desc: 'Solve challenging math puzzles and logic grids. Test your reasoning skills.', color: 'border-emerald-200 hover:border-emerald-400', btn: 'bg-emerald-500 hover:bg-emerald-600' },
+    { id: 'map-challenge' as const, emoji: '🗺️', title: 'Historical Cartographer', desc: 'Identify ancient cities and borders on blank historical maps.', color: 'border-rose-200 hover:border-rose-400', btn: 'bg-rose-500 hover:bg-rose-600' },
   ];
 
   if (activeGame === 'spelling') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><SpellingBee onBack={() => setActiveGame(null)} /></div>;
   if (activeGame === 'typing') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><TypingRacer onBack={() => setActiveGame(null)} /></div>;
   if (activeGame === 'coding') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><CodeQuest onBack={() => setActiveGame(null)} /></div>;
+  if (activeGame === 'math-puzzle') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><div className="max-w-xl mx-auto text-center py-20"><h2 className="text-3xl font-bold text-[#2F4731] mb-4">Logic Labyrinth</h2><p className="text-[#2F4731]/60 mb-8">This game is currently under construction by Adeline's engineers. Check back soon!</p><Button onClick={() => setActiveGame(null)}>Back to Arcade</Button></div></div>;
+  if (activeGame === 'map-challenge') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><div className="max-w-xl mx-auto text-center py-20"><h2 className="text-3xl font-bold text-[#2F4731] mb-4">Historical Cartographer</h2><p className="text-[#2F4731]/60 mb-8">This game is currently under construction by Adeline's engineers. Check back soon!</p><Button onClick={() => setActiveGame(null)}>Back to Arcade</Button></div></div>;
 
   return (
     <div className="flex flex-col min-h-full bg-[#FFFEF7]">
