@@ -61,6 +61,14 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
       { name: 'learningStyle', label: 'Pick the one that fits most naturally', type: 'learning-style' },
     ],
   },
+  {
+    title: "Create Your Learning Plan",
+    content: "I'll create a personalized learning plan based on your state's standards. This maps every activity to specific learning objectives, so you earn real academic credit.",
+    fields: [
+      { name: 'state', label: 'What state are you in?', type: 'state-selector' },
+      { name: 'graduationYear', label: 'Expected graduation year?', type: 'graduation-year' },
+    ],
+  },
 ];
 
 export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData) => void }) {
@@ -97,6 +105,17 @@ export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData)
       }
       if (!data.gradeLevel) {
         alert("Please select a grade level.");
+        return;
+      }
+    }
+
+    if (currentStep.fields?.some(f => f.name === 'state')) {
+      if (!data.state) {
+        alert("Please select your state.");
+        return;
+      }
+      if (!data.graduationYear) {
+        alert("Please enter your expected graduation year.");
         return;
       }
     }
@@ -335,6 +354,51 @@ export function WelcomeFlow({ onComplete }: { onComplete: (data: OnboardingData)
                           );
                         })}
                       </div>
+                    )}
+
+                    {field.type === 'state-selector' && (
+                      <select
+                        value={(data.state as string) || ''}
+                        onChange={(e) => setData({ ...data, state: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: 12,
+                          border: '2px solid #E7DAC3',
+                          fontSize: 16,
+                          fontFamily: 'Kalam, "Comic Sans MS", system-ui',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          background: '#FFF',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="">Select your state...</option>
+                        {US_STATES.map((state) => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {field.type === 'graduation-year' && (
+                      <input
+                        type="number"
+                        min={new Date().getFullYear()}
+                        max={new Date().getFullYear() + 15}
+                        value={(data.graduationYear as number) || ''}
+                        onChange={(e) => setData({ ...data, graduationYear: parseInt(e.target.value) || undefined })}
+                        placeholder="e.g., 2028"
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: 12,
+                          border: '2px solid #E7DAC3',
+                          fontSize: 16,
+                          fontFamily: 'Kalam, "Comic Sans MS", system-ui',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
                     )}
                   </div>
                 ))}
