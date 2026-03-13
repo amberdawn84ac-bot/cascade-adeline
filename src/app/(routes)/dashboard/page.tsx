@@ -15,7 +15,8 @@ import {
   BookOpen,
   TrendingUp,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Sprout
 } from 'lucide-react';
 import Link from 'next/link';
 import { MissionBriefing } from '@/components/ui/quests/MissionBriefing';
@@ -42,6 +43,9 @@ async function getStudentDashboardData(userId: string) {
     ela: { earned: 0, total: 0 },
     history: { earned: 0, total: 0 },
     arcade: { earned: 0, total: 0 },
+    agora: { earned: 0, total: 0 },
+    'domestic-arts': { earned: 0, total: 0 },
+    'bible-study': { earned: 0, total: 0 },
   };
 
   progress.forEach(p => {
@@ -63,6 +67,15 @@ async function getStudentDashboardData(userId: string) {
     } else if (subject.includes('computer') || subject.includes('tech') || subject.includes('code') || subject.includes('game')) {
       roomStats.arcade.total++;
       if (isMastered) roomStats.arcade.earned++;
+    } else if (subject.includes('agora')) {
+      roomStats.agora.total++;
+      if (isMastered) roomStats.agora.earned++;
+    } else if (subject.includes('domestic') || subject.includes('arts')) {
+      roomStats['domestic-arts'].total++;
+      if (isMastered) roomStats['domestic-arts'].earned++;
+    } else if (subject.includes('bible') || subject.includes('study')) {
+      roomStats['bible-study'].total++;
+      if (isMastered) roomStats['bible-study'].earned++;
     }
   });
 
@@ -116,6 +129,17 @@ async function getTeacherDashboardData(userId: string) {
 
 const ROOMS = [
   {
+    id: 'agora',
+    title: 'The Agora',
+    subtitle: 'Student Community Feed',
+    icon: Users,
+    color: 'bg-orange-500/10',
+    borderColor: 'border-orange-500/20',
+    textColor: 'text-orange-800',
+    description: 'See what your fellow students are building, learning, and discovering.',
+    link: '/dashboard/agora'
+  },
+  {
     id: 'science',
     title: 'Science Lab',
     subtitle: 'Life Sciences & Chemistry',
@@ -124,6 +148,7 @@ const ROOMS = [
     borderColor: 'border-emerald-500/20',
     textColor: 'text-emerald-800',
     description: 'Track experiments, nature journals, and scientific method mastery.',
+    link: '/dashboard/science'
   },
   {
     id: 'math',
@@ -134,6 +159,7 @@ const ROOMS = [
     borderColor: 'border-amber-500/20',
     textColor: 'text-amber-800',
     description: 'Manage your business, calculate profits, and master algebra.',
+    link: '/dashboard/math'
   },
   {
     id: 'history',
@@ -144,6 +170,7 @@ const ROOMS = [
     borderColor: 'border-indigo-500/20',
     textColor: 'text-indigo-800',
     description: 'Explore primary sources and uncover the truth of the past.',
+    link: '/dashboard/history'
   },
   {
     id: 'arcade',
@@ -154,7 +181,41 @@ const ROOMS = [
     borderColor: 'border-violet-500/20',
     textColor: 'text-violet-800',
     description: 'Run the farm, manage the woodshop, calculate real-world problems.',
+    link: '/dashboard/arcade'
   },
+  {
+    id: 'ela',
+    title: 'Writing Desk',
+    subtitle: 'Creative & Analytical Writing',
+    icon: BookOpen,
+    color: 'bg-pink-500/10',
+    borderColor: 'border-pink-500/20',
+    textColor: 'text-pink-800',
+    description: 'Craft stories, analyze literature, and perfect your prose.',
+    link: '/dashboard/ela'
+  },
+  {
+    id: 'domestic-arts',
+    title: 'Homesteading',
+    subtitle: 'Real Skills for Real Life',
+    icon: Sprout,
+    color: 'bg-green-500/10',
+    borderColor: 'border-green-500/20',
+    textColor: 'text-green-800',
+    description: 'Learn canning, animal husbandry, gardening, and fiber arts.',
+    link: '/dashboard/domestic-arts'
+  },
+  {
+    id: 'bible-study',
+    title: 'Bible Study',
+    subtitle: 'Deep Scripture Analysis',
+    icon: BookOpen,
+    color: 'bg-[#2F4731]/10',
+    borderColor: 'border-[#2F4731]/20',
+    textColor: 'text-[#2F4731]',
+    description: 'Study the original Hebrew and Greek texts and historical context.',
+    link: '/dashboard/bible-study'
+  }
 ];
 
 // Student Dashboard Component
@@ -188,7 +249,7 @@ function StudentDashboard({ roomStats, zpdRecommendation, opportunity }: any) {
           return (
             <Link 
               key={room.id} 
-              href={`/dashboard/${room.id}`}
+              href={room.link || `/dashboard/${room.id}`}
               className={`group relative p-8 rounded-[2rem] border-2 ${room.borderColor} ${room.color} hover:bg-white hover:shadow-xl transition-all duration-300`}
             >
               <div className="flex items-start justify-between mb-6">
