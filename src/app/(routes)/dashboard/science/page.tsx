@@ -844,8 +844,8 @@ export default function SciencePage() {
                 <div className="max-w-5xl mx-auto">
                   <h3 className="text-2xl text-emerald-900 mb-2 font-bold">Science Groups</h3>
                   <p className="text-sm text-emerald-600 italic mb-6">Join a group to work on systemic action challenges together. Each group focuses on real-world justice and community service.</p>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {groups.map((group) => {
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {groups.map((group) => {
                       const isJoined = joinedGroups.includes(group.name);
                       return (
                         <Card key={group.id} className={`border-2 transition-all ${isJoined ? 'border-emerald-500 shadow-md' : 'border-emerald-200'} cursor-pointer hover:shadow-lg`}

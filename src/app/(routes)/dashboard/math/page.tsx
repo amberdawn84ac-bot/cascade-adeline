@@ -236,7 +236,7 @@ function BusinessPanel({ tier }: { tier: keyof typeof TIER_CONFIG }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {[
           { key: 'price', label: 'Selling Price ($)', ph: cfg.pricePlaceholder },
           { key: 'quantity', label: 'Units to Sell', ph: cfg.qtyPlaceholder },
@@ -256,7 +256,7 @@ function BusinessPanel({ tier }: { tier: keyof typeof TIER_CONFIG }) {
       {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
       {result && (
         <div className="space-y-3 border-t-2 border-[#E7DAC3] pt-4">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {[
               { label: 'Revenue', val: `$${result.revenue.toFixed(2)}`, color: 'bg-blue-50 border-blue-200 text-blue-900' },
               { label: 'Costs', val: `$${result.costs.toFixed(2)}`, color: 'bg-red-50 border-red-200 text-red-900' },
@@ -431,7 +431,7 @@ export default function MathPage() {
 
         {/* Workshop cards */}
         {!activeWorkshop && (
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {WORKSHOPS.map(w => (
               <button key={w.id} onClick={() => setActiveWorkshop(w.id)}
                 className="text-left bg-white rounded-[2rem] border-2 border-[#BD6809]/20 hover:border-[#BD6809] hover:shadow-xl transition-all p-6 group">

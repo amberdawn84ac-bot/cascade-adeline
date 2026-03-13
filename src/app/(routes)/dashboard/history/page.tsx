@@ -332,8 +332,8 @@ export default function HistoryPage() {
                       {entry.topic}
                     </h3>
                     
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 mb-4">
+                        <div className="bg-red-50 p-4 rounded-lg border border-red-100">
                         <h4 className="text-xs font-bold text-red-800 uppercase mb-2">Sanitized Version</h4>
                         <p className="text-sm text-red-700 line-clamp-3">{entry.sanitizedMyth}</p>
                       </div>
