@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const geometrySchema = z.object({
   answer: z.string().describe("The final numerical answer with units"),
@@ -38,7 +39,33 @@ export async function POST(req: NextRequest) {
         { role: 'user', content: `Geometry problem: ${problem}` },
       ]);
 
-      return NextResponse.json(result);
+      // Award credits for geometry problem solving
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'Mathematics',
+        activityType: 'geometry',
+        activityName: 'Geometry Problem Solving',
+        metadata: {
+          problem,
+          formula: result.formula,
+          answer: result.answer,
+        },
+        masteryDemonstrated: true,
+      });
+
+      await createTranscriptEntryWithCredits(
+        user.userId,
+        'Geometry Problem Solving',
+        'Mathematics',
+        creditResult,
+        `Solved geometry problem using ${result.formula}: ${result.answer}`,
+        { geometrySolution: result }
+      );
+
+      return NextResponse.json({
+        ...result,
+        creditsEarned: creditResult.creditsEarned,
+        standardLinked: creditResult.standardLinked,
+      });
     } catch (llmError) {
       console.error('Geometry solve LLM error:', llmError);
       

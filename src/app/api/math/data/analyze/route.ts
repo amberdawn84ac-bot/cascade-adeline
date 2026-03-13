@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const dataSchema = z.object({
   mean: z.number().describe("The arithmetic mean of the dataset"),
@@ -65,7 +66,34 @@ Example: Data showing median income by zip code reveals $45k in poor areas vs $1
         },
       ]);
 
-      return NextResponse.json(result);
+      // Award credits for data analysis
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'Mathematics',
+        activityType: 'data-analysis',
+        activityName: 'Data Analysis & Statistics',
+        metadata: {
+          mean: result.mean,
+          median: result.median,
+          mode: result.mode,
+          range: result.range,
+        },
+        masteryDemonstrated: true,
+      });
+
+      await createTranscriptEntryWithCredits(
+        user.userId,
+        'Data Analysis & Statistics',
+        'Mathematics',
+        creditResult,
+        `Analyzed dataset: mean=${result.mean}, median=${result.median}, mode=${result.mode}, range=${result.range}`,
+        { dataAnalysis: result }
+      );
+
+      return NextResponse.json({
+        ...result,
+        creditsEarned: creditResult.creditsEarned,
+        standardLinked: creditResult.standardLinked,
+      });
     } catch (llmError) {
       console.error('Data analyze LLM error:', llmError);
       
