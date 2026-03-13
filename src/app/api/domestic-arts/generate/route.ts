@@ -3,6 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const requestSchema = z.object({
   category: z.enum(['preservation', 'livestock-sheep', 'livestock-poultry', 'livestock-horses', 'greenhouse', 'fiber-arts']),
@@ -90,7 +91,34 @@ CRITICAL RULES:
         },
       ]);
 
-      return NextResponse.json(result);
+      // Award credits for domestic arts project
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'Domestic Arts',
+        activityType: 'homesteading-project',
+        activityName: `Homesteading: ${result.title}`,
+        metadata: {
+          category,
+          focus,
+          difficulty: result.difficulty,
+          yield: result.yield,
+        },
+        masteryDemonstrated: true,
+      });
+
+      await createTranscriptEntryWithCredits(
+        user.userId,
+        `Homesteading: ${result.title}`,
+        'Domestic Arts',
+        creditResult,
+        `Completed ${result.difficulty} ${category} project: ${result.yield}`,
+        { project: result }
+      );
+
+      return NextResponse.json({
+        ...result,
+        creditsEarned: creditResult.creditsEarned,
+        standardLinked: creditResult.standardLinked,
+      });
     } catch (llmError) {
       console.error('[Homesteading/generate] LLM Error:', llmError);
       // Graceful fallback if AI fails
