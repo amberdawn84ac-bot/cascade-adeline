@@ -51,22 +51,21 @@ export async function POST(req: NextRequest) {
     if (isSimpleRequest) {
       // Ask clarifying questions instead of overwhelming them
       const conversationalResponse = {
-        title: `Let's talk about ${focus}`,
+        title: `Let's figure this out together!`,
         category: category,
         difficulty: skillLevel.charAt(0).toUpperCase() + skillLevel.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',
         seasonalWindow: 'Any time',
-        timeRequired: 'Let me help you figure this out',
-        materials: ['First, let me ask you a few questions...'],
+        timeRequired: 'Just a few minutes to plan',
+        materials: ['First, I need a little more information...'],
         steps: [
-          `What kind of ${focus} are you thinking about? (Be specific - chocolate chip, snickerdoodles, etc.)`,
-          'Do you need a recipe, or do you already have one?',
-          'Do you need a shopping list for ingredients?',
-          `Are you making these to sell, donate, or just for your family?`,
-          'Once I know what you need, I can help you with the exact steps!'
+          `You mentioned "${focus}". What exactly are you hoping to do?`,
+          'Do you have a specific goal in mind, or do you need me to suggest some options?',
+          'Are there any materials you already have on hand that you want to use?',
+          'Once I know a bit more, I can generate a perfect project plan just for you!'
         ],
         safetyNotes: [],
-        yield: 'Tell me more and I\'ll help you plan this properly',
-        communityImpact: `Once we figure out what you're actually making, we can talk about how this builds your skills and serves others. But first - what kind of ${focus}?`,
+        yield: 'A great plan tailored to exactly what you want to do',
+        communityImpact: `We'll make sure whatever you do has a real impact. Just tell me a bit more first!`,
       };
       return NextResponse.json(conversationalResponse);
     }
@@ -74,12 +73,13 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical homesteading educator with deep practical knowledge of ${CATEGORY_CONTEXT[category]}. Generate a real, executable homesteading project for a homeschool student.
+        content: `You are Adeline, a wise and encouraging homesteading mentor with deep practical knowledge of ${CATEGORY_CONTEXT[category]}. Generate a real, executable homesteading project for a homeschool student. Keep your tone supportive and inspiring.
 
 CRITICAL RULES:
-- Every step must be actionable and specific — no vague instructions like "prepare the area"
+- Break the project down into manageable, bite-sized steps that don't feel overwhelming
+- Every step must be actionable and specific
 - Include exact temperatures, quantities, and timings where relevant
-- The communityImpact field must be powerful and specific: explain exactly how this skill reduces dependence on grocery stores, builds family resilience, or creates tradeable value
+- The communityImpact field must show how their work matters: explain how this skill helps their family or neighbors
 - Match complexity to ${skillLevel} skill level
 - This is real homestead work, not a craft project${studentContext}`,
       },
