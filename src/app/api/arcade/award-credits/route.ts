@@ -9,19 +9,19 @@ import prisma from '@/lib/db';
  * A typical homeschool year has ~180 instructional days, ~4-6 core subjects.
  *
  * Spelling Bee  → English Language Arts (vocabulary is ~10% of ELA credit)
- *   Correct word : 0.02 cr  — spelling one word correctly ≈ 2.4 min of ELA credit
- *   Attempt      : 0.005 cr — exposure/attempt with no mastery
+ *   Correct word : 0.005 cr  — spelling one word correctly ≈ 36 seconds of focused ELA study
+ *   Attempt      : 0.001 cr  — exposure/attempt with no mastery
  *
  * Typing Racer  → Technology / Computer Science (keyboarding is ~15% of tech credit)
  *   Scaled by difficulty × accuracy:
- *     easy    base 0.01  — a short, simple passage
- *     medium  base 0.02  — a paragraph-length passage
- *     hard    base 0.04  — an advanced vocabulary passage
+ *     easy    base 0.003  — a short, simple passage (~20 seconds)
+ *     medium  base 0.006  — a paragraph-length passage (~45 seconds)
+ *     hard    base 0.012  — an advanced vocabulary passage (~90 seconds)
  *   Accuracy multiplier: ≥95% → ×1.5 | ≥80% → ×1.0 | <80% → ×0.5
  *
  * Code Quest    → Computer Science (code-reading is substantive programming study)
- *   Correct answer : 0.05 cr — reading + reasoning about code
- *   Wrong answer   : 0.01 cr — engaged attempt, still learned from explanation
+ *   Correct answer : 0.02 cr — reading + reasoning about code (~2-3 minutes)
+ *   Wrong answer   : 0.005 cr — engaged attempt, still learned from explanation
  */
 
 type SpellingResult = { word: string; correct: boolean };
@@ -29,17 +29,17 @@ type TypingResult = { difficulty: 'easy' | 'medium' | 'hard'; wpm: number; accur
 type CodingResult = { correct: boolean; concept: string; language: string };
 
 function calcSpellingCredits(result: SpellingResult) {
-  return result.correct ? 0.02 : 0.005;
+  return result.correct ? 0.005 : 0.001;
 }
 
 function calcTypingCredits(result: TypingResult) {
-  const base = { easy: 0.01, medium: 0.02, hard: 0.04 }[result.difficulty] ?? 0.01;
+  const base = { easy: 0.003, medium: 0.006, hard: 0.012 }[result.difficulty] ?? 0.003;
   const mult = result.accuracy >= 95 ? 1.5 : result.accuracy >= 80 ? 1.0 : 0.5;
   return parseFloat((base * mult).toFixed(4));
 }
 
 function calcCodingCredits(result: CodingResult) {
-  return result.correct ? 0.05 : 0.01;
+  return result.correct ? 0.02 : 0.005;
 }
 
 export async function POST(req: NextRequest) {
