@@ -318,117 +318,205 @@ function TypingRacer({ onBack }: { onBack: () => void }) {
 }
 
 // ─── Code Quest ───────────────────────────────────────────────────────────────
-interface CodeChallenge {
-  concept: string; language: string; codeSnippet: string; question: string;
-  options: string[]; correctAnswer: string; explanation: string; difficulty: string;
+interface CodingProject {
+  title: string;
+  description: string;
+  starterCode: string;
+  goal: string;
+  hints: string[];
 }
 
+const CODING_PROJECTS: CodingProject[] = [
+  {
+    title: "Guess the Number",
+    description: "Build a game where the computer picks a random number and the player guesses it.",
+    starterCode: `// Guess the Number Game
+let secretNumber = Math.floor(Math.random() * 10) + 1;
+let guess = 0;
+
+// Your code here:
+// 1. Ask the player to guess a number
+// 2. Check if they're right
+// 3. Tell them "Too high!" or "Too low!"
+// 4. Keep going until they win
+
+`,
+    goal: "Make a working number guessing game with feedback",
+    hints: ["Use prompt() to ask for input", "Use if/else to check the guess", "Use a while loop to keep asking"]
+  },
+  {
+    title: "Color Changer",
+    description: "Build a button that changes the background color when clicked.",
+    starterCode: `<!-- Color Changer -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Color Changer</title>
+</head>
+<body>
+  <h1>Click to Change Color!</h1>
+  <button onclick="changeColor()">Change Color</button>
+  
+  <script>
+    function changeColor() {
+      // Your code here:
+      // Make the background change to a random color
+      
+    }
+  </script>
+</body>
+</html>`,
+    goal: "Create a button that changes the page background color",
+    hints: ["Use document.body.style.backgroundColor", "Generate random RGB values", "Try Math.random() * 255"]
+  },
+  {
+    title: "Click Counter",
+    description: "Build a counter that goes up every time you click a button.",
+    starterCode: `// Click Counter
+let count = 0;
+
+// Your code here:
+// 1. Create a button
+// 2. When clicked, add 1 to count
+// 3. Display the count on screen
+
+`,
+    goal: "Make a working click counter that displays the number",
+    hints: ["Use a variable to store the count", "Update it on each click", "Display it with innerHTML or alert()"]
+  }
+];
+
 function CodeQuest({ onBack }: { onBack: () => void }) {
-  const [language, setLanguage] = useState('Python');
-  const [challenge, setChallenge] = useState<CodeChallenge | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState(0);
-  const [round, setRound] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
-  const TOTAL = 5;
+  const [selectedProject, setSelectedProject] = useState<CodingProject | null>(null);
+  const [code, setCode] = useState('');
+  const [output, setOutput] = useState('');
+  const [showHints, setShowHints] = useState(false);
 
-  const fetchChallenge = async (lang = language) => {
-    setIsLoading(true); setSelected(null); setSubmitted(false);
+  const selectProject = (project: CodingProject) => {
+    setSelectedProject(project);
+    setCode(project.starterCode);
+    setOutput('');
+    setShowHints(false);
+  };
+
+  const runCode = () => {
     try {
-      const res = await fetch('/api/arcade/coding-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: lang }) });
-      if (!res.ok) throw new Error('Failed');
-      setChallenge(await res.json());
-    } catch { console.error('Failed to load challenge'); }
-    finally { setIsLoading(false); }
+      // For JavaScript code
+      if (code.includes('<!DOCTYPE html>')) {
+        // HTML code - open in new window
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(code);
+          newWindow.document.close();
+          setOutput('✅ Game opened in new window!');
+        }
+      } else {
+        // JavaScript code - run in sandbox
+        const logs: string[] = [];
+        const originalLog = console.log;
+        console.log = (...args) => logs.push(args.join(' '));
+        
+        // eslint-disable-next-line no-eval
+        eval(code);
+        
+        console.log = originalLog;
+        setOutput(logs.length > 0 ? logs.join('\n') : '✅ Code ran successfully!');
+      }
+    } catch (error) {
+      setOutput(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
-
-  const handleSubmit = () => {
-    if (!selected || !challenge) return;
-    const isCorrect = selected === challenge.correctAnswer;
-    if (isCorrect) setScore(s => s + 20);
-    setSubmitted(true);
-    fetch('/api/arcade/award-credits', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ game: 'coding', result: { correct: isCorrect, concept: challenge.concept, language: challenge.language } }),
-    }).catch(console.error);
-  };
-
-  const handleNext = () => { if (round >= TOTAL) { setGameOver(true); return; } setRound(r => r + 1); fetchChallenge(); };
-  const handleRestart = () => { setScore(0); setRound(1); setGameOver(false); fetchChallenge(); };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
+    <div className="max-w-5xl mx-auto space-y-5">
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
-        <div className="flex items-center gap-4 text-sm font-bold">
-          <span className="text-[#2F4731]/50">Round {round}/{TOTAL}</span>
-          <span className="text-[#BD6809] flex items-center gap-1"><Star className="w-4 h-4 fill-[#BD6809]" /> {score}</span>
-        </div>
+        {selectedProject && (
+          <button onClick={() => setSelectedProject(null)} className="text-sm text-violet-600 hover:text-violet-800">← Choose Different Project</button>
+        )}
       </div>
-      <div className="bg-violet-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-violet-700">Code Quest · {language}</div>
+      <div className="bg-violet-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-violet-700">Code Quest · Build Games</div>
 
-      {!challenge && !isLoading && !gameOver && (
-        <Card className="border-2 border-violet-100"><CardContent className="p-8 text-center space-y-6">
-          <Code2 className="w-16 h-16 text-violet-400 mx-auto" />
-          <h3 className="text-2xl font-black text-[#2F4731]">Choose Your Language</h3>
-          <div className="flex justify-center gap-3 flex-wrap">
-            {['Python', 'JavaScript', 'HTML/CSS'].map(l => (
-              <button key={l} onClick={() => setLanguage(l)} className={`px-5 py-2 rounded-xl border-2 font-bold transition-all ${language === l ? 'bg-violet-600 text-white border-violet-600' : 'border-violet-200 text-violet-600 hover:border-violet-400'}`}>{l}</button>
-            ))}
-          </div>
-          <Button onClick={() => fetchChallenge(language)} className="bg-violet-600 hover:bg-violet-700 text-white text-lg px-10 py-6 rounded-2xl">Start Code Quest!</Button>
-        </CardContent></Card>
-      )}
-
-      {gameOver && (
-        <Card className="border-2 border-violet-200 bg-violet-50"><CardContent className="p-8 text-center space-y-4">
-          <Trophy className="w-16 h-16 text-[#BD6809] mx-auto" />
-          <h2 className="text-3xl font-black text-[#2F4731]">Quest Complete!</h2>
-          <div className="text-5xl font-black text-[#BD6809]">{score}/{TOTAL * 20}</div>
-          <Button onClick={handleRestart} className="bg-[#2F4731] hover:bg-[#BD6809] text-white px-8 rounded-2xl">Play Again</Button>
-        </CardContent></Card>
-      )}
-
-      {isLoading && <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-violet-500" /></div>}
-
-      {challenge && !isLoading && !gameOver && (
-        <div className="space-y-4">
-          <Card className="border-2 border-violet-100"><CardContent className="p-0 overflow-hidden rounded-xl">
-            <div className="bg-[#1e1e1e] px-4 py-2 flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full" /><div className="w-3 h-3 bg-yellow-500 rounded-full" /><div className="w-3 h-3 bg-green-500 rounded-full" />
-              <span className="text-xs text-gray-400 ml-2 font-mono">{challenge.language} · {challenge.concept}</span>
-            </div>
-            <pre className="bg-[#1e1e1e] p-5 font-mono text-sm text-[#9cdcfe] overflow-x-auto whitespace-pre-wrap">{challenge.codeSnippet}</pre>
-          </CardContent></Card>
-
-          <Card className="border-2 border-violet-100"><CardContent className="p-5 space-y-4">
-            <p className="font-bold text-[#2F4731] text-lg">{challenge.question}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {challenge.options.map((opt, i) => {
-                let cls = 'border-2 border-violet-200 text-[#2F4731] hover:border-violet-400 hover:bg-violet-50';
-                if (submitted) {
-                  if (opt === challenge.correctAnswer) cls = 'border-2 border-green-400 bg-green-50 text-green-700';
-                  else if (opt === selected) cls = 'border-2 border-red-300 bg-red-50 text-red-600';
-                  else cls = 'border-2 border-gray-200 text-gray-400';
-                } else if (opt === selected) cls = 'border-2 border-violet-500 bg-violet-50 text-violet-700';
-                return <button key={i} onClick={() => !submitted && setSelected(opt)} className={`p-3 rounded-xl text-left text-sm font-mono transition-all ${cls}`}><span className="font-bold text-xs mr-2 opacity-50">{String.fromCharCode(65 + i)}.</span>{opt}</button>;
-              })}
-            </div>
-            {!submitted ? (
-              <Button onClick={handleSubmit} disabled={!selected} className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-2xl">Submit Answer</Button>
-            ) : (
-              <div className="space-y-3">
-                <div className={`p-4 rounded-xl border-2 ${selected === challenge.correctAnswer ? 'border-green-300 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-700'}`}>
-                  <p className="font-bold mb-1">{selected === challenge.correctAnswer ? '✓ Correct! +20 pts' : '✗ Not quite...'}</p>
-                  <p className="text-sm">{challenge.explanation}</p>
+      {!selectedProject ? (
+        <div className="grid md:grid-cols-3 gap-4">
+          {CODING_PROJECTS.map((project, i) => (
+            <Card key={i} className="border-2 border-violet-200 hover:border-violet-400 transition-all cursor-pointer" onClick={() => selectProject(project)}>
+              <CardContent className="p-6 space-y-3">
+                <Code2 className="w-12 h-12 text-violet-400" />
+                <h3 className="text-xl font-bold text-[#2F4731]">{project.title}</h3>
+                <p className="text-sm text-[#2F4731]/70">{project.description}</p>
+                <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white">Start Building →</Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <Card className="border-2 border-violet-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-[#2F4731]">{selectedProject.title}</h3>
+                  <Button onClick={() => setShowHints(!showHints)} variant="outline" size="sm" className="text-xs">
+                    {showHints ? 'Hide' : 'Show'} Hints
+                  </Button>
                 </div>
-                <Button onClick={handleNext} className="w-full bg-[#2F4731] hover:bg-[#BD6809] text-white py-3 rounded-2xl">{round >= TOTAL ? 'See Results →' : 'Next Challenge →'}</Button>
-              </div>
-            )}
-          </CardContent></Card>
+                <p className="text-sm text-[#2F4731]/70 mb-3">{selectedProject.description}</p>
+                <div className="bg-amber-50 border border-amber-200 rounded p-3 mb-3">
+                  <p className="text-xs font-bold text-amber-800 mb-1">🎯 Goal:</p>
+                  <p className="text-xs text-amber-900">{selectedProject.goal}</p>
+                </div>
+                {showHints && (
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3 space-y-1">
+                    <p className="text-xs font-bold text-blue-800">💡 Hints:</p>
+                    {selectedProject.hints.map((hint, i) => (
+                      <p key={i} className="text-xs text-blue-900">• {hint}</p>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-violet-200">
+              <CardContent className="p-0">
+                <div className="bg-[#1e1e1e] px-4 py-2 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full" />
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+                  <div className="w-3 h-3 bg-green-500 rounded-full" />
+                  <span className="text-xs text-gray-400 ml-2 font-mono">code.js</span>
+                </div>
+                <textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full bg-[#1e1e1e] text-[#9cdcfe] font-mono text-sm p-4 min-h-[400px] focus:outline-none resize-none"
+                  spellCheck={false}
+                />
+              </CardContent>
+            </Card>
+            <Button onClick={runCode} className="w-full bg-violet-600 hover:bg-violet-700 text-white py-4 text-lg">
+              ▶ Run Code
+            </Button>
+          </div>
+          <div className="space-y-3">
+            <Card className="border-2 border-emerald-200">
+              <CardContent className="p-4">
+                <h3 className="font-bold text-emerald-900 mb-3">Output</h3>
+                <div className="bg-black text-green-400 font-mono text-sm p-4 rounded min-h-[200px] whitespace-pre-wrap">
+                  {output || '// Run your code to see output here'}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-blue-200 bg-blue-50">
+              <CardContent className="p-4 space-y-2">
+                <h3 className="font-bold text-blue-900">How to Test Your Game:</h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Click "Run Code" to execute your game</li>
+                  <li>• For HTML games, a new window will open</li>
+                  <li>• For JavaScript games, check the output panel</li>
+                  <li>• Use console.log() to debug your code</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>
@@ -443,7 +531,7 @@ export default function ArcadePage() {
   const games = [
     { id: 'spelling' as const, emoji: '🐝', title: 'Spelling Bee', desc: 'Study a word — then spell it from memory. Hearts and streaks keep it exciting.', color: 'border-amber-200 hover:border-amber-400', btn: 'bg-amber-500 hover:bg-amber-600' },
     { id: 'typing' as const, emoji: '⌨️', title: 'Typing Racer', desc: 'Type passages as fast and accurately as you can. Track your WPM and accuracy live.', color: 'border-blue-200 hover:border-blue-400', btn: 'bg-blue-500 hover:bg-blue-600' },
-    { id: 'coding' as const, emoji: '💻', title: 'Code Quest', desc: 'Read real code and figure out what it does. A quiz game for future programmers.', color: 'border-violet-200 hover:border-violet-400', btn: 'bg-violet-500 hover:bg-violet-600' },
+    { id: 'coding' as const, emoji: '💻', title: 'Code Quest', desc: 'Write actual code to build simple games. A real coding playground.', color: 'border-violet-200 hover:border-violet-400', btn: 'bg-violet-500 hover:bg-violet-600' },
   ];
 
   if (activeGame === 'spelling') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><SpellingBee onBack={() => setActiveGame(null)} /></div>;
