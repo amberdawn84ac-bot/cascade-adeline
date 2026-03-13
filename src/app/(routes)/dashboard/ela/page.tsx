@@ -45,7 +45,7 @@ export default async function ElaPage() {
       </div>
 
       {/* Activities Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Story Writing */}
         <Link href="/dashboard/ela/story-workshop" className="group block">
           <div className="bg-white p-6 rounded-[2rem] border-2 border-rose-100 hover:border-rose-300 transition-all hover:shadow-lg cursor-pointer">
@@ -98,7 +98,7 @@ export default async function ElaPage() {
       {/* Writing Skills Section */}
       <div className="bg-white rounded-[2rem] p-8 border border-rose-100">
         <h2 className="text-2xl font-bold text-rose-900 mb-6">Core Writing Skills</h2>
-        <div className="grid md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           {[
             { skill: "Narrative", desc: "Story structure and pacing", level: "Foundation" },
             { skill: "Character", desc: "Development and dialogue", level: "Intermediate" },
@@ -122,7 +122,7 @@ export default async function ElaPage() {
       {/* Featured Works */}
       <div className="bg-gradient-to-r from-rose-50 to-pink-50 rounded-[2rem] p-8 border border-rose-100">
         <h2 className="text-2xl font-bold text-rose-900 mb-6">Literary Explorations</h2>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
             <div className="text-3xl mb-3">📚</div>
             <h3 className="font-bold text-slate-800 mb-2">Classic Literature</h3>
