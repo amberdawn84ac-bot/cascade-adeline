@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const businessSchema = z.object({
   revenue: z.number().describe("Total revenue calculated"),
@@ -64,7 +65,34 @@ Calculate revenue, costs, profit, profit margin, and give me business advice.`,
         },
       ]);
 
-      return NextResponse.json(result);
+      // Award credits for completing business math analysis
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'Mathematics',
+        activityType: 'business-math',
+        activityName: `Business Math: ${businessName || 'Lemonade Stand'}`,
+        metadata: {
+          revenue: result.revenue,
+          profit: result.profit,
+          profitMargin: result.profitMargin,
+        },
+        masteryDemonstrated: true,
+      });
+
+      // Create transcript entry
+      await createTranscriptEntryWithCredits(
+        user.userId,
+        `Business Math: ${businessName || 'Lemonade Stand'}`,
+        'Mathematics',
+        creditResult,
+        `Calculated revenue ($${result.revenue}), costs ($${result.costs}), and profit ($${result.profit}) with ${result.profitMargin} margin`,
+        { businessAnalysis: result }
+      );
+
+      return NextResponse.json({
+        ...result,
+        creditsEarned: creditResult.creditsEarned,
+        standardLinked: creditResult.standardLinked,
+      });
     } catch (llmError) {
       console.error('Business analyze LLM error:', llmError);
       
