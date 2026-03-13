@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Sprout, Beef, Flower2, AlertTriangle, Users } from 'lucide-react';
+import { Loader2, Sprout, Beef, Flower2, AlertTriangle, Users, Camera, CheckCircle } from 'lucide-react';
 
 type CategoryId = 'preservation' | 'livestock-sheep' | 'livestock-poultry' | 'livestock-horses' | 'greenhouse' | 'fiber-arts';
 
@@ -36,11 +36,20 @@ export default function HomesteadingPage() {
   const [focus, setFocus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [project, setProject] = useState<HomesteadProject | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [transcriptAdded, setTranscriptAdded] = useState(false);
 
   const handleGenerate = async () => {
     if (!selectedCategory || !focus.trim()) return;
     setIsGenerating(true);
     setProject(null);
+    setIsCompleted(false);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setTranscriptAdded(false);
     try {
       const res = await fetch('/api/domestic-arts/generate', {
         method: 'POST',
@@ -54,6 +63,44 @@ export default function HomesteadingPage() {
       console.error('Homesteading generate error:', e);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmitCompletion = async () => {
+    if (!project || !photoFile) return;
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo', photoFile);
+      formData.append('projectTitle', project.title);
+      formData.append('category', project.category);
+      formData.append('difficulty', project.difficulty);
+      formData.append('yield', project.yield);
+      
+      const res = await fetch('/api/domestic-arts/complete', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) throw new Error('Failed to submit');
+      setTranscriptAdded(true);
+    } catch (e) {
+      console.error('Submit completion error:', e);
+      alert('Failed to add to transcript. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -208,6 +255,80 @@ export default function HomesteadingPage() {
                 <p className="text-green-800 leading-relaxed text-sm">{project.communityImpact}</p>
               </CardContent>
             </Card>
+
+            {/* Completion Section */}
+            {!isCompleted && (
+              <Card className="border-2 border-blue-200 bg-blue-50">
+                <CardContent className="p-6 text-center">
+                  <h3 className="font-bold text-blue-900 mb-2">Ready to start?</h3>
+                  <p className="text-sm text-blue-800 mb-4">When you finish this project, I'll ask you for a photo so we can add it to your transcript!</p>
+                  <Button 
+                    onClick={() => setIsCompleted(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    I'm Done! Show me what to do next →
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Photo Upload Section */}
+            {isCompleted && !transcriptAdded && (
+              <Card className="border-2 border-purple-200 bg-purple-50">
+                <CardContent className="p-6">
+                  <div className="text-center mb-4">
+                    <Camera className="w-12 h-12 text-purple-600 mx-auto mb-3" />
+                    <h3 className="font-bold text-purple-900 text-xl mb-2">Great work! Let's see it!</h3>
+                    <p className="text-purple-800">Upload a photo of your finished {project.title.toLowerCase()} so we can add this to your transcript.</p>
+                  </div>
+
+                  {photoPreview && (
+                    <div className="mb-4">
+                      <img src={photoPreview} alt="Preview" className="max-w-md mx-auto rounded-lg border-2 border-purple-300" />
+                    </div>
+                  )}
+
+                  <div className="flex flex-col items-center gap-3">
+                    <label className="cursor-pointer">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                      />
+                      <div className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold">
+                        {photoFile ? 'Change Photo' : 'Choose Photo'}
+                      </div>
+                    </label>
+
+                    {photoFile && (
+                      <Button
+                        onClick={handleSubmitCompletion}
+                        disabled={isSubmitting}
+                        className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg"
+                      >
+                        {isSubmitting ? (
+                          <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Adding to Transcript...</>
+                        ) : (
+                          <><CheckCircle className="w-5 h-5 mr-2" /> Add to My Transcript</>  
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Success Message */}
+            {transcriptAdded && (
+              <Card className="border-2 border-green-500 bg-green-50">
+                <CardContent className="p-6 text-center">
+                  <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-3" />
+                  <h3 className="font-bold text-green-900 text-xl mb-2">Added to Your Transcript!</h3>
+                  <p className="text-green-800">Excellent work. This project is now part of your permanent record. Keep building real skills.</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
