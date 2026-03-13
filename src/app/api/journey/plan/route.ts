@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       : 999;
 
     // Calculate graduation date (4 years from enrollment or based on grade level)
-    const gradeLevel = student.gradeLevel || 9;
+    const gradeLevel = Number(student.gradeLevel) || 9;
     const yearsToGraduation = Math.max(1, 13 - gradeLevel); // 12th grade = graduation
     const graduationDate = new Date();
     graduationDate.setFullYear(graduationDate.getFullYear() + yearsToGraduation);
