@@ -1,9 +1,14 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { getSessionUser } from '@/lib/auth';
+import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionUser();
+    if (!user) return new Response('Unauthorized', { status: 401 });
+
     const body = await req.json();
     const { messages, bookTitle, chapter } = body;
 
@@ -31,6 +36,31 @@ You are Adeline. Do not say "As Adeline" — just be her.`;
       ],
       temperature: 0.7,
     });
+
+    // Award credits for reading discussion if this is a meaningful conversation (3+ messages)
+    if (messages.length >= 3) {
+      // Award credits asynchronously to not block the stream
+      awardCreditsForActivity(user.userId, {
+        subject: 'English Language Arts',
+        activityType: 'reading-discussion',
+        activityName: `Reading Discussion: ${bookTitle || 'Book'}`,
+        metadata: {
+          bookTitle,
+          chapter,
+          messageCount: messages.length,
+        },
+        masteryDemonstrated: true,
+      }).then(creditResult => {
+        createTranscriptEntryWithCredits(
+          user.userId,
+          `Reading Discussion: ${bookTitle || 'Book'}`,
+          'English Language Arts',
+          creditResult,
+          `Discussed ${bookTitle}${chapter ? ` (${chapter})` : ''} with ${messages.length} thoughtful exchanges`,
+          { discussion: { bookTitle, chapter, messageCount: messages.length } }
+        );
+      }).catch(err => console.error('Failed to award reading discussion credits:', err));
+    }
 
     return result.toTextStreamResponse();
   } catch (error) {
