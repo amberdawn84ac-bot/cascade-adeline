@@ -842,8 +842,29 @@ export default function SciencePage() {
           ) : (
              <div className="overflow-y-auto h-full p-6">
                 <div className="max-w-5xl mx-auto">
-                  <h3 className="text-2xl text-emerald-900 mb-2 font-bold">Science Groups</h3>
-                  <p className="text-sm text-emerald-600 italic mb-6">Join a group to work on systemic action challenges together. Each group focuses on real-world justice and community service.</p>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-2xl text-emerald-900 mb-2 font-bold">Science Groups</h3>
+                      <p className="text-sm text-emerald-600 italic">Join a group to work on systemic action challenges together. Each group focuses on real-world justice and community service.</p>
+                    </div>
+                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Group
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 mb-6">
+                    <p className="text-sm text-amber-900">
+                      <strong>Students can create groups!</strong> Take initiative and start your own science group. 
+                      Public groups require an adult monitor/moderator to ensure safety and accountability.
+                    </p>
+                  </div>
+
+                  <h4 className="text-lg text-emerald-800 font-semibold mb-3 flex items-center gap-2">
+                    <Badge variant="outline" className="border-emerald-400 text-emerald-700">Example Groups</Badge>
+                    Explore these sample groups for inspiration
+                  </h4>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {groups.map((group) => {
                       const isJoined = joinedGroups.includes(group.name);
