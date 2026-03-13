@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const experimentSchema = z.object({
   title: z.string().describe("A fun, catchy title for the experiment"),
@@ -68,7 +69,33 @@ Make it create REAL CHANGE, not feel-good neighbor visits. But present this to t
         { role: 'user', content: `Topic: ${query}` }
       ]);
 
-      return NextResponse.json(result);
+      // Award credits for science experiment
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'Science',
+        activityType: 'experiment',
+        activityName: `Science Experiment: ${result.title}`,
+        metadata: {
+          topic: query,
+          difficulty: result.difficulty,
+          timeRequired: result.timeRequired,
+        },
+        masteryDemonstrated: true,
+      });
+
+      await createTranscriptEntryWithCredits(
+        user.userId,
+        `Science Experiment: ${result.title}`,
+        'Science',
+        creditResult,
+        `Completed ${result.difficulty} science experiment on ${query}`,
+        { experiment: result }
+      );
+
+      return NextResponse.json({
+        ...result,
+        creditsEarned: creditResult.creditsEarned,
+        standardLinked: creditResult.standardLinked,
+      });
     } catch (llmError) {
       console.error("Experiment generation LLM error:", llmError);
       
