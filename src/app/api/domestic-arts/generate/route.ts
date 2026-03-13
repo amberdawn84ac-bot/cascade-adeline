@@ -45,6 +45,32 @@ export async function POST(req: NextRequest) {
     const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.6 })
       .withStructuredOutput(projectSchema);
 
+    // Check if this is a simple request that needs clarification first
+    const isSimpleRequest = focus.length < 30 && !focus.includes('recipe') && !focus.includes('how to');
+    
+    if (isSimpleRequest) {
+      // Ask clarifying questions instead of overwhelming them
+      const conversationalResponse = {
+        title: `Let's talk about ${focus}`,
+        category: category,
+        difficulty: skillLevel.charAt(0).toUpperCase() + skillLevel.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',
+        seasonalWindow: 'Any time',
+        timeRequired: 'Let me help you figure this out',
+        materials: ['First, let me ask you a few questions...'],
+        steps: [
+          `What kind of ${focus} are you thinking about? (Be specific - chocolate chip, snickerdoodles, etc.)`,
+          'Do you need a recipe, or do you already have one?',
+          'Do you need a shopping list for ingredients?',
+          `Are you making these to sell, donate, or just for your family?`,
+          'Once I know what you need, I can help you with the exact steps!'
+        ],
+        safetyNotes: [],
+        yield: 'Tell me more and I\'ll help you plan this properly',
+        communityImpact: `Once we figure out what you're actually making, we can talk about how this builds your skills and serves others. But first - what kind of ${focus}?`,
+      };
+      return NextResponse.json(conversationalResponse);
+    }
+
     const result = await llm.invoke([
       {
         role: 'system',
