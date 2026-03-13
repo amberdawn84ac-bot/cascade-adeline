@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface JourneyData {
   mode: 'annual' | 'graduation';
@@ -225,13 +226,28 @@ export default function JourneyMap() {
   const destination = data.mode === 'graduation' ? 'Graduation Defense' : 'Annual Harvest';
 
   return (
-    <div style={{
-      background: '#FFFEF7',
-      border: '1.5px solid #E7DAC3',
-      borderRadius: 16,
-      overflow: 'hidden',
-      boxShadow: '0 2px 12px rgba(47,71,49,0.07)',
-    }}>
+    <Link 
+      href="/dashboard/journey"
+      style={{
+        display: 'block',
+        background: '#FFFEF7',
+        border: '1.5px solid #E7DAC3',
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: '0 2px 12px rgba(47,71,49,0.07)',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        textDecoration: 'none',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = '0 4px 20px rgba(47,71,49,0.15)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = '0 2px 12px rgba(47,71,49,0.07)';
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
+    >
       {/* Header */}
       <div style={{
         padding: '10px 14px 6px',
@@ -278,7 +294,7 @@ export default function JourneyMap() {
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
