@@ -32,10 +32,11 @@ export async function POST(req: NextRequest) {
     const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.8 })
       .withStructuredOutput(booksSchema);
 
-    const result = await llm.invoke([
-      {
-        role: 'system',
-        content: `You are Adeline, a classical librarian with encyclopedic knowledge of children's and young adult literature. Recommend exactly 4 real, published books perfectly matched to this specific student.${studentContext}
+    try {
+      const result = await llm.invoke([
+        {
+          role: 'system',
+          content: `You are Adeline, a classical librarian with encyclopedic knowledge of children's and young adult literature. Recommend exactly 4 real, published books perfectly matched to this specific student.${studentContext}
 
 RULES:
 - PRIORITIZE PUBLIC DOMAIN BOOKS available on Project Gutenberg that can be read online immediately
@@ -62,14 +63,54 @@ Examples:
 - Book about wrongful conviction → Justice theme: Mass incarceration → Real connection: Innocence Project + specific exoneree case → Action: Research their case and write to the parole board
 - Book about environmental damage → Justice theme: Corporate pollution → Real connection: Specific EPA case or community fight → Action: Draft FOIA request for local pollution data
 - Book about labor rights → Justice theme: Wage theft → Real connection: Current union campaign or policy fight → Action: Write to representative about minimum wage law`,
-      },
-      {
-        role: 'user',
-        content: 'Recommend 4 books perfectly matched to my interests and grade level.',
-      },
-    ]);
+        },
+        {
+          role: 'user',
+          content: 'Recommend 4 books perfectly matched to my interests and grade level.',
+        },
+      ]);
 
-    return NextResponse.json(result.books);
+      return NextResponse.json(result.books);
+    } catch (llmError) {
+      console.error('[ReadingNook/curate] LLM Error, using fallback:', llmError);
+      
+      const fallbackBooks = [
+        {
+          title: 'Treasure Island',
+          author: 'Robert Louis Stevenson',
+          gutenbergId: 120,
+          gutenbergUrl: 'https://www.gutenberg.org/files/120/120-h/120-h.htm',
+          coverDescription: 'A thrilling tale of pirates, buried treasure, and high-seas adventure. Young Jim Hawkins finds himself caught between mutineers and honest sailors on a dangerous voyage.',
+          whyYouWillLoveIt: 'This classic adventure story combines mystery, danger, and moral choices. Perfect for readers who love action-packed narratives with memorable characters like Long John Silver.',
+        },
+        {
+          title: 'Little Women',
+          author: 'Louisa May Alcott',
+          gutenbergId: 514,
+          gutenbergUrl: 'https://www.gutenberg.org/files/514/514-h/514-h.htm',
+          coverDescription: 'Follow the March sisters through their journey from childhood to adulthood during the Civil War era. A story of family, ambition, love, and finding your own path.',
+          whyYouWillLoveIt: 'Each sister has a distinct personality and dreams. This book explores themes of creativity, independence, and staying true to yourself while navigating family expectations.',
+        },
+        {
+          title: 'The Adventures of Tom Sawyer',
+          author: 'Mark Twain',
+          gutenbergId: 74,
+          gutenbergUrl: 'https://www.gutenberg.org/files/74/74-h/74-h.htm',
+          coverDescription: 'Tom Sawyer is a mischievous boy growing up along the Mississippi River. His adventures include witnessing a murder, getting lost in a cave, and hunting for treasure.',
+          whyYouWillLoveIt: 'Full of humor, friendship, and clever problem-solving. Tom\'s adventures show both the fun and the moral challenges of growing up.',
+        },
+        {
+          title: 'The Secret Garden',
+          author: 'Frances Hodgson Burnett',
+          gutenbergId: 113,
+          gutenbergUrl: 'https://www.gutenberg.org/files/113/113-h/113-h.htm',
+          coverDescription: 'Mary Lennox discovers a hidden, neglected garden on her uncle\'s estate. As she brings the garden back to life, she transforms herself and those around her.',
+          whyYouWillLoveIt: 'A beautiful story about healing, nature, and the power of caring for something. Shows how nurturing growth in a garden mirrors personal transformation.',
+        },
+      ];
+
+      return NextResponse.json(fallbackBooks);
+    }
   } catch (error) {
     console.error('[ReadingNook/curate] Error:', error);
     return NextResponse.json({ error: 'Failed to curate books' }, { status: 500 });
