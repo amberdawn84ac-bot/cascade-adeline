@@ -235,9 +235,9 @@ export async function getUserMasteryMap(userId: string): Promise<Map<string, Mas
 
   for (const concept of concepts) {
     const record = concept.userMastery[0];
-    let rawMastery = record?.masteryLevel ?? 0;
-    let lastPracticed = record?.lastPracticed ?? null;
-    let decayAdjusted = lastPracticed ? applyDecay(rawMastery, lastPracticed) : rawMastery;
+    const rawMastery = record?.masteryLevel ?? 0;
+    const lastPracticed = record?.lastPracticed ?? null;
+    const decayAdjusted = lastPracticed ? applyDecay(rawMastery, lastPracticed) : rawMastery;
 
     const bktParams = getBKTFromHistory(record?.history);
 

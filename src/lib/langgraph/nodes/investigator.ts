@@ -53,7 +53,7 @@ As Adeline the investigator, I need to think through this step by step and use o
 Let me start by searching our knowledge base for information related to this investigation.`;
 
     // Start the ReAct loop
-    let messages: any[] = [
+    const messages: any[] = [
       new SystemMessage(systemPrompt),
       new HumanMessage(investigatorPrompt)
     ];

@@ -167,7 +167,7 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
 }
 
 export async function genUIPlanner(state: AdelineGraphState): Promise<AdelineGraphState> {
-  let selection = pickComponent(state);
+  const selection = pickComponent(state);
 
   // If Hebrew Study is detected, generate dynamic content
   if (selection && selection.component === 'HEBREW_STUDY') {

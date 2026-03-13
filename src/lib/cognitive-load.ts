@@ -110,7 +110,7 @@ export async function calculateCognitiveLoad(data: {
   const normalizedSentimentLoad = 1 - (data.sentimentScore + 1) / 2;
 
   // Combine weighted scores.
-  let combinedScore = 
+  const combinedScore = 
     timeWeight * normalizedTimeLoad + 
     editWeight * normalizedEditLoad + 
     sentimentWeight * normalizedSentimentLoad;

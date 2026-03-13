@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       let type = 'recipe';
       let materials: string[] = [];
       let instructions: string[] = [];
-      let tips: string[] = [];
+      const tips: string[] = [];
 
       if (entry.notes) {
         const notes = entry.notes;

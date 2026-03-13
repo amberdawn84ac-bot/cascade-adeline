@@ -416,7 +416,7 @@ function CodeQuest({ onBack }: { onBack: () => void }) {
         const originalLog = console.log;
         console.log = (...args) => logs.push(args.join(' '));
         
-        // eslint-disable-next-line no-eval
+         
         eval(code);
         
         console.log = originalLog;
