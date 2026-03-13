@@ -106,38 +106,161 @@ export async function POST(req: NextRequest) {
 
     const { game, result } = await req.json();
 
+    // Get student's learning plan
+    const learningPlan = await prisma.learningPlan.findUnique({
+      where: { userId: user.userId },
+      include: {
+        planStandards: {
+          where: { isActive: true },
+          include: {
+            standard: true,
+            activities: true,
+          },
+        },
+      },
+    });
+
     let creditsEarned = 0;
     let activityName = '';
     let mappedSubject = '';
     let notes = '';
+    let planStandardId: string | null = null;
+    let masteryEvidence: any = null;
 
     if (game === 'spelling') {
       const r = result as SpellingResult;
-      creditsEarned = calcSpellingCredits(r);
+      
+      // Find the vocabulary standard for this word in the student's plan
+      const vocabStandard = learningPlan?.planStandards.find(ps => 
+        ps.standard.subject === 'English Language Arts' &&
+        ps.standard.standardCode.includes('VOCAB') &&
+        ps.activities.some(a => a.activityType === 'spelling')
+      );
+
+      if (vocabStandard) {
+        // Use the microcredit value from the student's plan
+        creditsEarned = r.correct ? Number(vocabStandard.microcreditValue) : Number(vocabStandard.microcreditValue) * 0.2;
+        planStandardId = vocabStandard.id;
+      } else {
+        // Fallback to default calculation if no plan exists
+        creditsEarned = calcSpellingCredits(r);
+      }
+
       activityName = `Spelling Bee: "${r.word}"`;
       mappedSubject = 'English Language Arts';
       notes = r.correct
         ? `Correctly spelled "${r.word}" from definition and context clues`
         : `Practiced spelling "${r.word}" (word studied but not yet mastered)`;
+      masteryEvidence = {
+        word: r.word,
+        correct: r.correct,
+        masteryDemonstrated: r.correct,
+      };
 
     } else if (game === 'typing') {
       const r = result as TypingResult;
-      creditsEarned = calcTypingCredits(r);
+      
+      // Find the keyboarding standard for this grade level
+      const typingStandard = learningPlan?.planStandards.find(ps =>
+        ps.standard.subject === 'Technology' &&
+        ps.standard.standardCode.includes('KEYBOARDING') &&
+        ps.activities.some(a => a.activityType === 'typing')
+      );
+
+      if (typingStandard) {
+        // Calculate performance-based credit from plan standard
+        const gradeLevel = r.gradeLevel ?? 9;
+        const benchmarks = {
+          elementary: { wpm: 20, accuracy: 90 },
+          middle: { wpm: 35, accuracy: 92 },
+          high: { wpm: 45, accuracy: 95 }
+        };
+        const benchmark = gradeLevel <= 5 ? benchmarks.elementary :
+                          gradeLevel <= 8 ? benchmarks.middle : benchmarks.high;
+        
+        const wpmRatio = Math.min(r.wpm / benchmark.wpm, 1.5);
+        const accuracyRatio = r.accuracy / benchmark.accuracy;
+        const performanceScore = (wpmRatio + accuracyRatio) / 2;
+        const difficultyWeight = { easy: 0.5, medium: 1.0, hard: 1.5 }[r.difficulty] ?? 1.0;
+        
+        creditsEarned = Number(typingStandard.microcreditValue) * performanceScore * difficultyWeight;
+        planStandardId = typingStandard.id;
+      } else {
+        creditsEarned = calcTypingCredits(r);
+      }
+
       activityName = `Typing Racer (${r.difficulty})`;
       mappedSubject = 'Technology';
       notes = `Completed ${r.difficulty} passage at ${r.wpm} WPM with ${r.accuracy}% accuracy`;
+      masteryEvidence = {
+        wpm: r.wpm,
+        accuracy: r.accuracy,
+        difficulty: r.difficulty,
+        benchmarkMet: r.wpm >= (r.gradeLevel && r.gradeLevel <= 5 ? 20 : r.gradeLevel && r.gradeLevel <= 8 ? 35 : 45),
+      };
 
     } else if (game === 'coding') {
       const r = result as CodingResult;
-      creditsEarned = calcCodingCredits(r);
+      
+      // Find the CS concept standard
+      const csStandard = learningPlan?.planStandards.find(ps =>
+        ps.standard.subject === 'Computer Science' &&
+        ps.standard.standardCode.includes('CONCEPTS') &&
+        ps.activities.some(a => a.activityType === 'coding')
+      );
+
+      if (csStandard) {
+        const masteryBonus = r.isNewConcept ? 1.5 : 1.0;
+        creditsEarned = r.correct ? Number(csStandard.microcreditValue) * masteryBonus : Number(csStandard.microcreditValue) * 0.25;
+        planStandardId = csStandard.id;
+      } else {
+        creditsEarned = calcCodingCredits(r);
+      }
+
       activityName = `Code Quest: ${r.concept} (${r.language})`;
       mappedSubject = 'Computer Science';
       notes = r.correct
         ? `Correctly identified ${r.concept} behavior in ${r.language}`
         : `Studied ${r.concept} in ${r.language} (reviewed explanation after incorrect attempt)`;
+      masteryEvidence = {
+        concept: r.concept,
+        language: r.language,
+        correct: r.correct,
+        isNewConcept: r.isNewConcept,
+      };
 
     } else {
       return NextResponse.json({ error: 'Unknown game type' }, { status: 400 });
+    }
+
+    // Update student standard progress if linked to a plan standard
+    if (planStandardId && learningPlan) {
+      const planStandard = learningPlan.planStandards.find(ps => ps.id === planStandardId);
+      if (planStandard) {
+        await prisma.studentStandardProgress.upsert({
+          where: {
+            userId_standardId: {
+              userId: user.userId,
+              standardId: planStandard.standardId,
+            },
+          },
+          update: {
+            microcreditsEarned: {
+              increment: creditsEarned,
+            },
+            lastActivityAt: new Date(),
+            mastery: creditsEarned > 0 ? 'DEVELOPING' : 'INTRODUCED',
+          },
+          create: {
+            userId: user.userId,
+            standardId: planStandard.standardId,
+            microcreditsEarned: creditsEarned,
+            lastActivityAt: new Date(),
+            mastery: creditsEarned > 0 ? 'DEVELOPING' : 'INTRODUCED',
+            evidence: masteryEvidence,
+          },
+        });
+      }
     }
 
     const transcriptEntry = await prisma.transcriptEntry.create({
@@ -148,11 +271,17 @@ export async function POST(req: NextRequest) {
         creditsEarned,
         dateCompleted: new Date(),
         notes,
+        planStandardId,
+        masteryEvidence,
         metadata: { game, result },
       },
     });
 
-    return NextResponse.json({ creditsEarned, transcriptEntry });
+    return NextResponse.json({ 
+      creditsEarned, 
+      transcriptEntry,
+      standardLinked: !!planStandardId,
+    });
   } catch (error) {
     console.error('[arcade/award-credits]', error);
     return NextResponse.json({ error: 'Failed to award credits' }, { status: 500 });
