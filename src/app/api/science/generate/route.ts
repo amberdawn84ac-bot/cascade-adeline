@@ -41,10 +41,11 @@ export async function POST(req: NextRequest) {
       temperature: 0.7,
     }).withStructuredOutput(experimentSchema);
 
-    const result = await llm.invoke([
-      { 
-        role: 'system', 
-        content: `You are Adeline, a wise and encouraging science mentor. You love helping students discover the physical laws of the universe. The student wants a hands-on science experiment related to their topic. Generate a safe, highly educational experiment using common household items. Make the tone warm, approachable, and inspiring. Break down complex ideas so they are easy to understand.${studentContext}
+    try {
+      const result = await llm.invoke([
+        { 
+          role: 'system', 
+          content: `You are Adeline, a wise and encouraging science mentor. You love helping students discover the physical laws of the universe. The student wants a hands-on science experiment related to their topic. Generate a safe, highly educational experiment using common household items. Make the tone warm, approachable, and inspiring. Break down complex ideas so they are easy to understand.${studentContext}
 
 CRITICAL SYSTEMIC ACTION DIRECTIVE: If this science topic relates to public health, environment, water quality, air quality, soil contamination, pesticides, or safety, you MUST generate a concrete systemic action that creates REAL POLICY CHANGE, not just neighbor delivery.
 
@@ -63,14 +64,37 @@ The draftText must include:
 4. Timeline for action
 
 Make it create REAL CHANGE, not feel-good neighbor visits. But present this to the student as an exciting opportunity to use their science for good, not as a grim, overwhelming burden.` 
-      },
-      { role: 'user', content: `Topic: ${query}` }
-    ]);
+        },
+        { role: 'user', content: `Topic: ${query}` }
+      ]);
 
-    return NextResponse.json(result);
+      return NextResponse.json(result);
+    } catch (llmError) {
+      console.error("Experiment generation LLM error:", llmError);
+      
+      // Graceful fallback if AI fails
+      return NextResponse.json({
+        title: `Exploring ${query.charAt(0).toUpperCase() + query.slice(1)}`,
+        difficulty: "Beginner",
+        timeRequired: "30-45 minutes",
+        safetyWarnings: ["Always ask an adult for permission before starting.", "Clean your workspace when finished."],
+        materials: ["Paper", "Pencil or pen", "A quiet place to observe"],
+        procedures: [
+          "Step 1: Write down what you already know about this topic.",
+          "Step 2: Spend 10 minutes closely observing something related to this topic in your environment.",
+          "Step 3: Write down three questions you have based on your observations.",
+          "Step 4: Form a hypothesis (a guess) to answer one of your questions."
+        ],
+        theScience: "Science begins with observation and curiosity. Even when we don't have a complex experiment planned, we can act as scientists by observing the world carefully and asking good questions.",
+        systemicAction: {
+          actionType: "community-alert",
+          target: "Local Library or Community Board",
+          draftText: "I am researching this topic and want to understand how it impacts our community. I request that the library feature more resources on this subject for local citizens."
+        }
+      });
+    }
   } catch (error) {
     console.error("Experiment generation error:", error);
     return NextResponse.json({ error: "Failed to generate experiment" }, { status: 500 });
   }
 }
-

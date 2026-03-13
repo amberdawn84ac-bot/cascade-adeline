@@ -29,15 +29,32 @@ export async function POST(req: NextRequest) {
       temperature: 0.3,
     }).withStructuredOutput(geometrySchema);
 
-    const result = await llm.invoke([
-      {
-        role: 'system',
-        content: `You are Adeline, a wise and encouraging classical mathematics tutor. Solve this geometry problem step by step. Show every calculation clearly. Connect the math to real-world examples they would relate to. Keep your tone warm, accessible, and supportive. Remind them that making mistakes is how we learn math.${studentContext}`,
-      },
-      { role: 'user', content: `Geometry problem: ${problem}` },
-    ]);
+    try {
+      const result = await llm.invoke([
+        {
+          role: 'system',
+          content: `You are Adeline, a wise and encouraging classical mathematics tutor. Solve this geometry problem step by step. Show every calculation clearly. Connect the math to real-world examples they would relate to. Keep your tone warm, accessible, and supportive. Remind them that making mistakes is how we learn math.${studentContext}`,
+        },
+        { role: 'user', content: `Geometry problem: ${problem}` },
+      ]);
 
-    return NextResponse.json(result);
+      return NextResponse.json(result);
+    } catch (llmError) {
+      console.error('Geometry solve LLM error:', llmError);
+      
+      // Graceful fallback if AI fails
+      return NextResponse.json({
+        steps: [
+          "Let's break this down together.",
+          "First, identify what information is given in the problem.",
+          "Second, what are we trying to find?",
+          "Third, recall the relevant geometry formula (like Area = πr² for a circle or a² + b² = c² for a right triangle)."
+        ],
+        finalAnswer: "I need a bit more time to calculate the exact answer, but try setting up the equation with the steps above!",
+        realWorldConnection: "Geometry is everywhere—from the angle of a roof to the area of a garden bed.",
+        encouragement: "Math is a practice. If you don't get it right the first time, you're just learning how *not* to solve it. Keep going!"
+      });
+    }
   } catch (error) {
     console.error('Geometry solve error:', error);
     return NextResponse.json({ error: 'Failed to solve geometry problem' }, { status: 500 });

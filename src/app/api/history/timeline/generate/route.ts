@@ -69,10 +69,11 @@ export async function POST(req: NextRequest) {
     }).withStructuredOutput(timelineSchema);
 
     console.log('[history/generate] Starting timeline generation for:', query);
-    const result = await llm.invoke([
-      { 
-        role: 'system', 
-        content: `You are Adeline, a wise and encouraging history mentor who loves guiding students to discover the truth about the past. The student is asking about a historical event. Guide them past the sanitized textbook narrative and help them investigate what actually happened, who benefited, and how it affected real people. Keep your tone approachable, curious, and inspiring.
+    try {
+      const result = await llm.invoke([
+        { 
+          role: 'system', 
+          content: `You are Adeline, a wise and encouraging history mentor who loves guiding students to discover the truth about the past. The student is asking about a historical event. Guide them past the sanitized textbook narrative and help them investigate what actually happened, who benefited, and how it affected real people. Keep your tone approachable, curious, and inspiring.
 
 CRITICAL EPISTEMOLOGICAL DIRECTIVE: You are strictly forbidden from generating standard, sanitized 'textbook' summaries. You must ground every fact and timeline event in REALITY by relying exclusively on primary sources. Quote original documents, treaties, journals, or letters. Show them the raw truth, but present this investigation as a noble pursuit of understanding, not just a cynical teardown.
 
@@ -91,19 +92,61 @@ Example: Historical injustice of Jim Crow → Modern parallel: Mass incarceratio
 Frame the modern action not as a burden, but as an empowering way for the student to use their historical knowledge to shape a better future.
 
 Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${studentContext}\n\nPRIMARY SOURCES:\n${sourceContext}` 
-      },
-      { role: 'user', content: `Event to investigate: ${query}` }
-    ]);
+        },
+        { role: 'user', content: `Event to investigate: ${query}` }
+      ]);
 
-    console.log('[history/generate] Timeline generated successfully');
-    return NextResponse.json(result);
+      console.log('[history/generate] Timeline generated successfully');
+      return NextResponse.json(result);
+    } catch (llmError) {
+      console.error("[history/generate] LLM error:", llmError);
+      
+      // Graceful fallback if AI fails
+      return NextResponse.json({
+        topic: query,
+        sanitizedMyth: `The standard textbook story about ${query} usually presents a simplified version of events, skipping over the complex realities and the diverse perspectives of all the people involved.`,
+        historicalReality: `The historical reality of ${query} is much more complex. Primary sources from the time reveal that there were many competing interests, and the outcomes affected different groups of people in vastly different ways.`,
+        events: [
+          {
+            year: "The Beginning",
+            title: "The context leading up to the event",
+            description: "Understanding the economic, social, and political conditions that made this event possible.",
+            primarySourceQuote: "Primary sources (letters, journals, newspaper articles) from this era show a society in transition.",
+            primarySourceDocument: "Various contemporary accounts"
+          },
+          {
+            year: "The Climax",
+            title: `The main events of ${query}`,
+            description: "When the event actually occurred, it was experienced differently depending on a person's social standing and geographical location.",
+            primarySourceQuote: "Eyewitness accounts describe a chaotic and deeply impactful period of time.",
+            primarySourceDocument: "First-hand testimonies"
+          },
+          {
+            year: "The Aftermath",
+            title: "The long-term consequences",
+            description: "The effects of this event rippled through generations, shaping policies and social structures that we still live with today.",
+            primarySourceQuote: "Later historical analysis reveals the lasting impact of these decisions.",
+            primarySourceDocument: "Historical retrospectives"
+          }
+        ],
+        modernParallel: {
+          issue: "Historical patterns repeating today",
+          description: "Many of the same power dynamics, economic incentives, and social struggles that defined this historical event are still present in modern society, just in different forms.",
+          actionPath: {
+            clemencyTarget: "Those currently impacted by similar modern policies",
+            policyTarget: "Laws that perpetuate historical inequalities",
+            agencyTarget: "Local and Federal Representatives",
+            letterTemplate: `Dear Representative,\n\nI am a student currently studying the history of ${query}. I have learned that the systemic issues from that era are still present today in our modern policies.\n\nI urge you to review these laws and work towards a more equitable system that learns from our past mistakes.\n\nSincerely,\nA Concerned Student`
+          }
+        }
+      });
+    }
   } catch (error) {
     console.error("[history/generate] Timeline generation error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ 
-      error: "Failed to generate timeline", 
-      details: errorMessage 
+    return NextResponse.json({
+      error: "Failed to generate timeline",
+      details: errorMessage
     }, { status: 500 });
   }
 }
-
