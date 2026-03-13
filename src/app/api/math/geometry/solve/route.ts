@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical mathematics tutor. Solve this geometry problem step by step. Show every calculation clearly. Connect the math to real-world examples they would relate to.${studentContext}`,
+        content: `You are Adeline, a wise and encouraging classical mathematics tutor. Solve this geometry problem step by step. Show every calculation clearly. Connect the math to real-world examples they would relate to. Keep your tone warm, accessible, and supportive. Remind them that making mistakes is how we learn math.${studentContext}`,
       },
       { role: 'user', content: `Geometry problem: ${problem}` },
     ]);

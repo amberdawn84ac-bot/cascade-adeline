@@ -20,7 +20,7 @@ const learningPlanSchema = z.object({
     creditsNeeded: z.number().describe('Number of credits needed'),
     description: z.string().describe('How this could be earned based on their interests'),
   })),
-  adelineMessage: z.string().describe('A gritty, motivational push based on their recent activity'),
+  adelineMessage: z.string().describe('A warm, encouraging, and specific message based on their recent activity'),
 });
 
 export async function GET(req: NextRequest) {
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a relentless graduation coach. You are building a personalized learning plan for this student.
+        content: `You are Adeline, a wise, encouraging, and supportive graduation coach. You are building a personalized learning plan for this student.
 
 ${studentContext}
 
@@ -100,12 +100,12 @@ CRITICAL MAPPING RULES:
    - Map each requirement to their interests creatively
    - Prioritize based on their chosen path (trade/business/college/balanced)
 
-4. Adeline's Message: A GRITTY, SPECIFIC push based on their activity
-   - If they haven't logged anything in 4+ days: Call them out directly
-   - If they're active: Push them harder on their weakest area
+4. Adeline's Message: A warm, specific, and encouraging message based on their activity
+   - If they haven't logged anything in 4+ days: Gently check in and offer help getting unstuck
+   - If they're active: Celebrate their momentum and suggest the next exciting step
    - Always reference specific work, not vague encouragement
    - Use their name if you know it
-   - Be warm but relentless
+   - Be inspiring and supportive, never harsh or demanding
 
 STANDARD GRADUATION REQUIREMENTS (24 credits total):
 - English: 4 credits
