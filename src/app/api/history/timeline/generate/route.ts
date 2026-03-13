@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const timelineSchema = z.object({
   topic: z.string().describe("The historical event or era"),
@@ -97,7 +98,34 @@ Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${stu
       ]);
 
       console.log('[history/generate] Timeline generated successfully');
-      return NextResponse.json(result);
+      
+      // Award credits for historical research
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'History',
+        activityType: 'historical-research',
+        activityName: `Historical Research: ${result.topic}`,
+        metadata: {
+          topic: query,
+          eventsCount: result.events.length,
+          primarySourcesCited: result.primarySourcesCiting.length,
+        },
+        masteryDemonstrated: true,
+      });
+
+      await createTranscriptEntryWithCredits(
+        user.userId,
+        `Historical Research: ${result.topic}`,
+        'History',
+        creditResult,
+        `Researched ${result.topic} using ${result.primarySourcesCiting.length} primary sources`,
+        { timeline: result }
+      );
+
+      return NextResponse.json({
+        ...result,
+        creditsEarned: creditResult.creditsEarned,
+        standardLinked: creditResult.standardLinked,
+      });
     } catch (llmError) {
       console.error("[history/generate] LLM error, using fallback:", llmError);
       
