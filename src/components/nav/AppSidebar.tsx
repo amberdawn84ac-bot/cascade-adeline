@@ -22,7 +22,9 @@ import {
   ChevronDown,
   ChevronRight,
   Settings,
-  LogOut
+  LogOut,
+  BookOpen,
+  Mountain
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createServerClient } from '@supabase/ssr';
@@ -43,11 +45,15 @@ const NAV_ITEMS = [
       { label: 'Future Prep', href: '/dashboard/college-prep', icon: GraduationCap },
       { label: 'Homesteading', href: '/dashboard/domestic-arts', icon: ChefHat },
       { label: 'Expeditions', href: '/dashboard/expeditions', icon: MapPin },
+      { label: 'Bible Study', href: '/dashboard/bible-study', icon: BookOpen },
+      { label: 'Writing Desk', href: '/dashboard/ela', icon: Feather },
+      { label: 'Student Feed', href: '/dashboard/agora', icon: Users },
+      { label: 'My Learning Path', href: '/dashboard/journey', icon: Mountain },
     ]
   },
   { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
   { label: 'Library', href: '/library', icon: Library },
-  { label: 'Family Portal', href: '/parent', icon: Users },
+  { label: 'Family Portal', href: '/dashboard/teacher', icon: Users },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {

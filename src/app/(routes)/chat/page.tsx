@@ -69,7 +69,7 @@ function getMessageText(message: { content?: string; parts?: Array<{ type?: stri
 }
 
 export default function ChatPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, append, setInput } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error, append, setInput, data } = useChat({
     api: '/api/chat',
     body: {},
     headers: {
@@ -78,45 +78,11 @@ export default function ChatPage() {
     onFinish: async (message) => {
           try {
             console.log('[ChatPage] === MESSAGE FINISHED ===');
+            console.log('[ChatPage] Message:', message);
+            console.log('[ChatPage] Data array:', data);
 
-            let genUIPayload: GenUIPayload | null = null;
             let metadata: Record<string, unknown> | null = null;
-
-            if (message && message.content) {
-              const content = message.content as string;
-              const genuiMatch = content.match(/\[GENUI:(.+?)\]$/);
-              if (genuiMatch) {
-                try {
-                  genUIPayload = JSON.parse(genuiMatch[1]);
-                  console.log('[ChatPage] GenUI payload found! Setting payload:', genUIPayload);
-                  console.log('[ChatPage] About to call setGenUIPayload...');
-                  console.log('[ChatPage] Payload type:', typeof genUIPayload, 'Payload keys:', genUIPayload ? Object.keys(genUIPayload) : 'null');
-                  try {
-                    flushSync(() => {
-                      setGenUIPayload(genUIPayload);
-                    });
-                    console.log('[ChatPage] setGenUIPayload called with flushSync');
-                    // Force render key update
-                    setRenderKey(prev => prev + 1);
-                    console.log('[ChatPage] Render key updated');
-                    // Direct force render
-                    setForceRender(genUIPayload);
-                    console.log('[ChatPage] Force render set');
-                    // Timeout force render
-                    setTimeout(() => {
-                      console.log('[ChatPage] Timeout force render check');
-                      setRenderKey(prev => prev + 1);
-                    }, 100);
-                  } catch (error) {
-                    console.error('[ChatPage] Error setting genUIPayload:', error);
-                  }
-                } catch (e) {
-                  console.warn('[ChatPage] Failed to parse GenUI from content:', e);
-                }
-              }
-
-              metadata = (message as any).metadata;
-            }
+            metadata = (message as any).metadata;
 
             if (metadata?.gapNudge) setGapNudge(String(metadata.gapNudge));
             if (metadata?.intent) setDetectedIntent(String(metadata.intent));
@@ -137,18 +103,22 @@ export default function ChatPage() {
   const [gapNudge, setGapNudge] = useState<string | null>(null);
   const [detectedIntent, setDetectedIntent] = useState<string | null>(null);
   const [showTips, setShowTips] = useState(false);
-  const [renderKey, setRenderKey] = useState(0);
-  const [directPayload, setDirectPayload] = useState<GenUIPayload | null>(null);
-  const [forceRender, setForceRender] = useState<GenUIPayload | null>(null);
 
-  // Debug genUIPayload state changes
+  // Extract GenUI payload from data array (Vercel AI SDK auto-populates from '2:' stream chunks)
   useEffect(() => {
-    console.log('[ChatPage] genUIPayload state changed:', genUIPayload);
-    if (genUIPayload) {
-      setRenderKey(prev => prev + 1); // Force re-render
-      setDirectPayload(genUIPayload); // Set direct payload
+    if (data && data.length > 0) {
+      console.log('[ChatPage] Data array updated:', data);
+      // Find the most recent genUIPayload in the data array
+      for (let i = data.length - 1; i >= 0; i--) {
+        const item = data[i];
+        if (item && typeof item === 'object' && 'genUIPayload' in item) {
+          console.log('[ChatPage] Found genUIPayload in data:', item.genUIPayload);
+          setGenUIPayload(item.genUIPayload as GenUIPayload);
+          break;
+        }
+      }
     }
-  }, [genUIPayload]);
+  }, [data]);
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
@@ -426,7 +396,7 @@ export default function ChatPage() {
 
         {renderedMessages}
 
-        {forceRender && <GenUIRenderer key={renderKey} payload={forceRender} />}
+        {genUIPayload && <GenUIRenderer payload={genUIPayload} />}
 
         {isLoading && <AdelineTyping intent={detectedIntent ?? undefined} />}
         {isLoading && <WaitingTips show={showTips} />}

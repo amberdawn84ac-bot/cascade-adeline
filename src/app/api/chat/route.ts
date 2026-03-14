@@ -6,6 +6,7 @@ import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
 import prisma from '@/lib/db';
 import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
+import { shouldRefuse } from '@/lib/learning/scaffolding-guardian';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,6 +21,29 @@ export async function POST(req: NextRequest) {
 
     if (moderationResult.severity === 'blocked') {
       return new Response('Content violates safety guidelines', { status: 400 });
+    }
+
+    const refusalDecision = shouldRefuse(maskedContent.masked, { userId: user.userId });
+    if (refusalDecision.refuse) {
+      const refusalText = refusalDecision.socraticPrompt;
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          let index = 0;
+          const interval = setInterval(() => {
+            if (index < refusalText.length) {
+              controller.enqueue(encoder.encode(`0:${JSON.stringify(refusalText[index])}\n`));
+              index++;
+            } else {
+              clearInterval(interval);
+              controller.close();
+            }
+          }, 10);
+        },
+      });
+      return new Response(stream, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' },
+      });
     }
 
     const student = await prisma.user.findUnique({

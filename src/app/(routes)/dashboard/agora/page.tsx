@@ -75,7 +75,7 @@ export default function AgoraPage() {
             <Users className="w-12 h-12 text-[#BD6809]" />
             <div>
               <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-                The Agora
+                Student Feed
               </h1>
               <p className="text-white/80 mt-1">See what your fellow students are building, learning, and discovering.</p>
             </div>

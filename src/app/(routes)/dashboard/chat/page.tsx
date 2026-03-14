@@ -9,6 +9,7 @@ import { ErrorDisplay } from '@/components/chat/ErrorDisplay';
 import { DailyBreadWidget } from '@/components/daily-bread/DailyBreadWidget';
 import { WhatsNextWidget } from '@/components/daily-bread/WhatsNextWidget';
 import JourneyMap from '@/components/dashboard/JourneyMap';
+import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
 
 const CREAM = '#FFFEF7';
 const PALM = '#2F4731';
@@ -31,17 +32,31 @@ function getMessageText(message: { content?: string; parts?: Array<{ type?: stri
 }
 
 export default function DashboardChatPage() {
-  const { messages, input, handleSubmit, isLoading, error, append, setInput } = useChat({
+  const { messages, input, handleSubmit, isLoading, error, append, setInput, data } = useChat({
     api: '/api/chat',
     onError: (e) => console.error('[DashboardChat] error:', e),
   });
 
   const [detectedIntent, setDetectedIntent] = useState<string | null>(null);
+  const [genUIPayload, setGenUIPayload] = useState<any>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+
+  // Extract GenUI payload from data array
+  useEffect(() => {
+    if (data && data.length > 0) {
+      for (let i = data.length - 1; i >= 0; i--) {
+        const item = data[i];
+        if (item && typeof item === 'object' && 'genUIPayload' in item) {
+          setGenUIPayload(item.genUIPayload);
+          break;
+        }
+      }
+    }
+  }, [data]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -173,6 +188,7 @@ export default function DashboardChatPage() {
             />
           )}
           {renderedMessages}
+          {genUIPayload && <GenUIRenderer payload={genUIPayload} />}
           {isLoading && <AdelineTyping intent={detectedIntent ?? undefined} />}
           <div ref={messagesEndRef} />
         </div>

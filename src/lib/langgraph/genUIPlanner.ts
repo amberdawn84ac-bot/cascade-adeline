@@ -2,6 +2,7 @@ import { AdelineGraphState } from './types';
 import { z } from 'zod';
 import { ChatOpenAI } from '@langchain/openai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { findPatternByTags, findPatternById, getAllPatterns, UIPattern } from '@/lib/gen-ui/pattern-library';
 
 // Zod schema for Hebrew Study data validation
 const HebrewStudySchema = z.object({
@@ -83,18 +84,72 @@ Please provide a comprehensive Hebrew word study based on their request.`;
   }
 }
 
+async function retrievePatternFromLibrary(state: AdelineGraphState): Promise<{ pattern: UIPattern; props: Record<string, unknown> } | null> {
+  const prompt = state.prompt || '';
+  const intent = state.intent || 'CHAT';
+  
+  const intentTagMap: Record<string, string[]> = {
+    ASSESS: ['quiz', 'assessment'],
+    INVESTIGATE: ['data', 'comparison'],
+    BRAINSTORM: ['analysis', 'critical-thinking'],
+    REFLECT: ['review', 'study'],
+  };
+  
+  const tags = intentTagMap[intent] || [];
+  
+  if (prompt.toLowerCase().includes('quiz') || prompt.toLowerCase().includes('question')) {
+    tags.push('quiz', 'interactive');
+  }
+  if (prompt.toLowerCase().includes('timeline') || /\d{4}/.test(prompt)) {
+    tags.push('history', 'chronology');
+  }
+  if (prompt.toLowerCase().includes('compare') || prompt.toLowerCase().includes('versus')) {
+    tags.push('comparison', 'analysis');
+  }
+  if (prompt.toLowerCase().includes('step') || prompt.toLowerCase().includes('how to')) {
+    tags.push('instructions', 'procedure');
+  }
+  if (prompt.toLowerCase().includes('math') || prompt.toLowerCase().includes('solve')) {
+    tags.push('math', 'equation');
+  }
+  if (prompt.toLowerCase().includes('chart') || prompt.toLowerCase().includes('graph')) {
+    tags.push('data', 'visualization');
+  }
+  
+  const pattern = findPatternByTags(tags);
+  if (!pattern) return null;
+  
+  const model = new ChatOpenAI({ model: 'gpt-4o-mini', temperature: 0.3 });
+  
+  try {
+    const structuredModel = model.withStructuredOutput(pattern.propsSchema);
+    const result = await structuredModel.invoke([
+      new SystemMessage(`You are filling in props for a UI component: ${pattern.name}.
+Description: ${pattern.description}
+Generate props that match the user's request. Use the example as a guide but customize to the user's actual request.
+Example: ${JSON.stringify(pattern.example, null, 2)}`),
+      new HumanMessage(`User request: ${prompt}\n\nGenerate appropriate props for this ${pattern.name} component.`),
+    ]);
+    
+    return { pattern, props: result as Record<string, unknown> };
+  } catch (error) {
+    console.error('Pattern library retrieval failed:', error);
+    return null;
+  }
+}
+
 function pickComponent(state: AdelineGraphState): { component: string; props: Record<string, unknown> } | null {
-  // Priority 1: Hebrew Study detection
+  // Priority 1: Hebrew Study detection (legacy custom component)
   if (isHebrewStudyCandidate(state.prompt)) {
     return {
       component: 'HEBREW_STUDY',
       props: {
-        englishWord: "faith", // This would be dynamically extracted
-        hebrewWord: "אֱמוּנָה", // This would be dynamically generated
-        transliteration: "emunah", // This would be dynamically generated
-        strongsNumber: "H530", // This would be dynamically looked up
-        rootMeaning: "Steadfastness, firmness, fidelity, trustworthiness", // This would be dynamically generated
-        biblicalContext: "Often used to describe a deep, abiding trust in God that manifests as unwavering loyalty and obedience." // This would be dynamically generated
+        englishWord: "faith",
+        hebrewWord: "אֱמוּנָה",
+        transliteration: "emunah",
+        strongsNumber: "H530",
+        rootMeaning: "Steadfastness, firmness, fidelity, trustworthiness",
+        biblicalContext: "Often used to describe a deep, abiding trust in God that manifests as unwavering loyalty and obedience."
       },
     };
   }
@@ -110,7 +165,7 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
     };
   }
 
-  // Priority 2: Investigation view when we ran discernment
+  // Priority 3: Investigation view when we ran discernment
   if (state.intent === 'INVESTIGATE' || state.metadata?.discernmentEngine) {
     const sourcesUsed = state.metadata?.discernmentEngine?.sourcesUsed;
     return {
@@ -122,7 +177,7 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
     };
   }
 
-  // Priority 3: Project brainstorming impact card
+  // Priority 4: Project brainstorming impact card
   if (state.intent === 'BRAINSTORM') {
     return {
       component: 'ProjectImpactCard',
@@ -132,7 +187,7 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
     };
   }
 
-  // Priority 4: Opportunities
+  // Priority 5: Opportunities
   if (state.intent === 'OPPORTUNITY') {
     return {
       component: 'MissionBriefing',
@@ -142,7 +197,7 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
     };
   }
 
-  // Priority 5: Timeline detection
+  // Priority 6: Timeline detection
   if (isTimelineCandidate(state.responseContent) || isTimelineCandidate(state.prompt)) {
     return {
       component: 'Timeline',
@@ -153,7 +208,7 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
     };
   }
 
-  // Priority 6: Concept mapping if gaps detected
+  // Priority 7: Concept mapping if gaps detected
   if (state.studentContext?.detectedGaps?.length) {
     return {
       component: 'ConceptMap',
@@ -167,7 +222,7 @@ function pickComponent(state: AdelineGraphState): { component: string; props: Re
 }
 
 export async function genUIPlanner(state: AdelineGraphState): Promise<AdelineGraphState> {
-  const selection = pickComponent(state);
+  let selection = pickComponent(state);
 
   // If Hebrew Study is detected, generate dynamic content
   if (selection && selection.component === 'HEBREW_STUDY') {
@@ -177,13 +232,24 @@ export async function genUIPlanner(state: AdelineGraphState): Promise<AdelineGra
     }
   }
 
+  // If no legacy component matched, try pattern library retrieval
+  if (!selection) {
+    const patternMatch = await retrievePatternFromLibrary(state);
+    if (patternMatch) {
+      selection = {
+        component: patternMatch.pattern.component,
+        props: patternMatch.props,
+      };
+    }
+  }
+
   if (!selection) {
     return {
       ...state,
       genUIPayload: undefined,
       metadata: {
         ...state.metadata,
-        genUIPlanner: { selected: null },
+        genUIPlanner: { selected: null, patternLibraryUsed: false },
       },
     };
   }
@@ -195,6 +261,7 @@ export async function genUIPlanner(state: AdelineGraphState): Promise<AdelineGra
       ...state.metadata,
       genUIPlanner: {
         selected: selection.component,
+        patternLibraryUsed: true,
       },
     },
   };

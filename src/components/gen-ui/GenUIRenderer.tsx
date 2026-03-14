@@ -10,18 +10,48 @@ import {
   MissionBriefing,
   Timeline,
 } from './index';
+import { HebrewStudyCard } from './HebrewStudyCard';
+import { SkillUnlockedBadge } from '@/components/ui/gamification/SkillUnlockedBadge';
+import { AnalogyCard } from '@/components/ui/learning/AnalogyCard';
+import { ShareWidget } from '@/components/ui/collaboration/ShareWidget';
+// Pattern library components
+import { QuizCard } from './patterns/QuizCard';
+import { BarChartCard } from './patterns/BarChartCard';
+import { Flashcard } from './patterns/Flashcard';
+import { TimelineCard } from './patterns/TimelineCard';
+import { StepList } from './patterns/StepList';
+import { CompareTable } from './patterns/CompareTable';
+import { MathDisplay } from './patterns/MathDisplay';
+import { ProgressRing } from './patterns/ProgressRing';
 
 type GenUIPayload = {
   component: string;
   props: Record<string, any>;
 };
 
+// Unified component registry - all GenUI components registered here
 const componentMap: Record<string, React.ComponentType<any>> = {
+  // Existing GenUI components
   TranscriptCard,
   InvestigationBoard,
   ProjectImpactCard,
   MissionBriefing,
   Timeline,
+  // Components from old component-registry.tsx
+  HebrewStudyCard,
+  HEBREW_STUDY: HebrewStudyCard,
+  SkillUnlockedBadge,
+  AnalogyCard,
+  ShareWidget,
+  // Pattern library components (8 new)
+  QuizCard,
+  BarChartCard,
+  Flashcard,
+  TimelineCard,
+  StepList,
+  CompareTable,
+  MathDisplay,
+  ProgressRing,
 };
 
 const INTENT_BORDER_COLORS: Record<string, string> = {
@@ -98,6 +128,8 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     }
   }, [payload?.component]);
 
+  console.log('[GenUIRenderer] 🚀 GenUIRenderer called with payload:', payload);
+  
   if (!payload) {
     console.log('[GenUIRenderer] No payload provided, returning null');
     return null;
@@ -147,15 +179,6 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
 
     const borderColor = INTENT_BORDER_COLORS[parsedPayload.component] || '#BD6809';
     console.log('[GenUIRenderer] Border color:', borderColor);
-
-    const [showConfetti, setShowConfetti] = useState(false);
-
-    useEffect(() => {
-      if (parsedPayload.component === 'TranscriptCard') {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 3000);
-      }
-    }, [parsedPayload.component]);
 
     return (
       <>

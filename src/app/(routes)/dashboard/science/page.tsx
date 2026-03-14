@@ -122,51 +122,151 @@ export default function SciencePage() {
     }
   }, [activeTab, groups.length, fieldWorkLoaded]);
 
-  const loadGroupsData = () => {
-    setGroups([
-      {
-        id: '1',
-        name: 'Water Justice Lab',
-        focus: 'Water quality testing, FOIA requests, and policy action',
-        description: 'Test local water sources for contamination. Draft FOIA requests to water departments. Testify at County Board meetings to demand transparency and policy change.',
-        currentChallenge: 'Test 3 local water sources (well, creek, tap). Draft FOIA request to County Water Dept for contamination records. Prepare 3-minute testimony for next County Board meeting demanding mandatory public water testing.',
-      },
-      {
-        id: '2',
-        name: 'Soil Stewardship Collective',
-        focus: 'Soil testing, pesticide investigation, and policy reform',
-        description: 'Test soil for pesticide residue and heavy metals. Investigate corporate pollution. Draft petitions to ban harmful chemicals and organize community pressure campaigns.',
-        currentChallenge: 'Test soil near industrial site. Draft petition to City Council to ban glyphosate in residential areas. Collect 50 signatures and submit with soil test data as evidence.',
-      },
-      {
-        id: '3',
-        name: 'Food Safety Watchdogs',
-        focus: 'Food testing, regulatory investigation, and community alerts',
-        description: 'Test local food for contamination. Investigate FDA/USDA regulatory failures. Issue community alerts about unsafe products.',
-        currentChallenge: 'Test 5 local food items for pesticide residue. Research one FDA recall failure. Draft community alert letter for church bulletin.',
-      },
-      {
-        id: '4',
-        name: 'Air Quality Defenders',
-        focus: 'Air monitoring, pollution tracking, and environmental justice',
-        description: 'Monitor local air quality. Track pollution sources (factories, highways). Draft complaints to EPA Regional Office about violations.',
-        currentChallenge: 'Set up air quality monitor near highway. Track pollution for 2 weeks. Draft EPA complaint citing Clean Air Act violations.',
-      },
-      {
-        id: '5',
-        name: 'Seed Sovereignty Network',
-        focus: 'Heirloom seeds, corporate seed monopolies, and food independence',
-        description: 'Save heirloom seeds. Investigate Monsanto/Bayer seed patents. Build community seed library. Draft policy to protect seed saving rights and challenge corporate monopolies.',
-        currentChallenge: 'Save seeds from 3 heirloom varieties. Research one seed patent case. Draft letter to State Agriculture Department demanding protection for seed saving and opposing seed patent enforcement.',
-      },
-      {
-        id: '6',
-        name: 'Wildlife Corridor Protectors',
-        focus: 'Habitat mapping, development opposition, and land stewardship',
-        description: 'Map wildlife corridors and migration paths. Oppose destructive development projects. Draft letters to planning commissions. Restore habitat.',
-        currentChallenge: 'Map wildlife movement on your land. Research one local development threat. Draft letter to County Planning opposing habitat destruction.',
-      },
-    ]);
+  const loadGroupsData = async () => {
+    try {
+      const res = await fetch('/api/science/groups');
+      if (res.ok) {
+        const data = await res.json();
+        setGroups(data);
+      }
+    } catch (error) {
+      console.error('Failed to load groups:', error);
+    }
+  };
+
+  const loadGroupMemberships = async () => {
+    try {
+      const res = await fetch('/api/user/me');
+      if (res.ok) {
+        const data = await res.json();
+        const membershipRes = await fetch('/api/science/groups');
+        if (membershipRes.ok) {
+          const allGroups = await membershipRes.json();
+          const myGroupIds = allGroups
+            .filter((g: any) => g.memberships.some((m: any) => m.userId === data.id))
+            .map((g: any) => g.id);
+          setJoinedGroups(myGroupIds);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load memberships:', error);
+    }
+  };
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupFocus, setNewGroupFocus] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [newGroupChallenge, setNewGroupChallenge] = useState('');
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
+  const createGroup = async () => {
+    if (!newGroupName.trim() || !newGroupFocus.trim() || !newGroupDescription.trim() || !newGroupChallenge.trim()) return;
+    setIsCreatingGroup(true);
+    try {
+      const res = await fetch('/api/science/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newGroupName,
+          focus: newGroupFocus,
+          description: newGroupDescription,
+          currentChallenge: newGroupChallenge,
+          isPublic: true,
+        }),
+      });
+      if (res.ok) {
+        setShowCreateModal(false);
+        setNewGroupName('');
+        setNewGroupFocus('');
+        setNewGroupDescription('');
+        setNewGroupChallenge('');
+        await loadGroupsData();
+        await loadGroupMemberships();
+      }
+    } catch (error) {
+      console.error('Failed to create group:', error);
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  };
+
+  const [groupMessages, setGroupMessages] = useState<any[]>([]);
+  const [groupProjects, setGroupProjects] = useState<any[]>([]);
+  const [groupLogs, setGroupLogs] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [activeGroupTab, setActiveGroupTab] = useState<'chat' | 'projects' | 'logs'>('chat');
+
+  useEffect(() => {
+    if (selectedGroup) {
+      loadGroupMessages();
+      loadGroupProjects();
+      loadGroupLogs();
+      const interval = setInterval(loadGroupMessages, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedGroup]);
+
+  const loadGroupMessages = async () => {
+    if (!selectedGroup) return;
+    try {
+      const lastMessageTime = groupMessages.length > 0 ? groupMessages[groupMessages.length - 1].createdAt : null;
+      const url = lastMessageTime 
+        ? `/api/science/groups/${selectedGroup.id}/messages?since=${lastMessageTime}`
+        : `/api/science/groups/${selectedGroup.id}/messages`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (lastMessageTime) {
+          setGroupMessages(prev => [...prev, ...data]);
+        } else {
+          setGroupMessages(data);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  };
+
+  const loadGroupProjects = async () => {
+    if (!selectedGroup) return;
+    try {
+      const res = await fetch(`/api/science/groups/${selectedGroup.id}/projects`);
+      if (res.ok) setGroupProjects(await res.json());
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+    }
+  };
+
+  const loadGroupLogs = async () => {
+    if (!selectedGroup) return;
+    try {
+      const res = await fetch(`/api/science/groups/${selectedGroup.id}/log`);
+      if (res.ok) setGroupLogs(await res.json());
+    } catch (error) {
+      console.error('Failed to load logs:', error);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedGroup) return;
+    setIsSendingMessage(true);
+    try {
+      const res = await fetch(`/api/science/groups/${selectedGroup.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newMessage }),
+      });
+      if (res.ok) {
+        setNewMessage('');
+        await loadGroupMessages();
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    } finally {
+      setIsSendingMessage(false);
+    }
   };
 
   const loadFieldWork = async () => {
@@ -292,14 +392,17 @@ export default function SciencePage() {
 
   const handleJoinToggle = async (group: Group) => {
     try {
-      const res = await fetch('/api/science/groups/join', {
+      const res = await fetch(`/api/science/groups/${group.id}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupName: group.name }),
       });
       if (res.ok) {
         const data = await res.json();
-        setJoinedGroups(data.joinedGroups ?? []);
+        if (data.joined) {
+          setJoinedGroups(prev => [...prev, group.id]);
+        } else {
+          setJoinedGroups(prev => prev.filter(id => id !== group.id));
+        }
       }
     } catch (e) {
       console.error('Failed to toggle group membership:', e);
@@ -792,16 +895,103 @@ export default function SciencePage() {
                     <p className="text-red-900 leading-relaxed">{selectedGroup.currentChallenge}</p>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div className="flex border-b border-emerald-200 mb-6">
+                    {(['chat', 'projects', 'logs'] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveGroupTab(tab)}
+                        className={`flex-1 py-3 text-sm uppercase tracking-widest transition-colors ${
+                          activeGroupTab === tab ? 'bg-emerald-600 text-white' : 'text-emerald-600 hover:bg-emerald-50'
+                        }`}
+                      >
+                        {tab === 'chat' ? '💬 Group Chat' : tab === 'projects' ? '📁 Projects' : '📝 Work Logs'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeGroupTab === 'chat' && (
+                    <div className="space-y-4">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 max-h-96 overflow-y-auto space-y-3">
+                        {groupMessages.length === 0 ? (
+                          <p className="text-emerald-600 italic text-sm text-center py-8">No messages yet. Start the conversation!</p>
+                        ) : (
+                          groupMessages.map((msg) => (
+                            <div key={msg.id} className={`p-3 rounded-lg ${msg.aiMediated ? 'bg-amber-100 border border-amber-300' : 'bg-white border border-emerald-200'}`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-bold text-emerald-900 text-sm">{msg.author.name}</span>
+                                {msg.aiMediated && <Badge variant="outline" className="border-amber-500 text-amber-700 text-xs">AI Mediated</Badge>}
+                                <span className="text-xs text-emerald-500 ml-auto">{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                              </div>
+                              <p className="text-sm text-emerald-900">{msg.content}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                          placeholder="Type your message..."
+                          className="border-emerald-300 focus:border-emerald-500"
+                        />
+                        <Button onClick={sendMessage} disabled={isSendingMessage || !newMessage.trim()} className="bg-emerald-600 hover:bg-emerald-700">
+                          Send
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeGroupTab === 'projects' && (
+                    <div className="space-y-4">
+                      {groupProjects.length === 0 ? (
+                        <p className="text-emerald-600 italic text-sm text-center py-8">No projects yet. Create one to get started!</p>
+                      ) : (
+                        groupProjects.map((project) => (
+                          <Card key={project.id} className="border-2 border-emerald-200">
+                            <CardHeader>
+                              <CardTitle className="text-emerald-900">{project.title}</CardTitle>
+                              <CardDescription>{project.description}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <Badge variant="outline" className="border-emerald-400 text-emerald-700">{project.status}</Badge>
+                              <p className="text-xs text-emerald-600 mt-2">{project._count.logEntries} work log entries</p>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {activeGroupTab === 'logs' && (
+                    <div className="space-y-3">
+                      {groupLogs.length === 0 ? (
+                        <p className="text-emerald-600 italic text-sm text-center py-8">No work logs yet. Document your progress!</p>
+                      ) : (
+                        groupLogs.map((log) => (
+                          <div key={log.id} className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-bold text-emerald-900 text-sm">{log.user.name}</span>
+                              {log.project && <Badge variant="outline" className="border-emerald-400 text-emerald-700 text-xs">{log.project.title}</Badge>}
+                              <span className="text-xs text-emerald-500 ml-auto">{new Date(log.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <p className="text-sm text-emerald-900">{log.content}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-emerald-200">
                     <Card className="border-2 border-emerald-200">
                       <CardHeader>
                         <CardTitle className="text-emerald-900 flex items-center gap-2">
                           <FileText className="w-5 h-5" />
-                          Log Your Work
+                          Quick Actions
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-emerald-700 mb-4">Document your progress on the current challenge. What did you test? What did you find? What action did you take?</p>
+                        <p className="text-sm text-emerald-700 mb-4">Log your work, create projects, or request AI mediation if the group needs help.</p>
                         <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
                           📝 Create Log Entry
                         </Button>
@@ -847,7 +1037,7 @@ export default function SciencePage() {
                       <h3 className="text-2xl text-emerald-900 mb-2 font-bold">Science Groups</h3>
                       <p className="text-sm text-emerald-600 italic">Join a group to work on systemic action challenges together. Each group focuses on real-world justice and community service.</p>
                     </div>
-                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Button onClick={() => setShowCreateModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                       <Plus className="w-4 h-4 mr-2" />
                       Create Group
                     </Button>
@@ -867,7 +1057,7 @@ export default function SciencePage() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {groups.map((group) => {
-                      const isJoined = joinedGroups.includes(group.name);
+                      const isJoined = joinedGroups.includes(group.id);
                       return (
                         <Card key={group.id} className={`border-2 transition-all ${isJoined ? 'border-emerald-500 shadow-md' : 'border-emerald-200'} cursor-pointer hover:shadow-lg`}
                           onClick={() => isJoined && setSelectedGroup(group)}
@@ -1005,6 +1195,88 @@ export default function SciencePage() {
         )}
 
       </div>
+
+      {/* Create Group Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl border-2 border-emerald-300 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-emerald-900">Create Science Group</h2>
+              <Button onClick={() => setShowCreateModal(false)} variant="ghost" size="sm">
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-bold text-emerald-800 block mb-1">Group Name</label>
+                <Input
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="e.g. Water Justice Lab"
+                  className="border-emerald-300 focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-bold text-emerald-800 block mb-1">Focus Area</label>
+                <Input
+                  value={newGroupFocus}
+                  onChange={(e) => setNewGroupFocus(e.target.value)}
+                  placeholder="e.g. Water quality testing, FOIA requests, and policy action"
+                  className="border-emerald-300 focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-bold text-emerald-800 block mb-1">Description</label>
+                <Textarea
+                  value={newGroupDescription}
+                  onChange={(e) => setNewGroupDescription(e.target.value)}
+                  placeholder="What will your group do? What systemic issues will you address?"
+                  className="border-emerald-300 focus:border-emerald-500 min-h-24"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-bold text-emerald-800 block mb-1">Current Challenge</label>
+                <Textarea
+                  value={newGroupChallenge}
+                  onChange={(e) => setNewGroupChallenge(e.target.value)}
+                  placeholder="What's the first mission for your group? Be specific about actions and deliverables."
+                  className="border-emerald-300 focus:border-emerald-500 min-h-24"
+                />
+              </div>
+
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+                <p className="text-sm text-amber-900">
+                  <strong>Note:</strong> Public groups are visible to all students. You'll be set as the moderator and can invite others to join.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={createGroup}
+                  disabled={isCreatingGroup || !newGroupName.trim() || !newGroupFocus.trim() || !newGroupDescription.trim() || !newGroupChallenge.trim()}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  {isCreatingGroup ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Group'
+                  )}
+                </Button>
+                <Button onClick={() => setShowCreateModal(false)} variant="outline" className="border-emerald-300">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

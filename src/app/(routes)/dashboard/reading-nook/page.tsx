@@ -39,7 +39,7 @@ const BOOK_IT_GOAL = 5;
 const BRAUMS_GOAL = 400;
 
 export default function ReadingNookPage() {
-  const [activeTab, setActiveTab] = useState<'bookshelf' | 'narration' | 'rewards'>('bookshelf');
+  const [activeTab, setActiveTab] = useState<'bookshelf' | 'coach' | 'rewards'>('bookshelf');
 
   // Bookshelf
   const [books, setBooks] = useState<LivingBook[]>([]);
@@ -70,6 +70,24 @@ export default function ReadingNookPage() {
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     utt.rate = 0.88;
+    utt.pitch = 1.1;
+    
+    // Select a natural female voice (Adeline's voice)
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(v => 
+      (v.name.includes('Samantha') || // macOS natural female
+       v.name.includes('Karen') ||    // macOS Australian female
+       v.name.includes('Fiona') ||    // macOS Scottish female
+       v.name.includes('Microsoft Zira') || // Windows female
+       v.name.includes('Google US English Female') || // Chrome female
+       v.name.includes('female')) && 
+      v.lang.startsWith('en')
+    ) || voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('male'));
+    
+    if (femaleVoice) {
+      utt.voice = femaleVoice;
+    }
+    
     window.speechSynthesis.speak(utt);
   };
 
@@ -161,8 +179,8 @@ export default function ReadingNookPage() {
 
       {/* Tab Nav */}
       <div className="flex border-b border-amber-200 bg-amber-50/40">
-        {(['bookshelf', 'narration', 'rewards'] as const).map((tab) => {
-          const labels = { bookshelf: 'My Bookshelf', narration: 'Socratic Narration', rewards: 'Reading Rewards' };
+        {(['bookshelf', 'coach', 'rewards'] as const).map((tab) => {
+          const labels = { bookshelf: 'My Bookshelf', coach: 'Reading Coach', rewards: 'Reading Rewards' };
           return (
             <button
               key={tab}
@@ -255,17 +273,17 @@ export default function ReadingNookPage() {
           </div>
         )}
 
-        {/* ── SOCRATIC NARRATION ── */}
-        {activeTab === 'narration' && (
+        {/* ── READING COACH ── */}
+        {activeTab === 'coach' && (
           <div className="p-6 max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold text-amber-900 mb-1">Socratic Narration</h2>
-            <p className="text-sm text-amber-700 italic mb-6">Tell Adeline what you read. She&apos;ll ask the questions that matter.</p>
+            <h2 className="text-2xl font-bold text-amber-900 mb-1">Reading Coach</h2>
+            <p className="text-sm text-amber-700 italic mb-6">Read aloud to Adeline. She&apos;ll listen and help you with real-time feedback.</p>
 
             {!narrationStarted ? (
               <Card className="border-2 border-amber-200">
                 <CardContent className="p-6 space-y-4">
                   <div>
-                    <label className="text-sm font-bold text-amber-800 block mb-1">What book are you narrating?</label>
+                    <label className="text-sm font-bold text-amber-800 block mb-1">What book are you reading?</label>
                     <Input value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="e.g. Charlotte's Web" className="border-amber-200 focus:border-amber-500" />
                   </div>
                   <div>
@@ -273,7 +291,7 @@ export default function ReadingNookPage() {
                     <Input value={chapter} onChange={(e) => setChapter(e.target.value)} placeholder="e.g. Chapter 4 — In the Barn" className="border-amber-200 focus:border-amber-500" />
                   </div>
                   <Button onClick={startNarration} disabled={!bookTitle.trim()} className="w-full bg-amber-700 hover:bg-amber-800 text-white uppercase tracking-widest text-sm py-6">
-                    Begin Narration
+                    Start Reading Coach
                   </Button>
                 </CardContent>
               </Card>

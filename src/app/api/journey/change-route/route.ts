@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { ChatOpenAI } from '@langchain/openai';
+import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
@@ -40,10 +40,8 @@ The student is proposing a change to credit ID: ${creditId}
 Be warm, encouraging, and helpful. Guide them, don't demand.`
 
     const result = await streamText({
-      model: new ChatOpenAI({ 
-        model: 'gpt-4o',
-        temperature: 0.8,
-      }) as any,
+      model: openai('gpt-4o'),
+      temperature: 0.8,
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages,
