@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { X } from 'lucide-react';
+import { CheckoutForm } from '@/components/checkout/CheckoutForm';
 
 const TIERS = [
   {
@@ -18,13 +20,13 @@ const TIERS = [
       'Chat history (7 days)',
     ],
     cta: 'Start Free',
-    ctaAction: '/chat',
-    paypalOption: null,
+    productId: null,
   },
   {
     id: 'STUDENT',
+    productId: 'STUDENT_MONTHLY',
     name: 'Student',
-    price: { monthly: 2.99 },
+    price: { monthly: 9.99 },
     description: 'Unlimited learning for one',
     features: [
       '✨ Unlimited messages',
@@ -35,12 +37,12 @@ const TIERS = [
     ],
     cta: 'Upgrade',
     popular: false,
-    paypalOption: 'One Student Unlimited',
   },
   {
     id: 'PARENT',
+    productId: 'PARENT_MONTHLY',
     name: 'Parent',
-    price: { monthly: 19.99 },
+    price: { monthly: 14.99 },
     description: 'Track one learner deeply',
     features: [
       'Everything in Student, plus:',
@@ -51,12 +53,12 @@ const TIERS = [
     ],
     cta: 'Upgrade',
     popular: false,
-    paypalOption: 'Parent Account w/ 1 child and transcripts',
   },
   {
     id: 'FAMILY',
+    productId: 'FAMILY_MONTHLY',
     name: 'Family',
-    price: { monthly: 29.99 },
+    price: { monthly: 19.99 },
     description: 'For multi-child families',
     features: [
       'Everything in Parent, plus:',
@@ -67,10 +69,10 @@ const TIERS = [
     ],
     cta: 'Upgrade',
     popular: true,
-    paypalOption: 'Family Account w/ up to 6 and transcripts',
   },
   {
     id: 'COOP',
+    productId: null,
     name: 'Co-op',
     price: { monthly: 49.99 },
     description: 'For classrooms & co-ops',
@@ -81,50 +83,51 @@ const TIERS = [
       'Bulk progress reports',
       'Dedicated support',
     ],
-    cta: 'Upgrade',
+    cta: 'Contact Us',
     popular: false,
-    paypalOption: 'Co-op or Classroom w/ up to 40 students',
   },
 ];
 
 export default function PricingPage() {
   const router = useRouter();
-  const formRef = useRef<HTMLFormElement>(null);
-  const [selectedOption, setSelectedOption] = useState<string>('One Student Unlimited');
+  const [checkoutProductId, setCheckoutProductId] = useState<string | null>(null);
 
   const handleUpgrade = (tier: typeof TIERS[0]) => {
     if (tier.id === 'FREE') {
       router.push('/chat');
       return;
     }
-
-    if (tier.paypalOption && formRef.current) {
-      setSelectedOption(tier.paypalOption);
-      // Allow state to update then submit
-      setTimeout(() => {
-        formRef.current?.submit();
-      }, 100);
+    if (tier.id === 'COOP') {
+      router.push('mailto:hello@dearadeline.com');
+      return;
+    }
+    if (tier.productId) {
+      setCheckoutProductId(tier.productId);
     }
   };
 
   return (
     <div style={{ minHeight: '100vh', background: '#FFFEF7', padding: '40px 24px' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {/* Hidden PayPal Form */}
-        <form 
-          action="https://www.paypal.com/cgi-bin/webscr" 
-          method="post" 
-          target="_top" 
-          ref={formRef}
-          className="hidden"
-          style={{ display: 'none' }}
+      {/* Stripe Embedded Checkout Modal */}
+      {checkoutProductId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setCheckoutProductId(null); }}
         >
-          <input type="hidden" name="cmd" value="_s-xclick" />
-          <input type="hidden" name="hosted_button_id" value="4PJRZA3JXYZ8G" />
-          <input type="hidden" name="on0" value="Subscriptions"/>
-          <input type="hidden" name="os0" value={selectedOption} />
-          <input type="hidden" name="currency_code" value="USD" />
-        </form>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setCheckoutProductId(null)}
+              className="absolute top-4 right-4 z-10 p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="p-2">
+              <CheckoutForm productId={checkoutProductId} />
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
