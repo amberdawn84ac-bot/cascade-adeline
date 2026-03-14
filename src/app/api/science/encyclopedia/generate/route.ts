@@ -15,6 +15,7 @@ const encyclopediaSchema = z.object({
   references: z.array(z.string()).describe("Historical scientists or classical texts that studied this"),
   primarySourceCitation: z.string().describe("The exact name of the original primary source document, journal, or raw data used."),
   directQuote: z.string().describe("A compelling, exact direct quote from that primary source that proves the historical or scientific reality."),
+  fieldChallenge: z.string().describe("A specific, hands-on challenge the student can do RIGHT NOW in their immediate environment (home, farm, backyard, kitchen). Must be 2-3 sentences max describing the action, then end with ONE explicit question that demands a specific response from the student — something they can only answer by actually doing it. Example: 'Go squeeze a handful of compost from the pile. Is it wet like a wrung-out sponge, or dry and crumbling like dust? Tell me exactly what you feel.'"),
 });
 
 export async function POST(req: NextRequest) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,12 @@ interface ScienceEntry {
   sources?: { title: string; uri: string }[];
   primarySourceCitation?: string;
   directQuote?: string;
+  fieldChallenge?: string;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 interface ScienceExperiment {
@@ -72,6 +78,13 @@ export default function SciencePage() {
   const [isGeneratingEntry, setIsGeneratingEntry] = useState(false);
   const [isSavingEntry, setIsSavingEntry] = useState(false);
   const [saveEntrySuccess, setSaveEntrySuccess] = useState(false);
+
+  // Encyclopedia Chat State
+  const [encyMessages, setEncyMessages] = useState<ChatMessage[]>([]);
+  const [encyInput, setEncyInput] = useState('');
+  const [isEncyChatting, setIsEncyChatting] = useState(false);
+  const [encyChatEntryId, setEncyChatEntryId] = useState<string | null>(null);
+  const encyChatScrollRef = useRef<HTMLDivElement>(null);
 
   // Laboratory State
   const [experimentQuery, setExperimentQuery] = useState('');
@@ -282,6 +295,56 @@ export default function SciencePage() {
       console.error('Failed to load field work:', e);
     } finally {
       setIsLoadingFieldWork(false);
+    }
+  };
+
+  // Reset chat when switching entries
+  useEffect(() => {
+    if (selectedId !== encyChatEntryId) {
+      setEncyMessages([]);
+      setEncyChatEntryId(selectedId);
+    }
+  }, [selectedId]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (encyChatScrollRef.current) {
+      encyChatScrollRef.current.scrollTop = encyChatScrollRef.current.scrollHeight;
+    }
+  }, [encyMessages]);
+
+  const sendEncyMessage = async (entry: ScienceEntry, entryId: string) => {
+    if (!encyInput.trim() || isEncyChatting) return;
+    const userMessage: ChatMessage = { role: 'user', content: encyInput };
+    const newMessages = [...encyMessages, userMessage];
+    setEncyMessages(newMessages);
+    setEncyInput('');
+    setIsEncyChatting(true);
+    try {
+      const res = await fetch(`/api/science/encyclopedia/${entryId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages, entry }),
+      });
+      if (!res.ok || !res.body) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let content = '';
+      setEncyMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        content += decoder.decode(value, { stream: true });
+        setEncyMessages(prev => {
+          const msgs = [...prev];
+          msgs[msgs.length - 1] = { role: 'assistant', content };
+          return msgs;
+        });
+      }
+    } catch (e) {
+      console.error('Encyclopedia chat error:', e);
+    } finally {
+      setIsEncyChatting(false);
     }
   };
 
@@ -588,6 +651,50 @@ export default function SciencePage() {
                             )}
 
                         </div>
+
+                        {/* Field Challenge */}
+                        {activeEntry.fieldChallenge && (
+                            <div className="mt-6 bg-amber-50 border-2 border-amber-400 rounded-xl p-6">
+                                <h3 className="text-lg font-bold text-amber-900 mb-3 flex items-center gap-2">
+                                    🌿 Field Challenge
+                                </h3>
+                                <p className="text-amber-900 leading-relaxed font-medium">{activeEntry.fieldChallenge}</p>
+                            </div>
+                        )}
+
+                        {/* Live Chat with Adeline */}
+                        <div className="mt-6 border-t-2 border-emerald-200 pt-6">
+                            <h3 className="text-lg font-bold text-emerald-900 mb-4 flex items-center gap-2">
+                                💬 Talk to Adeline About This
+                            </h3>
+                            {encyMessages.length > 0 && (
+                                <div ref={encyChatScrollRef} className="max-h-80 overflow-y-auto space-y-3 mb-4 pr-1">
+                                    {encyMessages.map((msg, i) => (
+                                        <div key={i} className={`p-3 rounded-xl text-sm leading-relaxed ${msg.role === 'user' ? 'bg-emerald-100 text-emerald-900 ml-8' : 'bg-white border border-emerald-200 text-emerald-900 mr-8'}`}>
+                                            <span className="font-bold text-xs uppercase tracking-wider block mb-1 opacity-60">{msg.role === 'user' ? 'You' : 'Adeline'}</span>
+                                            {msg.content}
+                                        </div>
+                                    ))}
+                                    {isEncyChatting && encyMessages[encyMessages.length - 1]?.role === 'assistant' && encyMessages[encyMessages.length - 1].content === '' && (
+                                        <div className="flex items-center gap-2 text-emerald-500 text-sm italic ml-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" /> Adeline is thinking…
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <form onSubmit={(e) => { e.preventDefault(); if (activeEntry.id) sendEncyMessage(activeEntry, activeEntry.id); }} className="flex gap-2">
+                                <Input
+                                    value={encyInput}
+                                    onChange={e => setEncyInput(e.target.value)}
+                                    placeholder={activeEntry.fieldChallenge ? "Report back what you found…" : "Ask Adeline a question about this topic…"}
+                                    disabled={isEncyChatting}
+                                    className="flex-1 border-emerald-300 focus:border-emerald-500 text-sm"
+                                />
+                                <Button type="submit" disabled={!encyInput.trim() || isEncyChatting} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4">
+                                    {isEncyChatting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
+                                </Button>
+                            </form>
+                        </div>
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-60">
@@ -678,6 +785,50 @@ export default function SciencePage() {
                                     </div>
                                 </div>
                                 
+                                    {/* Field Challenge */}
+                                    {generatedEntry.fieldChallenge && (
+                                        <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-6">
+                                            <h3 className="text-lg font-bold text-amber-900 mb-3 flex items-center gap-2">
+                                                🌿 Field Challenge
+                                            </h3>
+                                            <p className="text-amber-900 leading-relaxed font-medium">{generatedEntry.fieldChallenge}</p>
+                                        </div>
+                                    )}
+
+                                {/* Live Chat with Adeline */}
+                                <div className="mt-6 border-t-2 border-emerald-200 pt-6">
+                                    <h3 className="text-lg font-bold text-emerald-900 mb-4 flex items-center gap-2">
+                                        💬 Talk to Adeline About This
+                                    </h3>
+                                    {encyMessages.length > 0 && (
+                                        <div ref={encyChatScrollRef} className="max-h-80 overflow-y-auto space-y-3 mb-4 pr-1">
+                                            {encyMessages.map((msg, i) => (
+                                                <div key={i} className={`p-3 rounded-xl text-sm leading-relaxed ${msg.role === 'user' ? 'bg-emerald-100 text-emerald-900 ml-8' : 'bg-white border border-emerald-200 text-emerald-900 mr-8'}`}>
+                                                    <span className="font-bold text-xs uppercase tracking-wider block mb-1 opacity-60">{msg.role === 'user' ? 'You' : 'Adeline'}</span>
+                                                    {msg.content}
+                                                </div>
+                                            ))}
+                                            {isEncyChatting && encyMessages[encyMessages.length - 1]?.role === 'assistant' && encyMessages[encyMessages.length - 1].content === '' && (
+                                                <div className="flex items-center gap-2 text-emerald-500 text-sm italic ml-2">
+                                                    <Loader2 className="w-4 h-4 animate-spin" /> Adeline is thinking…
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    <form onSubmit={(e) => { e.preventDefault(); sendEncyMessage(generatedEntry, 'new'); }} className="flex gap-2">
+                                        <Input
+                                            value={encyInput}
+                                            onChange={e => setEncyInput(e.target.value)}
+                                            placeholder={generatedEntry.fieldChallenge ? "Report back what you found…" : "Ask Adeline a question…"}
+                                            disabled={isEncyChatting}
+                                            className="flex-1 border-emerald-300 focus:border-emerald-500 text-sm"
+                                        />
+                                        <Button type="submit" disabled={!encyInput.trim() || isEncyChatting} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4">
+                                            {isEncyChatting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
+                                        </Button>
+                                    </form>
+                                </div>
+
                                 {/* Save Button */}
                                 <div className="mt-8 flex justify-center border-t-2 border-[#E7DAC3] pt-6">
                                     <Button 
