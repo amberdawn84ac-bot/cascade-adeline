@@ -749,6 +749,7 @@ model Competition {
   url              String?
   year             Int                @default(2026)
   isActive         Boolean            @default(true) @map("is_active")
+  lastScrapedAt    DateTime?          @map("last_scraped_at")
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
   matches          CompetitionMatch[]
@@ -756,6 +757,7 @@ model Competition {
   @@index([type])
   @@index([deadline])
   @@index([isActive])
+  @@index([lastScrapedAt])
 }
 
 model CompetitionMatch {
@@ -904,4 +906,8 @@ enum CompetitionType {
   STEM_CHALLENGE
   SCHOLARSHIP
   HACKATHON
+  MATH
+  WRITING
+  ROBOTICS
+  OTHER
 }

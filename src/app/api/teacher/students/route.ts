@@ -25,10 +25,10 @@ export async function GET() {
       standardsProgress: {
         select: {
           mastery: true,
-          standard: { select: { subjectArea: true, standardCode: true } },
-          updatedAt: true,
+          standard: { select: { subject: true, standardCode: true } },
+          demonstratedAt: true,
         },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { demonstratedAt: 'desc' },
         take: 10,
       },
       userActivities: {
@@ -47,7 +47,7 @@ export async function GET() {
       lastActive: s.userActivities[0]?.createdAt ?? s.createdAt,
       masteryBreakdown: s.standardsProgress.reduce(
         (acc, p) => {
-          const subj = p.standard.subjectArea;
+          const subj = p.standard.subject;
           if (!acc[subj]) acc[subj] = { mastered: 0, total: 0 };
           acc[subj].total++;
           if (p.mastery === 'MASTERED' || p.mastery === 'PROFICIENT') acc[subj].mastered++;

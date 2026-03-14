@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
-import { ChatOpenAI } from '@langchain/openai';
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const interventionSchema = z.object({
@@ -31,11 +32,10 @@ export async function GET() {
         where: { mastery: { in: ['INTRODUCED', 'DEVELOPING'] } },
         select: {
           mastery: true,
-          attempts: true,
-          lastAttemptAt: true,
-          standard: { select: { standardCode: true, description: true, subjectArea: true } },
+          lastActivityAt: true,
+          standard: { select: { standardCode: true, description: true, subject: true } },
         },
-        orderBy: { lastAttemptAt: 'desc' },
+        orderBy: { lastActivityAt: 'desc' },
         take: 5,
       },
       learningGaps: {
@@ -58,7 +58,7 @@ export async function GET() {
   });
 
   const studentsNeedingIntervention = students.filter(s => {
-    const hasLowMastery = s.standardsProgress.some(p => p.attempts >= 4 && p.mastery === 'DEVELOPING');
+    const hasLowMastery = s.standardsProgress.some(p => p.mastery === 'DEVELOPING');
     const hasGaps = s.learningGaps.length > 0;
     const recentActivityCount = s.userActivities.filter(
       a => new Date(a.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -71,16 +71,13 @@ export async function GET() {
     return NextResponse.json([]);
   }
 
-  const llm = new ChatOpenAI({ model: 'gpt-4o-mini', temperature: 0.3 }).withStructuredOutput(interventionSchema);
-
   const studentSummaries = studentsNeedingIntervention.map(s => ({
     id: s.id,
     name: s.name,
     gradeLevel: s.gradeLevel,
     strugglingStandards: s.standardsProgress.map(p => ({
-      subject: p.standard.subjectArea,
+      subject: p.standard.subject,
       code: p.standard.standardCode,
-      attempts: p.attempts,
       mastery: p.mastery,
     })),
     learningGaps: s.learningGaps.map(g => ({
@@ -91,28 +88,29 @@ export async function GET() {
     recentActivityDays: s.userActivities.length,
   }));
 
-  const result = await llm.invoke([
-    {
-      role: 'system',
-      content: `You are Adeline, an AI learning coach helping a teacher identify students who need intervention.
+  const result = await generateObject({
+    model: openai('gpt-4o-mini'),
+    temperature: 0.3,
+    schema: interventionSchema,
+    prompt: `You are Adeline, an AI learning coach helping a teacher identify students who need intervention.
 
 Your job is to analyze student data and generate ACTIONABLE intervention suggestions.
 
 INTERVENTION CRITERIA:
-- HIGH urgency: Student has made 4+ attempts with low mastery, or has SIGNIFICANT learning gaps
+- HIGH urgency: Student has DEVELOPING mastery with no recent progress, or has SIGNIFICANT learning gaps
 - MEDIUM urgency: Student has 2-3 moderate gaps or low recent activity
 - LOW urgency: Minor concerns worth monitoring
 
 INTERVENTION QUALITY:
 - Be SPECIFIC: "Schedule 1-on-1 review of triangle congruence theorems" not "help with math"
 - Be ACTIONABLE: Teacher should know exactly what to do
-- Be BRIEF: 1-2 sentences max`,
-    },
-    {
-      role: 'user',
-      content: `Students needing intervention:\n${JSON.stringify(studentSummaries, null, 2)}\n\nGenerate intervention recommendations.`,
-    },
-  ]);
+- Be BRIEF: 1-2 sentences max
 
-  return NextResponse.json(result.interventions);
+Students needing intervention:
+${JSON.stringify(studentSummaries, null, 2)}
+
+Generate intervention recommendations.`,
+  });
+
+  return NextResponse.json(result.object.interventions);
 }
