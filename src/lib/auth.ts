@@ -34,12 +34,17 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   // Auto-heal missing Prisma user (The Ghost User fix)
   if (!user) {
     try {
+      const meta = supaUser.user_metadata ?? {};
+      const rawRole = (meta.role as string | undefined)?.toUpperCase();
+      const validRoles = ['STUDENT', 'PARENT', 'TEACHER', 'ADMIN'];
+      const resolvedRole = validRoles.includes(rawRole ?? '') ? rawRole! : 'PARENT';
+      const resolvedName = (meta.name as string | undefined)?.trim() || supaUser.email?.split('@')[0] || 'User';
       user = await prisma.user.create({
         data: {
           id: supaUser.id,
           email: supaUser.email || '',
-          role: 'PARENT', // Safe default fallback
-          name: supaUser.email?.split('@')[0] || 'User',
+          role: resolvedRole as 'STUDENT' | 'PARENT' | 'TEACHER' | 'ADMIN',
+          name: resolvedName,
         }
       }) as any;
     } catch (e) {

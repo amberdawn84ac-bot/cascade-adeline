@@ -100,22 +100,12 @@ export function ConversationalLogin() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+          data: { role, name: name.trim() },
         },
       });
 
       if (signUpError) throw signUpError;
       if (!data.user) throw new Error('Signup returned no user');
-
-      // Provision Prisma User record
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: data.user.id, name: name.trim(), role }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error || 'Failed to create user profile');
-      }
 
       if (data.session) {
         // Auto-confirm enabled (local dev) — go straight to onboarding

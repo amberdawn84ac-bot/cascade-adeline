@@ -14,6 +14,7 @@ export async function PATCH(req: NextRequest) {
     data: {
       gradeLevel: gradeLevel || null,
       interests: Array.isArray(interests) ? interests : [],
+      onboardingComplete: true,
     },
   });
 

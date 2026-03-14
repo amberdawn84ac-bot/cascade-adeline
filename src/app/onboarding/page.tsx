@@ -9,13 +9,13 @@ export default async function OnboardingPage() {
 
   const userRecord = await prisma.user.findUnique({
     where: { id: user.userId },
-    select: { gradeLevel: true },
+    select: { onboardingComplete: true },
   });
 
   if (!userRecord) redirect('/login');
 
-  // Invisible bounce: existing users already have gradeLevel, skip straight to dashboard
-  if (userRecord.gradeLevel) redirect('/dashboard');
+  // Skip onboarding for users who have already completed it
+  if (userRecord.onboardingComplete) redirect('/dashboard');
 
   // New user: show the WelcomeFlow modal experience
   return <OnboardingClient />;
