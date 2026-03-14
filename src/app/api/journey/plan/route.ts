@@ -16,8 +16,8 @@ const learningPlanSchema = z.object({
     subject: z.string().describe('The academic subject (e.g., Science, Math, English)'),
     creditsNeeded: z.number().describe('Number of credits this will earn'),
     description: z.string().describe('2-sentence description of what they will do'),
-    progress: z.number().optional().describe('Current progress percentage if in progress'),
-    dueDate: z.string().optional().describe('Target completion date'),
+    progress: z.number().nullable().describe('Current progress percentage if in progress, or null'),
+    dueDate: z.string().nullable().describe('Target completion date as ISO string, or null'),
   })),
   trailAhead: z.array(z.object({
     title: z.string().describe('Creative title that maps requirement to student interests'),
