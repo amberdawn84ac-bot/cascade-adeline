@@ -32,7 +32,6 @@ const CATEGORIES: { id: CategoryId; label: string; icon: string; description: st
 
 export default function HomesteadingPage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
-  const [skillLevel, setSkillLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
   const [focus, setFocus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [project, setProject] = useState<HomesteadProject | null>(null);
@@ -42,8 +41,7 @@ export default function HomesteadingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transcriptAdded, setTranscriptAdded] = useState(false);
 
-  const handleGenerate = async () => {
-    if (!selectedCategory || !focus.trim()) return;
+  const handleGenerate = async (category: CategoryId, specificFocus?: string) => {
     setIsGenerating(true);
     setProject(null);
     setIsCompleted(false);
@@ -54,7 +52,7 @@ export default function HomesteadingPage() {
       const res = await fetch('/api/domestic-arts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: selectedCategory, focus, skillLevel }),
+        body: JSON.stringify({ category, focus: specificFocus?.trim() || undefined }),
       });
       if (!res.ok) throw new Error('Failed to generate');
       const data = await res.json();
@@ -104,8 +102,6 @@ export default function HomesteadingPage() {
     }
   };
 
-  const activeCat = CATEGORIES.find(c => c.id === selectedCategory);
-
   return (
     <div className="flex flex-col min-h-full bg-[#FAF8F2]">
       {/* Header */}
@@ -125,10 +121,23 @@ export default function HomesteadingPage() {
             {CATEGORIES.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => { setSelectedCategory(cat.id); setProject(null); }}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${selectedCategory === cat.id ? 'border-green-600 bg-green-50 shadow-md' : 'border-green-100 bg-white hover:border-green-300'}`}
+                disabled={isGenerating}
+                onClick={() => {
+                  setSelectedCategory(cat.id);
+                  setFocus('');
+                  handleGenerate(cat.id);
+                }}
+                className={`p-4 rounded-xl border-2 text-left transition-all relative ${
+                  selectedCategory === cat.id
+                    ? 'border-green-600 bg-green-50 shadow-md'
+                    : 'border-green-100 bg-white hover:border-green-300'
+                } ${isGenerating && selectedCategory === cat.id ? 'opacity-80' : ''}`}
               >
-                <div className="text-2xl mb-1">{cat.icon}</div>
+                <div className="text-2xl mb-1">
+                  {isGenerating && selectedCategory === cat.id
+                    ? <Loader2 className="w-7 h-7 animate-spin text-green-600" />
+                    : cat.icon}
+                </div>
                 <div className="font-bold text-green-900 text-sm">{cat.label}</div>
                 <div className="text-xs text-green-600 mt-0.5 leading-tight">{cat.description}</div>
               </button>
@@ -136,52 +145,30 @@ export default function HomesteadingPage() {
           </div>
         </div>
 
-        {/* Generator Form */}
-        {selectedCategory && (
-          <Card className="border-2 border-green-200">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-bold text-green-900 text-lg">{activeCat?.icon} {activeCat?.label} Project</h3>
-              <div className="flex gap-3 flex-wrap">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="text-xs font-bold text-green-800 uppercase tracking-wider block mb-1">What specifically?</label>
-                  <Input
-                    value={focus}
-                    onChange={e => setFocus(e.target.value)}
-                    placeholder={
-                      selectedCategory === 'preservation' ? 'e.g. pressure canning green beans' :
-                      selectedCategory === 'livestock-sheep' ? 'e.g. shearing and skirting a fleece' :
-                      selectedCategory === 'livestock-poultry' ? 'e.g. setting up a winter brooder' :
-                      selectedCategory === 'livestock-horses' ? 'e.g. daily hoof picking routine' :
-                      selectedCategory === 'greenhouse' ? 'e.g. January succession planting plan' :
-                      'e.g. washing and carding raw fleece'
-                    }
-                    className="border-green-200"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-green-800 uppercase tracking-wider block mb-1">Skill Level</label>
-                  <div className="flex gap-2">
-                    {(['beginner', 'intermediate', 'advanced'] as const).map(lvl => (
-                      <button
-                        key={lvl}
-                        onClick={() => setSkillLevel(lvl)}
-                        className={`px-3 py-2 rounded-lg text-xs font-bold uppercase border-2 transition-all ${skillLevel === lvl ? 'bg-green-700 text-white border-green-700' : 'border-green-200 text-green-700 hover:border-green-400'}`}
-                      >
-                        {lvl}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerating || !focus.trim()}
-                className="w-full bg-green-700 hover:bg-green-800 text-white uppercase tracking-widest py-5"
-              >
-                {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating Project…</> : 'Generate Project'}
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Optional focus refinement — shown after a category is selected */}
+        {selectedCategory && !isGenerating && (
+          <div className="flex gap-2 items-center">
+            <Input
+              value={focus}
+              onChange={e => setFocus(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && focus.trim()) handleGenerate(selectedCategory, focus); }}
+              placeholder={
+                selectedCategory === 'preservation' ? 'Try something specific, e.g. pressure canning green beans…' :
+                selectedCategory === 'livestock-sheep' ? 'Try something specific, e.g. shearing and skirting a fleece…' :
+                selectedCategory === 'livestock-poultry' ? 'Try something specific, e.g. setting up a winter brooder…' :
+                selectedCategory === 'livestock-horses' ? 'Try something specific, e.g. daily hoof picking routine…' :
+                selectedCategory === 'greenhouse' ? 'Try something specific, e.g. January succession planting plan…' :
+                'Try something specific, e.g. washing and carding raw fleece…'
+              }
+              className="border-green-200 flex-1"
+            />
+            <Button
+              onClick={() => handleGenerate(selectedCategory, focus)}
+              className="bg-green-700 hover:bg-green-800 text-white px-5 whitespace-nowrap"
+            >
+              {focus.trim() ? 'Generate This' : 'Generate Another'}
+            </Button>
+          </div>
         )}
 
         {/* Project Output */}

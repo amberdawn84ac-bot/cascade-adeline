@@ -5,13 +5,20 @@ import { getSessionUser } from '@/lib/auth';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 import { loadConfig } from '@/lib/config';
-import { getCachedContent, saveToCache } from '@/lib/cache/contentCache';
+import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
+import prisma from '@/lib/db';
 
 const requestSchema = z.object({
   category: z.enum(['preservation', 'livestock-sheep', 'livestock-poultry', 'livestock-horses', 'greenhouse', 'fiber-arts']),
-  focus: z.string().min(3),
-  skillLevel: z.enum(['beginner', 'intermediate', 'advanced']).default('beginner'),
+  focus: z.string().optional(),
 });
+
+function gradeToSkill(gradeStr: string): 'beginner' | 'intermediate' | 'advanced' {
+  const bracket = getGradeBracket(gradeStr);
+  if (bracket === 'K-2' || bracket === '3-5') return 'beginner';
+  if (bracket === '6-8') return 'intermediate';
+  return 'advanced';
+}
 
 const projectSchema = z.object({
   title: z.string().describe('A direct, no-nonsense project title'),
@@ -32,22 +39,24 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { category, focus, skillLevel } = requestSchema.parse(body);
+    const { category, focus } = requestSchema.parse(body);
 
-    // --- Cache-first (skill level acts as the grade bracket for homesteading) ---
-    const topicKey = `${category}:${focus.toLowerCase().trim()}`;
-    const isSimpleRequest = focus.length < 30 && !focus.includes('recipe') && !focus.includes('how to');
-    if (!isSimpleRequest) {
-      const cached = await getCachedContent('domestic-arts', topicKey, skillLevel);
-      if (cached) {
-        const creditResult = await awardCreditsForActivity(user.userId, {
-          subject: 'Domestic Arts', activityType: 'homesteading-project',
-          activityName: `Homesteading: ${cached.title}`,
-          metadata: { category, focus, difficulty: cached.difficulty, yield: cached.yield },
-          masteryDemonstrated: true,
-        });
-        return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
-      }
+    // Derive skill level from student's grade profile — never ask the student
+    const userData = await prisma.user.findUnique({ where: { id: user.userId }, select: { gradeLevel: true } });
+    const skillLevel = gradeToSkill(userData?.gradeLevel ?? '');
+    const focusLabel = focus?.trim() || 'auto';
+    const topicKey = `${category}:${focusLabel.toLowerCase()}`;
+
+    // --- Cache-first ---
+    const cached = await getCachedContent('domestic-arts', topicKey, skillLevel);
+    if (cached) {
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'Domestic Arts', activityType: 'homesteading-project',
+        activityName: `Homesteading: ${cached.title}`,
+        metadata: { category, focus: focusLabel, difficulty: cached.difficulty, yield: cached.yield },
+        masteryDemonstrated: true,
+      });
+      return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
     }
 
     const studentContext = await buildStudentContextPrompt(user.userId);
@@ -65,45 +74,25 @@ export async function POST(req: NextRequest) {
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.6 })
       .withStructuredOutput(projectSchema);
 
-    if (isSimpleRequest) {
-      // Ask clarifying questions instead of overwhelming them
-      const conversationalResponse = {
-        title: `Let's figure this out together!`,
-        category: category,
-        difficulty: skillLevel.charAt(0).toUpperCase() + skillLevel.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',
-        seasonalWindow: 'Any time',
-        timeRequired: 'Just a few minutes to plan',
-        materials: ['First, I need a little more information...'],
-        steps: [
-          `You mentioned "${focus}". What exactly are you hoping to do?`,
-          'Do you have a specific goal in mind, or do you need me to suggest some options?',
-          'Are there any materials you already have on hand that you want to use?',
-          'Once I know a bit more, I can generate a perfect project plan just for you!'
-        ],
-        safetyNotes: [],
-        yield: 'A great plan tailored to exactly what you want to do',
-        communityImpact: `We'll make sure whatever you do has a real impact. Just tell me a bit more first!`,
-      };
-      return NextResponse.json(conversationalResponse);
-    }
-
     try {
       const result = await llm.invoke([
         {
           role: 'system',
-          content: `You are Adeline, a wise and encouraging homesteading mentor with deep practical knowledge of ${CATEGORY_CONTEXT[category]}. Generate a real, executable homesteading project for a homeschool student. Keep your tone supportive and inspiring.
+          content: `You are Adeline, a wise and encouraging homesteading mentor with deep practical knowledge of ${CATEGORY_CONTEXT[category]}. Generate a real, executable homesteading project for a homeschool student.
+
+${studentContext}
 
 CRITICAL RULES:
-- Break the project down into manageable, bite-sized steps that don't feel overwhelming
-- Every step must be actionable and specific
-- Include exact temperatures, quantities, and timings where relevant
-- The communityImpact field must show how their work matters: explain how this skill helps their family or neighbors
-- Match complexity to ${skillLevel} skill level
-- This is real homestead work, not a craft project${studentContext}`,
+- Adapt complexity, vocabulary, and safety guidance precisely to the student's grade level above
+- Break the project down into manageable, specific steps with exact temperatures, quantities, and timings
+- The communityImpact field must show concretely how this skill helps their family or community
+- This is real homestead work — treat the student as capable of doing it`,
         },
         {
           role: 'user',
-          content: `Generate a ${skillLevel} ${category} project focused on: ${focus}`,
+          content: focus?.trim()
+            ? `Generate a ${category} project focused on: ${focus}`
+            : `Choose and generate the single most valuable ${category} project a student at this grade level should tackle right now. Pick something practical and achievable.`,
         },
       ]);
 
@@ -114,7 +103,7 @@ CRITICAL RULES:
         activityName: `Homesteading: ${result.title}`,
         metadata: {
           category,
-          focus,
+          focus: focusLabel,
           difficulty: result.difficulty,
           yield: result.yield,
         },
@@ -142,7 +131,7 @@ CRITICAL RULES:
       console.error('[Homesteading/generate] LLM Error:', llmError);
       // Graceful fallback if AI fails
       return NextResponse.json({
-        title: `${skillLevel === 'beginner' ? 'Basic' : skillLevel === 'intermediate' ? 'Standard' : 'Advanced'} ${category.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Project`,
+        title: `${category.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Project`,
         category: category,
         difficulty: skillLevel.charAt(0).toUpperCase() + skillLevel.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',
         seasonalWindow: 'Any appropriate season',
@@ -150,12 +139,12 @@ CRITICAL RULES:
         materials: ['Basic supplies for ' + category.split('-').join(' ')],
         steps: [
           'Gather your materials and set up a clean workspace.',
-          `Begin the core process for your ${focus} project.`,
-          'Carefully monitor your progress and make adjustments as needed.',
-          'Clean up your workspace and properly store your tools.'
+          'Begin the core process for your project.',
+          'Monitor your progress and make adjustments as needed.',
+          'Clean up and properly store your tools.',
         ],
         safetyNotes: ['Always wash your hands before and after.', 'Ask an adult for help with sharp tools or heat.'],
-        yield: `A completed ${focus} project`,
+        yield: `A completed ${category} project`,
         communityImpact: 'Learning this skill helps build independence and creates something useful for your family.',
       });
     }
