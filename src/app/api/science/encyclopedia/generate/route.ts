@@ -6,6 +6,14 @@ import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
+function getGradeBracket(gradeStr: string): string {
+  const g = gradeStr.toLowerCase().trim();
+  if (/^(k|kg|kindergarten|1st?|first|2nd?|second|grade[\s-]*[12])/.test(g)) return 'K-2';
+  if (/^(3rd?|third|4th?|fourth|5th?|fifth|grade[\s-]*[345])/.test(g)) return '3-5';
+  if (/^(6th?|sixth|7th?|seventh|8th?|eighth|grade[\s-]*[678])/.test(g)) return '6-8';
+  return '9-12';
+}
+
 const encyclopediaSchema = z.object({
   title: z.string().describe("The specific topic title, exactly as searched"),
   coreConcept: z.string().describe("A fascinating scientific breakdown of the topic. MUST be strictly adapted to the student's exact grade level, vocabulary, and cognitive profile from the student context. NOT a Wikipedia dump — a sharp, engaging 3-5 sentence explanation that a curious student at this exact level would find thrilling. A 1st grader gets simple wonder. A 10th grader gets mechanisms and chemistry."),
@@ -18,12 +26,38 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
-
     const body = await req.json();
     const { query } = body;
     if (!query) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
+    // --- Resolve grade bracket early (needed for cache lookup AND image style) ---
+    const userData = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { gradeLevel: true },
+    });
+    const gradeStr = (userData?.gradeLevel ?? '').toLowerCase().trim();
+    const gradeBracket = getGradeBracket(gradeStr);
+    const isEarlyElementary = gradeBracket === 'K-2';
+    const normalizedTopic = query.toLowerCase().trim();
+
+    // --- Cache-first: return saved entry if it exists ---
+    const cached = await prisma.encyclopediaEntry.findUnique({
+      where: { topic_gradeLevel: { topic: normalizedTopic, gradeLevel: gradeBracket } },
+    });
+    if (cached) {
+      return NextResponse.json({
+        title: cached.topic,
+        coreConcept: cached.coreConcept,
+        appliedReality: cached.appliedReality,
+        fieldChallenge: cached.fieldChallenge,
+        imageUrl: cached.imageUrl,
+        isColoringPage: cached.isColoringPage,
+        cached: true,
+      });
+    }
+
+    // --- Not cached: generate via AI ---
+    const studentContext = await buildStudentContextPrompt(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || "gpt-4o",
@@ -52,14 +86,6 @@ ${studentContext}`,
     ]);
 
     // --- Image generation ---
-    const userData = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true },
-    });
-
-    const gradeStr = (userData?.gradeLevel ?? '').toLowerCase().trim();
-    const isEarlyElementary = /^(k|kg|kindergarten|1st?|first|2nd?|second|grade[\s-]*[12])/.test(gradeStr);
-
     const imageStyle = isEarlyElementary
       ? 'black and white minimalist coloring book page, bold clean outlines only, no shading, no color, pure white background, simple and friendly, designed for a young child to color in'
       : 'beautiful realistic educational illustration, vibrant colors, natural lighting, detailed and scientifically accurate';
@@ -88,7 +114,26 @@ ${studentContext}`,
       console.error('Image generation failed (non-fatal):', imgErr);
     }
 
-    return NextResponse.json({ ...result, imageUrl, isColoringPage: isEarlyElementary && !!imageUrl });
+    const isColoringPage = isEarlyElementary && !!imageUrl;
+
+    // --- Save to cache for future requests ---
+    try {
+      await prisma.encyclopediaEntry.create({
+        data: {
+          topic: normalizedTopic,
+          gradeLevel: gradeBracket,
+          coreConcept: result.coreConcept,
+          appliedReality: result.appliedReality,
+          fieldChallenge: result.fieldChallenge,
+          imageUrl: imageUrl ?? undefined,
+          isColoringPage,
+        },
+      });
+    } catch (cacheErr) {
+      console.error('Cache save failed (non-fatal):', cacheErr);
+    }
+
+    return NextResponse.json({ ...result, imageUrl, isColoringPage, cached: false });
   } catch (error) {
     console.error("Encyclopedia generation error:", error);
     return NextResponse.json({ error: "Failed to generate entry" }, { status: 500 });

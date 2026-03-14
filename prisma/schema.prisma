@@ -792,6 +792,23 @@ model CompetitionMatch {
   @@index([dismissed])
 }
 
+model EncyclopediaEntry {
+  id             String   @id @default(uuid()) @db.Uuid
+  topic          String
+  gradeLevel     String   @map("grade_level")
+  coreConcept    String   @map("core_concept")
+  appliedReality String   @map("applied_reality")
+  fieldChallenge String   @map("field_challenge")
+  imageUrl       String?  @map("image_url")
+  isColoringPage Boolean  @default(false) @map("is_coloring_page")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([topic, gradeLevel])
+  @@index([topic, gradeLevel])
+  @@map("encyclopedia_entries")
+}
+
 enum UserRole {
   STUDENT
   PARENT
