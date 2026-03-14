@@ -45,13 +45,6 @@ interface Group {
   currentChallenge: string;
 }
 
-interface FieldProject {
-  title: string;
-  objective: string;
-  communityImpact: string;
-  materialsNeeded: string[];
-}
-
 interface Opportunity {
   id: string;
   title: string;
@@ -62,7 +55,7 @@ interface Opportunity {
 }
 
 export default function SciencePage() {
-  const [activeTab, setActiveTab] = useState<'book' | 'laboratory' | 'groups' | 'fieldwork'>('book');
+  const [activeTab, setActiveTab] = useState<'book' | 'laboratory' | 'groups'>('book');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -90,9 +83,6 @@ export default function SciencePage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [joinedGroups, setJoinedGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [fieldProjects, setFieldProjects] = useState<FieldProject[]>([]);
-  const [isLoadingFieldWork, setIsLoadingFieldWork] = useState(false);
-  const [fieldWorkLoaded, setFieldWorkLoaded] = useState(false);
   const [entries, setEntries] = useState<ScienceEntry[]>([]);
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
 
@@ -124,10 +114,7 @@ export default function SciencePage() {
         .then(d => { if (Array.isArray(d.joinedGroups)) setJoinedGroups(d.joinedGroups); })
         .catch(() => {});
     }
-    if (activeTab === 'fieldwork' && !fieldWorkLoaded) {
-      loadFieldWork();
-    }
-  }, [activeTab, groups.length, fieldWorkLoaded]);
+  }, [activeTab, groups.length]);
 
   const loadGroupsData = async () => {
     try {
@@ -273,22 +260,6 @@ export default function SciencePage() {
       console.error('Failed to send message:', error);
     } finally {
       setIsSendingMessage(false);
-    }
-  };
-
-  const loadFieldWork = async () => {
-    setIsLoadingFieldWork(true);
-    try {
-      const res = await fetch('/api/science/field-work/generate', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setFieldProjects(data);
-        setFieldWorkLoaded(true);
-      }
-    } catch (e) {
-      console.error('Failed to load field work:', e);
-    } finally {
-      setIsLoadingFieldWork(false);
     }
   };
 
@@ -501,12 +472,6 @@ export default function SciencePage() {
             className={`flex-1 min-w-[120px] py-3 text-sm uppercase tracking-widest transition-colors flex justify-center items-center gap-2 ${activeTab === 'groups' ? 'bg-emerald-600 text-white' : 'text-emerald-600/60 hover:bg-emerald-100'}`}
           >
             Groups
-          </button>
-          <button 
-            onClick={() => setActiveTab('fieldwork')}
-            className={`flex-1 min-w-[120px] py-3 text-sm uppercase tracking-widest transition-colors flex justify-center items-center gap-2 ${activeTab === 'fieldwork' ? 'bg-emerald-600 text-white' : 'text-emerald-600/60 hover:bg-emerald-100'}`}
-          >
-            Field Work
           </button>
       </div>
 
@@ -1206,104 +1171,6 @@ export default function SciencePage() {
           )
         )}
         
-        {/* --- FIELD WORK TAB --- */}
-        {activeTab === 'fieldwork' && (
-          <div className="overflow-y-auto h-full p-6">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-2xl text-emerald-900 font-bold">Field Work</h3>
-                <Button
-                  onClick={() => { setFieldWorkLoaded(false); setFieldProjects([]); loadFieldWork(); }}
-                  variant="ghost"
-                  className="text-xs text-emerald-600 hover:text-emerald-800 uppercase tracking-widest"
-                  disabled={isLoadingFieldWork}
-                >
-                  {isLoadingFieldWork ? <Loader2 className="w-4 h-4 animate-spin" /> : '↺ New Projects'}
-                </Button>
-              </div>
-              <p className="text-sm text-emerald-600 italic mb-6">Real projects for your land, your animals, and your community. Generated fresh by Adeline.</p>
-
-              {isLoadingFieldWork ? (
-                <div className="flex flex-col items-center justify-center py-24 gap-4">
-                  <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
-                  <p className="text-emerald-700 italic text-sm">Adeline is designing your field work...</p>
-                </div>
-              ) : fieldProjects.length === 0 ? (
-                <div className="text-center py-16 text-emerald-500 italic">No projects loaded yet.</div>
-              ) : (
-                <div className="space-y-6">
-                  {fieldProjects.map((project, i) => (
-                    <Card key={i} className="border-2 border-emerald-200 hover:border-emerald-400 transition-all shadow-sm">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-1">
-                            <span className="text-emerald-700 font-bold text-lg">{i + 1}</span>
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-xl font-bold text-emerald-900 mb-2">{project.title}</h4>
-                            <p className="text-emerald-700 mb-4 leading-relaxed">{project.objective}</p>
-                            <div className="grid md:grid-cols-2 gap-4">
-                              <div className="bg-amber-50 border border-amber-200 p-3 rounded">
-                                <span className="text-xs font-bold uppercase tracking-wide text-amber-800 block mb-1">Community Impact</span>
-                                <p className="text-sm text-amber-700">{project.communityImpact}</p>
-                              </div>
-                              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded">
-                                <span className="text-xs font-bold uppercase tracking-wide text-emerald-800 block mb-1">What You Need</span>
-                                <ul className="text-sm text-emerald-700 space-y-1">
-                                  {project.materialsNeeded.map((m, j) => (
-                                    <li key={j} className="flex items-center gap-1">
-                                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full flex-shrink-0"></span>
-                                      {m}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                            
-                            {/* Systemic Action Section */}
-                            {(project as any).systemicAction && (
-                              <div className="bg-red-50 border-2 border-red-300 p-4 rounded-lg mt-4">
-                                <h5 className="text-xs font-bold uppercase tracking-widest text-red-800 mb-3 flex items-center gap-2">
-                                  <AlertTriangle className="w-4 h-4" />
-                                  {(project as any).systemicAction.actionType.replace('-', ' ').toUpperCase()}
-                                </h5>
-                                <div className="space-y-3">
-                                  <div>
-                                    <p className="text-xs font-semibold text-red-700 mb-1">TARGET:</p>
-                                    <p className="text-sm text-red-900">{(project as any).systemicAction.target}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs font-semibold text-red-700 mb-1">WHY:</p>
-                                    <p className="text-sm text-red-900">{(project as any).systemicAction.reasoning}</p>
-                                  </div>
-                                  <div className="bg-white p-3 rounded border border-red-200">
-                                    <p className="text-xs font-semibold text-red-700 mb-2">ACTION PLAN:</p>
-                                    <pre className="text-xs text-red-900 whitespace-pre-wrap">{(project as any).systemicAction.draftText}</pre>
-                                  </div>
-                                  <Button 
-                                    onClick={() => {
-                                      navigator.clipboard.writeText((project as any).systemicAction.draftText);
-                                      alert('Action plan copied! Execute it to serve your community.');
-                                    }}
-                                    size="sm"
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
-                                  >
-                                    📋 Copy Action Plan
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
       </div>
 
       {/* Create Group Modal */}
