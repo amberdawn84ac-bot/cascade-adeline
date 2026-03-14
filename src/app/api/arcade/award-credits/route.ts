@@ -149,13 +149,12 @@ export async function POST(req: NextRequest) {
         ps.activities.some(a => a.activityType === 'spelling')
       );
 
+      // Always use calibrated per-word formula (0.005 correct / 0.001 attempt).
+      // The plan standard's microcreditValue covers the whole standard (many words),
+      // not a single activity — using it directly would over-award credits.
+      creditsEarned = calcSpellingCredits(r);
       if (vocabStandard) {
-        // Use the microcredit value from the student's plan
-        creditsEarned = r.correct ? Number(vocabStandard.microcreditValue) : Number(vocabStandard.microcreditValue) * 0.2;
-        planStandardId = vocabStandard.id;
-      } else {
-        // Fallback to default calculation if no plan exists
-        creditsEarned = calcSpellingCredits(r);
+        planStandardId = vocabStandard.id; // link for progress tracking only
       }
 
       activityName = `Spelling Bee: "${r.word}"`;
@@ -179,26 +178,10 @@ export async function POST(req: NextRequest) {
         ps.activities.some(a => a.activityType === 'typing')
       );
 
+      // Use calibrated per-passage formula; plan standard used only for tracking.
+      creditsEarned = calcTypingCredits(r);
       if (typingStandard) {
-        // Calculate performance-based credit from plan standard
-        const gradeLevel = r.gradeLevel ?? 9;
-        const benchmarks = {
-          elementary: { wpm: 20, accuracy: 90 },
-          middle: { wpm: 35, accuracy: 92 },
-          high: { wpm: 45, accuracy: 95 }
-        };
-        const benchmark = gradeLevel <= 5 ? benchmarks.elementary :
-                          gradeLevel <= 8 ? benchmarks.middle : benchmarks.high;
-        
-        const wpmRatio = Math.min(r.wpm / benchmark.wpm, 1.5);
-        const accuracyRatio = r.accuracy / benchmark.accuracy;
-        const performanceScore = (wpmRatio + accuracyRatio) / 2;
-        const difficultyWeight = { easy: 0.5, medium: 1.0, hard: 1.5 }[r.difficulty] ?? 1.0;
-        
-        creditsEarned = Number(typingStandard.microcreditValue) * performanceScore * difficultyWeight;
         planStandardId = typingStandard.id;
-      } else {
-        creditsEarned = calcTypingCredits(r);
       }
 
       activityName = `Typing Racer (${r.difficulty})`;
@@ -221,12 +204,10 @@ export async function POST(req: NextRequest) {
         ps.activities.some(a => a.activityType === 'coding')
       );
 
+      // Use calibrated per-concept formula; plan standard used only for tracking.
+      creditsEarned = calcCodingCredits(r);
       if (csStandard) {
-        const masteryBonus = r.isNewConcept ? 1.5 : 1.0;
-        creditsEarned = r.correct ? Number(csStandard.microcreditValue) * masteryBonus : Number(csStandard.microcreditValue) * 0.25;
         planStandardId = csStandard.id;
-      } else {
-        creditsEarned = calcCodingCredits(r);
       }
 
       activityName = `Code Quest: ${r.concept} (${r.language})`;
@@ -253,8 +234,7 @@ export async function POST(req: NextRequest) {
         ps.activities.some(a => a.activityType === 'logic')
       );
       if (mathStandard) {
-        creditsEarned = parseFloat((Number(mathStandard.microcreditValue) * puzzlesSolved * diffMultiplier).toFixed(4));
-        planStandardId = mathStandard.id;
+        planStandardId = mathStandard.id; // link for tracking; keep calibrated credit value
       }
 
       activityName = `Logic Labyrinth (${r.difficulty})`;
@@ -273,8 +253,7 @@ export async function POST(req: NextRequest) {
         ps.activities.some(a => a.activityType === 'cartographer')
       );
       if (historyStandard) {
-        creditsEarned = parseFloat((Number(historyStandard.microcreditValue) * questionsCorrect).toFixed(4));
-        planStandardId = historyStandard.id;
+        planStandardId = historyStandard.id; // link for tracking; keep calibrated credit value
       }
 
       const eraLabels: Record<string, string> = {
