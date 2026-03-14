@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Mountain, TrendingUp, MapPin, MessageSquare, X, Loader2, Calendar, Award, AlertTriangle, BookOpen, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Mountain, TrendingUp, MapPin, MessageSquare, X, Loader2, Calendar, Award, AlertTriangle, BookOpen, ChevronRight, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChat } from '@ai-sdk/react';
@@ -56,17 +56,42 @@ export default function JourneyPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [lessonLoading, setLessonLoading] = useState(false);
   const [lessonError, setLessonError] = useState<string | null>(null);
+  const [showLessonChat, setShowLessonChat] = useState(false);
+  const lessonChatEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading: isChatLoading } = useChat({
     api: '/api/journey/change-route',
     body: { creditId: selectedCredit?.id },
     onFinish: async () => {
-      // Reload the plan after route change
       await loadPlan();
       setShowChangeRoute(false);
       setSelectedCredit(null);
     }
   });
+
+  const {
+    messages: lessonMessages,
+    input: lessonInput,
+    handleInputChange: handleLessonInputChange,
+    handleSubmit: handleLessonSubmit,
+    isLoading: isLessonChatLoading,
+    setMessages: setLessonMessages,
+  } = useChat({
+    api: '/api/journey/lesson-chat',
+    body: {
+      lessonTitle: lesson?.lessonTitle,
+      lessonContent: lesson?.lessonContent,
+      subject: lessonCredit?.subject,
+    },
+    onFinish: () => {
+      lessonChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    },
+  });
+
+  const openLessonChat = () => {
+    setShowLessonChat(true);
+    setTimeout(() => lessonChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  };
 
   const loadPlan = async (refresh = false) => {
     setIsLoading(true);
@@ -520,7 +545,7 @@ export default function JourneyPage() {
                 </h3>
                 <p className="text-white/60 text-sm mt-1">{lessonCredit.subject}</p>
               </div>
-              <button onClick={() => { setLessonCredit(null); setLesson(null); }} className="text-white/60 hover:text-white ml-4 flex-shrink-0">
+              <button onClick={() => { setLessonCredit(null); setLesson(null); setShowLessonChat(false); setLessonMessages([]); }} className="text-white/60 hover:text-white ml-4 flex-shrink-0">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -633,6 +658,77 @@ export default function JourneyPage() {
                     </h4>
                     <p className="text-emerald-700 text-sm leading-relaxed">{lesson.completionCriteria}</p>
                   </div>
+
+                  {/* Ask Adeline — inline chat */}
+                  {!showLessonChat ? (
+                    <button
+                      onClick={openLessonChat}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-[#2F4731] hover:bg-[#BD6809] text-white font-bold rounded-2xl transition-colors text-sm"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      Ask Adeline for Help
+                    </button>
+                  ) : (
+                    <div className="border-2 border-[#2F4731] rounded-2xl overflow-hidden">
+                      <div className="bg-[#2F4731] px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-[#BD6809]" />
+                          <span className="font-bold text-white text-sm">Ask Adeline</span>
+                        </div>
+                        <button onClick={() => setShowLessonChat(false)} className="text-white/60 hover:text-white">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Messages */}
+                      <div className="bg-[#FFFEF7] p-4 space-y-3 max-h-72 overflow-y-auto">
+                        {lessonMessages.length === 0 && (
+                          <p className="text-[#2F4731]/50 text-xs italic text-center py-4">
+                            Ask anything about this lesson — ingredients, steps, why it works, whatever you're stuck on.
+                          </p>
+                        )}
+                        {lessonMessages.map((m) => (
+                          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed ${
+                              m.role === 'user'
+                                ? 'bg-[#2F4731] text-white rounded-br-sm'
+                                : 'bg-amber-50 border border-amber-200 text-[#2F4731] rounded-bl-sm'
+                            }`}>
+                              {typeof m.content === 'string' ? m.content : ''}
+                            </div>
+                          </div>
+                        ))}
+                        {isLessonChatLoading && (
+                          <div className="flex justify-start">
+                            <div className="bg-amber-50 border border-amber-200 rounded-2xl rounded-bl-sm px-4 py-2">
+                              <Loader2 className="w-4 h-4 animate-spin text-[#BD6809]" />
+                            </div>
+                          </div>
+                        )}
+                        <div ref={lessonChatEndRef} />
+                      </div>
+
+                      {/* Input */}
+                      <form
+                        onSubmit={handleLessonSubmit}
+                        className="flex gap-2 p-3 bg-white border-t border-[#2F4731]/20"
+                      >
+                        <input
+                          value={lessonInput}
+                          onChange={handleLessonInputChange}
+                          placeholder="What are you stuck on?"
+                          className="flex-1 text-sm px-3 py-2 rounded-xl border border-[#E7DAC3] focus:outline-none focus:border-[#2F4731] bg-[#FFFEF7] text-[#2F4731]"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isLessonChatLoading || !lessonInput.trim()}
+                          className="p-2 bg-[#2F4731] hover:bg-[#BD6809] text-white rounded-xl disabled:opacity-40 transition-colors"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
+                  )}
                 </>
               )}
             </div>
