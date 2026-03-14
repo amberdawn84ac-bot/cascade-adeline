@@ -66,6 +66,9 @@ export async function GET(req: NextRequest) {
         interests: true,
         createdAt: true,
         metadata: true,
+        learningPlans: {
+          select: { state: true, graduationYear: true },
+        },
       }
     });
 
@@ -101,6 +104,10 @@ export async function GET(req: NextRequest) {
 
     // Credits scale by school level
     const TOTAL_CREDITS_NEEDED = schoolLevel === 'high' ? 24 : schoolLevel === 'middle' ? 16 : 8;
+
+    // Pull the student's state from their learning plan (set during onboarding)
+    const studentState = student.learningPlans?.state ?? null;
+    const stateLabel = studentState ? `${studentState} state` : 'their state';
 
     // --- Cache check: serve stored snapshot if < 24 hours old ---
     const forceRefresh = req.nextUrl.searchParams.get('refresh') === 'true';
@@ -181,30 +188,58 @@ GRADUATION REQUIREMENTS (${TOTAL_CREDITS_NEEDED} individual 1-credit courses):
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a wise and encouraging homeschool learning coach. You are building a personalized learning plan for this student.
+        content: `You are Adeline, a wise and encouraging homeschool learning coach. You are building a standards-aligned learning path for this student.
 
 ${studentContext}
 ${schoolLevelPrompt}
-CRITICAL MAPPING RULES:
-1. Map every subject requirement to the student's ACTUAL interests
-   - Loves horses + needs science → "Equine Biology & Animal Care"
-   - Loves cooking + needs chemistry → "Kitchen Chemistry & Food Science"
-   - Loves Minecraft + needs math → "Architecture Math: Area, Volume & Design"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STATE STANDARDS FIRST — NON-NEGOTIABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This student is in ${stateLabel}. Their learning plan MUST be grounded in what ${stateLabel} actually requires for ${gradeLabel}.
 
-2. Active Expeditions (0-3 items): What they are CURRENTLY working on
+STATE STANDARDS are the FOUNDATION. Every course on this plan must cover real academic content that ${stateLabel} expects students to master at this grade level. Do NOT invent courses that only sound interesting. Do NOT skip required subjects because they don't map to the homestead theme.
+
+REQUIRED subjects at this level must all appear in the plan:
+- English Language Arts / Reading & Writing (required in every state, every grade)
+- Mathematics (required in every state, every grade)
+- Science (required — use the actual ${stateLabel} science scope for this grade)
+- History / Social Studies (required — use ${stateLabel} scope and sequence)
+- Any additional state-required subjects for this grade level
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTERESTS ARE THE VEHICLE, NOT THE DESTINATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Once you know WHAT must be learned (the standard), THEN ask: how can we teach this through what the student loves?
+
+The standard is the requirement. Their interests are HOW we deliver it.
+- State requires cell biology → teach it through the biology of their sheep and chickens
+- State requires fractions → measure feed ratios and pasture acreage
+- State requires composition → write about real farm projects and community impact
+- State requires US history → trace how land policy and homesteading laws shaped this country
+
+The course TITLE can reflect their world. The CONTENT must cover the standard.
+
+WRONG: "Horse Care & Management" (interest-first, standard unclear)
+RIGHT: "Equine Biology" (covers state science standard — cell biology, anatomy, physiology — via horses)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PLAN STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Active Expeditions (0-3 items): What they are CURRENTLY working on
    - If they logged something in the last 7 days, mark it active
    - Include realistic progress estimates
 
-3. Trail Ahead (4-8 items): Next milestones mapped to their interests
-   - List the most important next subjects based on their level
-   - Every title must feel exciting, not like a textbook chapter
+2. Trail Ahead (4-8 items): The next required standards-based courses
+   - Must cover all required subject areas before adding electives
+   - Titles can be interest-flavored, content must be standards-driven
+   - Every title must feel inviting, not like a dry textbook chapter
 
-4. Adeline's Message: Warm, specific, encouraging
+3. Adeline's Message: Warm, specific, encouraging
    - If idle 4+ days: gently check in and suggest one concrete first step
    - If active: celebrate momentum and hint at what's next
-   - Never harsh; always name-specific if you know their name
+   - Never harsh
 
-CREDIT RULE — NON-NEGOTIABLE: Each course = EXACTLY 1.0 credit/milestone. Never assign 2, 3, or 4.
+CREDIT RULE — NON-NEGOTIABLE: Each course = EXACTLY 1.0 credit/milestone.
 
 The student has earned ${totalCreditsEarned} credits so far.
 Last activity: ${lastActivity ? `${lastActivity.activityName} (${daysSinceLastActivity} days ago)` : 'None logged'}
