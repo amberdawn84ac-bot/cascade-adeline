@@ -68,6 +68,8 @@ export async function POST(req: NextRequest) {
 
 ${studentContext}
 
+OFFICIAL STANDARDS FRAMEWORK: Common Core State Standards (CCSS)
+
 CRITICAL STANDARDS-BASED PLANNING RULES:
 
 1. BREAK DOWN EACH SUBJECT INTO GRANULAR STANDARDS

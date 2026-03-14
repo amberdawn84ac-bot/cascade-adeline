@@ -108,7 +108,6 @@ export async function GET(req: NextRequest) {
     // Pull the student's state from their learning plan (set during onboarding)
     const studentState = student.learningPlans?.state ?? null;
     const stateLabel = studentState ? `${studentState} state` : 'their state';
-
     // --- Cache check: serve stored snapshot if < 24 hours old ---
     const forceRefresh = req.nextUrl.searchParams.get('refresh') === 'true';
     const meta = (student.metadata ?? {}) as Record<string, unknown>;
@@ -196,6 +195,8 @@ ${schoolLevelPrompt}
 STATE STANDARDS FIRST — NON-NEGOTIABLE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 This student is in ${stateLabel}. Their learning plan MUST be grounded in what ${stateLabel} actually requires for ${gradeLabel}.
+
+OFFICIAL STANDARDS FRAMEWORK: Common Core State Standards (CCSS)
 
 STATE STANDARDS are the FOUNDATION. Every course on this plan must cover real academic content that ${stateLabel} expects students to master at this grade level. Do NOT invent courses that only sound interesting. Do NOT skip required subjects because they don't map to the homestead theme.
 

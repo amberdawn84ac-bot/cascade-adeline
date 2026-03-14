@@ -1,417 +1,180 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Ruler, DollarSign, BarChart2, Loader2, ChevronRight, X, Lightbulb } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect, useRef } from 'react';
+import { BookOpen, ChevronRight, Loader2, X, AlertTriangle, MessageSquare, Send, TrendingUp, MapPin, RefreshCw } from 'lucide-react';
+import { useChat } from '@ai-sdk/react';
+import Link from 'next/link';
 
-// ── Grade tier helpers ─────────────────────────────────────────────────────
-function getGradeTier(gradeLevel: string | null): 'elementary' | 'middle' | 'high' {
-  if (!gradeLevel) return 'middle';
-  const g = gradeLevel.trim().toUpperCase();
-  if (g === 'K' || ['1','2','3','4','5'].includes(g)) return 'elementary';
-  if (['6','7','8'].includes(g)) return 'middle';
-  return 'high';
+// ── Types ──────────────────────────────────────────────────────────────────
+interface MathCourse {
+  id: string;
+  title: string;
+  subject: string;
+  description: string;
+  status: 'active' | 'planned' | 'completed';
+  progress?: number | null;
+  dueDate?: string | null;
 }
 
-// ── Tier-based content config ─────────────────────────────────────────────
-const TIER_CONFIG = {
-  elementary: {
-    label: 'Farm & Home Math',
-    tagline: 'Count, measure, and share — math that happens every day on the homestead.',
-    geometry: {
-      title: 'Garden Shapes',
-      badge: 'Measurement',
-      badgeColor: 'bg-amber-500',
-      description: 'Measure garden beds, count fence posts, and figure out how much space you have.',
-      examples: [
-        'My garden bed is 4 feet wide and 6 feet long. What is its area?',
-        'I need to fence a chicken pen that is 8 feet on each side. How much fencing do I need?',
-        'My round water trough has a diameter of 3 feet. What is its area?',
-      ],
-    },
-    business: {
-      title: 'Farm Stand',
-      badge: 'Counting & Money',
-      badgeColor: 'bg-green-500',
-      description: 'Count eggs, price your produce, and figure out how much you earned.',
-      businessName: 'Farm Stand',
-      pricePlaceholder: '0.50',
-      qtyPlaceholder: '12',
-      costPlaceholder: '0.10',
-      fixedPlaceholder: '0',
-    },
-    data: {
-      title: 'Harvest Count',
-      badge: 'Data & Patterns',
-      badgeColor: 'bg-blue-500',
-      description: 'Count your harvest each day and find patterns — which day had the most eggs?',
-      placeholder: 'Enter your daily counts separated by commas\ne.g. 5, 7, 4, 8, 6, 7, 9',
-      questionPlaceholder: 'e.g. Which day had the most eggs? What was the average?',
-    },
-  },
-  middle: {
-    label: 'Homestead Workshop',
-    tagline: 'Real calculations for real projects — fractions, percentages, and problem solving.',
-    geometry: {
-      title: 'Building Plans',
-      badge: 'Geometry',
-      badgeColor: 'bg-amber-600',
-      description: 'Calculate room dimensions, material quantities, and fencing for real homestead projects.',
-      examples: [
-        'A chicken coop is 12 ft × 8 ft. What is the floor area and perimeter?',
-        'I need to build a ramp with a rise of 3 feet over a run of 9 feet. What is the slope angle?',
-        'A circular greenhouse has a radius of 10 feet. What is the floor area and circumference?',
-      ],
-    },
-    business: {
-      title: 'Market Day',
-      badge: 'Business Math',
-      badgeColor: 'bg-green-600',
-      description: 'Price your products, subtract costs, and calculate your actual profit margin.',
-      businessName: 'Homestead Market Booth',
-      pricePlaceholder: '8.00',
-      qtyPlaceholder: '24',
-      costPlaceholder: '3.50',
-      fixedPlaceholder: '15',
-    },
-    data: {
-      title: 'Field Records',
-      badge: 'Statistics',
-      badgeColor: 'bg-blue-600',
-      description: 'Analyze rainfall totals, crop yields, or animal weights to find patterns and plan ahead.',
-      placeholder: 'Enter your measurements separated by commas\ne.g. 2.3, 1.8, 3.1, 2.7, 2.0, 3.5, 1.9',
-      questionPlaceholder: 'e.g. What was the average rainfall? Was there a trend?',
-    },
-  },
-  high: {
-    label: 'Applied Mathematics',
-    tagline: 'The math that builders, traders, and entrepreneurs use every day.',
-    geometry: {
-      title: 'Architectural Geometry',
-      badge: 'Advanced Geometry',
-      badgeColor: 'bg-amber-700',
-      description: 'Calculate roof pitch, rafter lengths, structural loads, and material quantities for real builds.',
-      examples: [
-        'A 16×60 saltbox barn has a 6:12 roof pitch. Calculate the rafter length and total roof area.',
-        'A greenhouse foundation is 24 ft × 40 ft × 4 inches deep. Calculate cubic yards of concrete needed.',
-        'A deck needs joists every 16 inches on center across a 20-foot span. How many joists are needed?',
-      ],
-    },
-    business: {
-      title: 'Trade Shop Economics',
-      badge: 'Business Finance',
-      badgeColor: 'bg-green-700',
-      description: 'Calculate landed costs, profit margins, break-even points, and true hourly rates for a trade shop.',
-      businessName: 'Walnut Woodworking Shop',
-      pricePlaceholder: '850',
-      qtyPlaceholder: '4',
-      costPlaceholder: '220',
-      fixedPlaceholder: '450',
-    },
-    data: {
-      title: 'Market Analysis',
-      badge: 'Data Science',
-      badgeColor: 'bg-blue-700',
-      description: 'Analyze price trends, yields, or sales data to make real decisions about your business or farm.',
-      placeholder: 'Enter your dataset (numbers separated by commas)\ne.g. 1240, 1380, 1195, 1420, 1310, 1580, 1245, 1400',
-      questionPlaceholder: 'e.g. What is the trend? Should I expand production this year?',
-    },
-  },
-};
-
-// ── Geometry Calculator ───────────────────────────────────────────────────
-function GeometryPanel({ tier }: { tier: keyof typeof TIER_CONFIG }) {
-  const cfg = TIER_CONFIG[tier].geometry;
-  const [problem, setProblem] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ answer: string; steps: string[]; formula: string; funFact: string } | null>(null);
-  const [error, setError] = useState('');
-
-  const solve = async () => {
-    if (!problem.trim()) return;
-    setLoading(true); setResult(null); setError('');
-    try {
-      const res = await fetch('/api/math/geometry/solve', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ problem }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
-      setResult(await res.json());
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+interface Lesson {
+  lessonTitle: string;
+  lessonType: string;
+  timeEstimate: string;
+  lessonContent: string;
+  keyFacts: string[];
+  imageSearchTerms: string[];
+  activity: {
+    title: string;
+    fullInstructions: string;
+    supplies: string[];
   };
-
-  return (
-    <div className="space-y-5">
-      <div>
-        <label className="text-xs font-black text-[#2F4731] uppercase tracking-wider block mb-2">Describe your problem</label>
-        <Textarea
-          value={problem} onChange={e => setProblem(e.target.value)}
-          placeholder="Describe what you need to calculate…"
-          className="border-2 border-[#E7DAC3] min-h-[80px] text-sm"
-        />
-      </div>
-      <div className="bg-[#FFFEF7] border border-[#E7DAC3] rounded-xl p-3">
-        <p className="text-xs font-bold text-[#BD6809] uppercase tracking-wider mb-2">Try one of these:</p>
-        <div className="space-y-1">
-          {cfg.examples.map((ex, i) => (
-            <button key={i} onClick={() => setProblem(ex)}
-              className="text-xs text-left w-full text-[#2F4731]/70 hover:text-[#2F4731] hover:bg-[#E7DAC3] px-2 py-1 rounded transition-colors">
-              → {ex}
-            </button>
-          ))}
-        </div>
-      </div>
-      <Button onClick={solve} disabled={loading || !problem.trim()} className="bg-[#2F4731] hover:bg-[#BD6809] text-white w-full font-bold">
-        {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Solving…</> : 'Solve It'}
-      </Button>
-      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
-      {result && (
-        <div className="space-y-3 border-t-2 border-[#E7DAC3] pt-4">
-          <div className="bg-[#2F4731] text-[#FFFEF7] rounded-xl p-4">
-            <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Answer</p>
-            <p className="text-xl font-black">{result.answer}</p>
-            <p className="text-xs opacity-60 mt-1 font-mono">{result.formula}</p>
-          </div>
-          <div className="bg-[#E7DAC3] rounded-xl p-4">
-            <p className="text-xs font-bold text-[#2F4731] uppercase tracking-wider mb-2">Step-by-Step</p>
-            <ol className="space-y-1">
-              {result.steps.map((s, i) => (
-                <li key={i} className="flex gap-2 text-sm text-[#2F4731]">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#BD6809] text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                  <span>{s}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
-            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800">{result.funFact}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  completionCriteria: string;
 }
 
-// ── Business Calculator ───────────────────────────────────────────────────
-function BusinessPanel({ tier }: { tier: keyof typeof TIER_CONFIG }) {
-  const cfg = TIER_CONFIG[tier].business;
-  const [fields, setFields] = useState({ price: '', quantity: '', costPerUnit: '', fixedCosts: '' });
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ 
-    revenue: number; 
-    costs: number; 
-    profit: number; 
-    profitMargin: string; 
-    analysis: string; 
-    advice: string; 
-    mathBreakdown: string[];
-    policyAnalysis?: {
-      injusticeDetected: string;
-      affectedPopulation: string;
-      policyRecommendation: string;
-      budgetImpact: string;
-    }
-  } | null>(null);
-  const [error, setError] = useState('');
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setFields(p => ({ ...p, [k]: e.target.value }));
-
-  const analyze = async () => {
-    if (!fields.price || !fields.quantity) return;
-    setLoading(true); setResult(null); setError('');
-    try {
-      const res = await fetch('/api/math/business/analyze', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...fields, price: parseFloat(fields.price), quantity: parseInt(fields.quantity), costPerUnit: parseFloat(fields.costPerUnit || '0'), fixedCosts: parseFloat(fields.fixedCosts || '0'), businessName: cfg.businessName }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
-      setResult(await res.json());
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
-  };
-
+function isMathSubject(subject: string): boolean {
+  const s = subject.toLowerCase();
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {[
-          { key: 'price', label: 'Selling Price ($)', ph: cfg.pricePlaceholder },
-          { key: 'quantity', label: 'Units to Sell', ph: cfg.qtyPlaceholder },
-          { key: 'costPerUnit', label: 'Cost Per Unit ($)', ph: cfg.costPlaceholder },
-          { key: 'fixedCosts', label: 'Fixed Costs ($)', ph: cfg.fixedPlaceholder },
-        ].map(f => (
-          <div key={f.key}>
-            <label className="text-xs font-black text-[#2F4731] uppercase tracking-wider block mb-1">{f.label}</label>
-            <Input type="number" min="0" step="0.01" value={(fields as any)[f.key]} onChange={set(f.key)} placeholder={f.ph}
-              className="border-2 border-[#E7DAC3] text-sm" />
-          </div>
-        ))}
-      </div>
-      <Button onClick={analyze} disabled={loading || !fields.price || !fields.quantity} className="bg-[#2F4731] hover:bg-[#BD6809] text-white w-full font-bold">
-        {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Calculating…</> : 'Calculate Profit'}
-      </Button>
-      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
-      {result && (
-        <div className="space-y-3 border-t-2 border-[#E7DAC3] pt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {[
-              { label: 'Revenue', val: `$${result.revenue.toFixed(2)}`, color: 'bg-blue-50 border-blue-200 text-blue-900' },
-              { label: 'Costs', val: `$${result.costs.toFixed(2)}`, color: 'bg-red-50 border-red-200 text-red-900' },
-              { label: 'Profit', val: `$${result.profit.toFixed(2)}`, color: result.profit >= 0 ? 'bg-green-50 border-green-200 text-green-900' : 'bg-red-50 border-red-200 text-red-900' },
-            ].map(s => (
-              <div key={s.label} className={`rounded-xl p-3 border text-center ${s.color}`}>
-                <p className="text-xs font-bold uppercase tracking-wider opacity-70">{s.label}</p>
-                <p className="text-lg font-black">{s.val}</p>
-              </div>
-            ))}
-          </div>
-          <div className="bg-[#2F4731] text-[#FFFEF7] rounded-xl p-3 text-center">
-            <p className="text-xs opacity-70 uppercase tracking-wider">Profit Margin</p>
-            <p className="text-2xl font-black">{result.profitMargin}</p>
-          </div>
-          <div className="bg-[#E7DAC3] rounded-xl p-4">
-            <p className="text-xs font-bold text-[#2F4731] uppercase tracking-wider mb-2">The Math</p>
-            <ul className="space-y-1">
-              {result.mathBreakdown.map((s, i) => <li key={i} className="text-sm text-[#2F4731] font-mono">{s}</li>)}
-            </ul>
-          </div>
-          
-          {result.policyAnalysis && (
-            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-xs font-bold text-rose-800 uppercase tracking-wider">⚖️ Ethical Business Analysis</p>
-              </div>
-              <div className="space-y-2 text-sm text-rose-900">
-                <p><strong>Systemic Risk:</strong> {result.policyAnalysis.injusticeDetected}</p>
-                <p><strong>Who it affects:</strong> {result.policyAnalysis.affectedPopulation}</p>
-                <div className="bg-white/60 p-3 rounded-lg border border-rose-100 mt-2">
-                  <p className="font-bold mb-1">Recommended Policy:</p>
-                  <p>{result.policyAnalysis.policyRecommendation}</p>
-                  <p className="mt-2 text-xs font-mono bg-rose-100 p-2 rounded">Budget Impact: {result.policyAnalysis.budgetImpact}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
-            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800"><strong>Adeline says:</strong> {result.advice}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Data Analyzer ─────────────────────────────────────────────────────────
-function DataPanel({ tier }: { tier: keyof typeof TIER_CONFIG }) {
-  const cfg = TIER_CONFIG[tier].data;
-  const [data, setData] = useState('');
-  const [question, setQuestion] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ mean: number; median: number; mode: string; range: number; analysis: string; insight: string; chartType: string } | null>(null);
-  const [error, setError] = useState('');
-
-  const analyze = async () => {
-    if (!data.trim()) return;
-    setLoading(true); setResult(null); setError('');
-    try {
-      const res = await fetch('/api/math/data/analyze', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data, question }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
-      setResult(await res.json());
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <div className="space-y-5">
-      <div>
-        <label className="text-xs font-black text-[#2F4731] uppercase tracking-wider block mb-2">Your Data</label>
-        <Textarea value={data} onChange={e => setData(e.target.value)} placeholder={cfg.placeholder}
-          className="border-2 border-[#E7DAC3] min-h-[80px] text-sm font-mono" />
-      </div>
-      <div>
-        <label className="text-xs font-black text-[#2F4731] uppercase tracking-wider block mb-2">Your Question (optional)</label>
-        <Input value={question} onChange={e => setQuestion(e.target.value)} placeholder={cfg.questionPlaceholder}
-          className="border-2 border-[#E7DAC3] text-sm" />
-      </div>
-      <Button onClick={analyze} disabled={loading || !data.trim()} className="bg-[#2F4731] hover:bg-[#BD6809] text-white w-full font-bold">
-        {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing…</> : 'Analyze Data'}
-      </Button>
-      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
-      {result && (
-        <div className="space-y-3 border-t-2 border-[#E7DAC3] pt-4">
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: 'Mean (Average)', val: result.mean.toFixed(2) },
-              { label: 'Median (Middle)', val: result.median.toFixed(2) },
-              { label: 'Mode (Most Common)', val: result.mode },
-              { label: 'Range (Spread)', val: result.range.toFixed(2) },
-            ].map(s => (
-              <div key={s.label} className="bg-[#E7DAC3] rounded-xl p-3 border border-[#BD6809]/20">
-                <p className="text-xs font-bold text-[#2F4731]/60 uppercase tracking-wider">{s.label}</p>
-                <p className="text-lg font-black text-[#2F4731]">{s.val}</p>
-              </div>
-            ))}
-          </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-            <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-1">Best Chart: {result.chartType}</p>
-            <p className="text-sm text-blue-900">{result.analysis}</p>
-          </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
-            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800"><strong>Insight:</strong> {result.insight}</p>
-          </div>
-        </div>
-      )}
-    </div>
+    s.includes('math') ||
+    s.includes('algebra') ||
+    s.includes('geometry') ||
+    s.includes('calculus') ||
+    s.includes('statistics') ||
+    s.includes('arithmetic') ||
+    s.includes('trigonometry') ||
+    s.includes('pre-calc') ||
+    s.includes('precalc') ||
+    s.includes('number') ||
+    s.includes('measurement') ||
+    s.includes('data') ||
+    s.includes('probability')
   );
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────
-type WorkshopId = 'geometry' | 'business' | 'data';
-
 export default function MathPage() {
   const [gradeLevel, setGradeLevel] = useState<string | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
-  const [activeWorkshop, setActiveWorkshop] = useState<WorkshopId | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [activeCourses, setActiveCourses] = useState<MathCourse[]>([]);
+  const [upNextCourses, setUpNextCourses] = useState<MathCourse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Lesson modal state
+  const [lessonCourse, setLessonCourse] = useState<MathCourse | null>(null);
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [lessonLoading, setLessonLoading] = useState(false);
+  const [lessonError, setLessonError] = useState<string | null>(null);
+  const [showLessonChat, setShowLessonChat] = useState(false);
+  const lessonChatEndRef = useRef<HTMLDivElement>(null);
+
+  const {
+    messages: lessonMessages,
+    input: lessonInput,
+    handleInputChange: handleLessonInputChange,
+    handleSubmit: handleLessonSubmit,
+    isLoading: isLessonChatLoading,
+    setMessages: setLessonMessages,
+  } = useChat({
+    api: '/api/journey/lesson-chat',
+    body: {
+      lessonTitle: lesson?.lessonTitle,
+      lessonContent: lesson?.lessonContent,
+      subject: lessonCourse?.subject,
+    },
+    onFinish: () => {
+      lessonChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    },
+  });
 
   useEffect(() => {
-    fetch('/api/user/me')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) { setGradeLevel(d.gradeLevel); setInterests(d.interests ?? []); } })
-      .catch(() => {})
-      .finally(() => setLoadingProfile(false));
+    loadData();
   }, []);
 
-  const tier = getGradeTier(gradeLevel);
-  const cfg = TIER_CONFIG[tier];
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [meRes, planRes] = await Promise.all([
+        fetch('/api/user/me'),
+        fetch('/api/journey/plan'),
+      ]);
 
-  const WORKSHOPS: { id: WorkshopId; title: string; badge: string; badgeColor: string; description: string; icon: React.ReactNode }[] = [
-    { id: 'geometry', ...cfg.geometry, icon: <Ruler size={28} /> },
-    { id: 'business', ...cfg.business, icon: <DollarSign size={28} /> },
-    { id: 'data',     ...cfg.data,     icon: <BarChart2 size={28} /> },
-  ];
+      if (meRes.ok) {
+        const me = await meRes.json();
+        setGradeLevel(me.gradeLevel ?? null);
+        setInterests(me.interests ?? []);
+      }
+
+      if (planRes.ok) {
+        const plan = await planRes.json();
+        const active: MathCourse[] = (plan.activeExpeditions ?? [])
+          .filter((c: any) => isMathSubject(c.subject) || isMathSubject(c.title))
+          .map((c: any) => ({ ...c, status: 'active' as const }));
+        const upcoming: MathCourse[] = (plan.trailAhead ?? [])
+          .filter((c: any) => isMathSubject(c.subject) || isMathSubject(c.title))
+          .map((c: any) => ({ ...c, status: 'planned' as const }));
+        setActiveCourses(active);
+        setUpNextCourses(upcoming);
+      } else {
+        const body = await planRes.json().catch(() => ({}));
+        setError((body as any).details || (body as any).error || `Error ${planRes.status}`);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openLesson = async (course: MathCourse) => {
+    setLessonCourse(course);
+    setLesson(null);
+    setLessonError(null);
+    setLessonLoading(true);
+    setShowLessonChat(false);
+    setLessonMessages([]);
+    try {
+      const res = await fetch('/api/journey/lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: course.subject, title: course.title, description: course.description }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as any).details || (body as any).error || 'Failed to generate lesson');
+      }
+      setLesson(await res.json());
+    } catch (err) {
+      setLessonError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setLessonLoading(false);
+    }
+  };
+
+  const closeLesson = () => {
+    setLessonCourse(null);
+    setLesson(null);
+    setLessonError(null);
+    setShowLessonChat(false);
+    setLessonMessages([]);
+  };
+
+  const noMathCourses = !loading && !error && activeCourses.length === 0 && upNextCourses.length === 0;
 
   return (
     <div className="min-h-screen bg-[#FFFEF7] p-6">
       <div className="max-w-5xl mx-auto space-y-8">
 
-        {/* Header */}
+        {/* ── Header ── */}
         <div className="bg-[#E7DAC3] rounded-[2rem] p-8 border-2 border-[#BD6809]/20">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
-                {cfg.label}
+              <h1 className="text-3xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+                Math Lessons
               </h1>
-              <p className="text-[#2F4731]/70 text-base mt-1">{cfg.tagline}</p>
+              <p className="text-[#2F4731]/70 text-base mt-1">
+                Your personalized math lessons from your learning plan — click any course to get today's lesson.
+              </p>
               {interests.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {interests.slice(0, 4).map(i => (
@@ -420,71 +183,358 @@ export default function MathPage() {
                 </div>
               )}
             </div>
-            {gradeLevel && (
-              <div className="bg-[#2F4731] text-[#FFFEF7] rounded-2xl px-5 py-3 text-center">
-                <p className="text-xs opacity-60 uppercase tracking-widest">Grade</p>
-                <p className="text-3xl font-black">{gradeLevel}</p>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {gradeLevel && (
+                <div className="bg-[#2F4731] text-[#FFFEF7] rounded-2xl px-5 py-3 text-center">
+                  <p className="text-xs opacity-60 uppercase tracking-widest">Grade</p>
+                  <p className="text-3xl font-black">{gradeLevel}</p>
+                </div>
+              )}
+              <button
+                onClick={() => loadData()}
+                className="p-3 bg-white border-2 border-[#BD6809]/20 hover:border-[#BD6809] rounded-2xl text-[#2F4731]/60 hover:text-[#BD6809] transition-all"
+                title="Refresh"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Workshop cards */}
-        {!activeWorkshop && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {WORKSHOPS.map(w => (
-              <button key={w.id} onClick={() => setActiveWorkshop(w.id)}
-                className="text-left bg-white rounded-[2rem] border-2 border-[#BD6809]/20 hover:border-[#BD6809] hover:shadow-xl transition-all p-6 group">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-3 bg-[#2F4731] group-hover:bg-[#BD6809] transition-colors rounded-xl text-[#FFFEF7]">
-                    {w.icon}
-                  </div>
-                  <Badge className={`${w.badgeColor} text-white text-xs`}>{w.badge}</Badge>
-                </div>
-                <h3 className="text-xl font-bold text-[#2F4731] mb-2" style={{ fontFamily: 'var(--font-kalam), cursive' }}>
-                  {w.title}
-                </h3>
-                <p className="text-sm text-[#2F4731]/70 leading-relaxed mb-4">{w.description}</p>
-                <div className="flex items-center gap-1 text-[#BD6809] text-sm font-bold">
-                  Open Workshop <ChevronRight className="w-4 h-4" />
-                </div>
-              </button>
-            ))}
+        {/* ── Loading ── */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="w-10 h-10 animate-spin text-[#BD6809]" />
+            <p className="text-[#2F4731]/60 italic">Loading your math lessons…</p>
           </div>
         )}
 
-        {/* Active workshop panel */}
-        {activeWorkshop && (() => {
-          const w = WORKSHOPS.find(x => x.id === activeWorkshop)!;
-          return (
-            <div className="bg-white rounded-[2rem] border-2 border-[#BD6809]/30 p-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-[#2F4731] rounded-xl text-[#FFFEF7]">{w.icon}</div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-kalam), cursive' }}>{w.title}</h2>
-                    <Badge className={`${w.badgeColor} text-white text-xs mt-1`}>{w.badge}</Badge>
-                  </div>
-                </div>
-                <button onClick={() => setActiveWorkshop(null)}
-                  className="text-[#2F4731]/50 hover:text-[#2F4731] p-2 rounded-xl hover:bg-[#E7DAC3] transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+        {/* ── Error ── */}
+        {error && !loading && (
+          <div className="rounded-3xl border-2 border-red-200 bg-red-50 p-8 text-center space-y-4">
+            <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
+            <p className="text-red-900 font-bold">Couldn't load your learning plan.</p>
+            <p className="text-red-700 text-sm font-mono bg-red-100 p-2 rounded">{error}</p>
+            <p className="text-red-700 text-sm">
+              Make sure you've set up your{' '}
+              <Link href="/dashboard/journey" className="underline font-bold">learning plan</Link>{' '}
+              first.
+            </p>
+            <button
+              onClick={() => loadData()}
+              className="bg-[#2F4731] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#BD6809] transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
 
-              {activeWorkshop === 'geometry' && <GeometryPanel tier={tier} />}
-              {activeWorkshop === 'business' && <BusinessPanel tier={tier} />}
-              {activeWorkshop === 'data'     && <DataPanel tier={tier} />}
-
-              <button onClick={() => setActiveWorkshop(null)}
-                className="text-xs text-[#2F4731]/50 hover:text-[#2F4731] underline">
-                ← Back to workshops
+        {/* ── No math courses found ── */}
+        {noMathCourses && (
+          <div className="rounded-3xl border-2 border-dashed border-[#BD6809]/30 bg-amber-50 p-10 text-center space-y-4">
+            <span className="text-5xl block">📐</span>
+            <h2 className="text-xl font-bold text-[#2F4731]">No math courses in your plan yet.</h2>
+            <p className="text-[#2F4731]/70 text-sm max-w-md mx-auto">
+              Your learning plan doesn't have any math courses mapped yet. Head to your Journey to add them, or refresh to check again.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
+              <Link
+                href="/dashboard/journey"
+                className="bg-[#2F4731] text-white px-6 py-2.5 rounded-xl font-bold hover:bg-[#BD6809] transition-colors text-sm"
+              >
+                Go to My Journey
+              </Link>
+              <button
+                onClick={() => loadData()}
+                className="border-2 border-[#2F4731] text-[#2F4731] px-6 py-2.5 rounded-xl font-bold hover:bg-[#E7DAC3] transition-colors text-sm"
+              >
+                Refresh Plan
               </button>
             </div>
-          );
-        })()}
+          </div>
+        )}
+
+        {/* ── Active / In Progress ── */}
+        {!loading && !error && activeCourses.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <TrendingUp className="w-6 h-6 text-[#BD6809]" />
+              <h2 className="text-2xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+                In Progress
+              </h2>
+            </div>
+            <p className="text-[#2F4731]/60 text-sm mb-5 pl-9">Click a course to get today's lesson.</p>
+            <div className="grid md:grid-cols-2 gap-5">
+              {activeCourses.map(course => (
+                <button
+                  key={course.id}
+                  onClick={() => openLesson(course)}
+                  className="text-left group relative rounded-3xl border-2 border-[#BD6809] bg-white hover:bg-amber-50 hover:shadow-xl transition-all duration-300 overflow-hidden"
+                >
+                  <div className="h-1.5 bg-gradient-to-r from-[#BD6809] to-[#e8820a] w-full" />
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 pr-4">
+                        <h3 className="text-lg font-bold text-[#2F4731] leading-snug mb-1" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+                          {course.title}
+                        </h3>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className="px-2 py-0.5 bg-[#2F4731]/10 text-[#2F4731] text-xs font-bold rounded-full">
+                            {course.subject}
+                          </span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded-full">
+                            IN PROGRESS
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-[#BD6809] flex-shrink-0 group-hover:translate-x-1 transition-transform mt-1" />
+                    </div>
+                    <p className="text-sm text-[#2F4731]/70 mb-4 leading-relaxed">{course.description}</p>
+                    {course.progress != null && (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-[#2F4731]/50">Progress</span>
+                          <span className="text-xs font-bold text-[#BD6809]">{course.progress}%</span>
+                        </div>
+                        <div className="bg-[#E7DAC3] rounded-full h-2 overflow-hidden">
+                          <div className="bg-[#BD6809] h-full rounded-full" style={{ width: `${course.progress}%` }} />
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-end">
+                      <span className="text-xs font-bold text-[#BD6809] bg-amber-100 px-3 py-1 rounded-full flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" /> Today's Lesson
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Up Next ── */}
+        {!loading && !error && upNextCourses.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <MapPin className="w-6 h-6 text-indigo-500" />
+              <h2 className="text-2xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+                Up Next in Math
+              </h2>
+            </div>
+            <p className="text-[#2F4731]/60 text-sm mb-5 pl-9">Upcoming math courses from your learning plan. Click to preview a lesson.</p>
+            <div className="relative">
+              <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-300 via-[#E7DAC3] to-transparent" />
+              <div className="space-y-4">
+                {upNextCourses.map((course, index) => (
+                  <div key={course.id} className="relative pl-16">
+                    <div className="absolute left-4 top-6 w-5 h-5 rounded-full border-2 border-indigo-400 bg-[#FFFEF7] flex items-center justify-center z-10">
+                      <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                    </div>
+                    <div className="absolute left-1 top-4 text-[10px] font-bold text-indigo-300">{index + 1}</div>
+                    <div className="rounded-2xl border-2 border-[#E7DAC3] bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-200 p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-[#2F4731] mb-1" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+                            {course.title}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <span className="text-xs text-[#2F4731]/50 border border-[#E7DAC3] px-2 py-0.5 rounded-full">
+                              {course.subject}
+                            </span>
+                            <span className="text-xs text-[#2F4731]/50 border border-[#E7DAC3] px-2 py-0.5 rounded-full">
+                              1 credit
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#2F4731]/60 leading-relaxed">{course.description}</p>
+                        </div>
+                        <button
+                          onClick={() => openLesson(course)}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-[#2F4731] text-white text-xs font-bold rounded-xl hover:bg-[#BD6809] transition-colors whitespace-nowrap flex-shrink-0"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          Preview Lesson
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
+
+      {/* ── Lesson Modal ── */}
+      {lessonCourse && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#FFFEF7] rounded-3xl border-2 border-[#2F4731] max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="bg-[#2F4731] p-6 flex items-start justify-between flex-shrink-0">
+              <div>
+                <p className="text-[#BD6809] text-xs font-bold uppercase tracking-widest mb-1">Today's Lesson</p>
+                <h3 className="text-2xl font-bold text-white leading-snug" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+                  {lessonCourse.title}
+                </h3>
+                <p className="text-white/60 text-sm mt-1">{lessonCourse.subject}</p>
+              </div>
+              <button onClick={closeLesson} className="text-white/60 hover:text-white ml-4 flex-shrink-0">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {lessonLoading && (
+                <div className="flex flex-col items-center justify-center py-16 gap-4">
+                  <Loader2 className="w-10 h-10 animate-spin text-[#BD6809]" />
+                  <p className="text-[#2F4731]/60 italic">Adeline is designing your lesson…</p>
+                </div>
+              )}
+
+              {lessonError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-center space-y-3">
+                  <AlertTriangle className="w-8 h-8 text-red-500 mx-auto" />
+                  <p className="text-red-700 text-sm font-mono">{lessonError}</p>
+                  <button onClick={() => openLesson(lessonCourse)} className="text-sm font-bold text-red-700 underline">Retry</button>
+                </div>
+              )}
+
+              {lesson && (
+                <>
+                  <div className="flex flex-wrap gap-3">
+                    <span className="px-3 py-1 bg-[#2F4731]/10 text-[#2F4731] text-xs font-bold rounded-full capitalize">
+                      📚 {lesson.lessonType}
+                    </span>
+                    <span className="px-3 py-1 bg-[#BD6809]/10 text-[#BD6809] text-xs font-bold rounded-full">
+                      ⏱ {lesson.timeEstimate}
+                    </span>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                    <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide">📖 The Lesson</h4>
+                    <div className="text-[#2F4731] leading-relaxed text-sm space-y-3">
+                      {lesson.lessonContent.split('\n').filter(Boolean).map((para, i) => (
+                        <p key={i}>{para}</p>
+                      ))}
+                    </div>
+                  </div>
+
+                  {lesson.keyFacts?.length > 0 && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+                      <h4 className="font-bold text-indigo-900 mb-3 text-sm uppercase tracking-wide">🧠 Remember These</h4>
+                      <ul className="space-y-2">
+                        {lesson.keyFacts.map((fact, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-indigo-900">
+                            <span className="font-black text-indigo-500 flex-shrink-0">{i + 1}.</span>
+                            {fact}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {lesson.imageSearchTerms?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#2F4731] mb-2 text-sm uppercase tracking-wide">🖼️ See It</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {lesson.imageSearchTerms.map((term, i) => (
+                          <a
+                            key={i}
+                            href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(term)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#BD6809] text-[#BD6809] text-xs font-bold rounded-xl hover:bg-amber-50 transition-colors"
+                          >
+                            🔍 {term}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="border-2 border-[#2F4731] rounded-2xl overflow-hidden">
+                    <div className="bg-[#2F4731] px-4 py-3">
+                      <h4 className="font-bold text-white text-sm uppercase tracking-wide">🛠️ Your Activity: {lesson.activity.title}</h4>
+                    </div>
+                    <div className="p-4 space-y-4 bg-white">
+                      {lesson.activity.supplies?.length > 0 && (
+                        <div>
+                          <p className="font-bold text-[#2F4731] text-xs uppercase tracking-wide mb-2">Supplies</p>
+                          <ul className="flex flex-wrap gap-2">
+                            {lesson.activity.supplies.map((s, i) => (
+                              <li key={i} className="px-2 py-1 bg-[#E7DAC3] text-[#2F4731] text-xs font-medium rounded-lg">{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-bold text-[#2F4731] text-xs uppercase tracking-wide mb-2">Instructions</p>
+                        <div className="text-[#2F4731] text-sm leading-relaxed space-y-2">
+                          {lesson.activity.fullInstructions.split('\n').filter(Boolean).map((line, i) => (
+                            <p key={i}>{line}</p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                    <h4 className="font-bold text-emerald-800 mb-1 text-sm uppercase tracking-wide">✅ You're Done When…</h4>
+                    <p className="text-emerald-700 text-sm leading-relaxed">{lesson.completionCriteria}</p>
+                  </div>
+
+                  {!showLessonChat ? (
+                    <button
+                      onClick={() => { setShowLessonChat(true); setTimeout(() => lessonChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-[#2F4731] hover:bg-[#BD6809] text-white font-bold rounded-2xl transition-colors text-sm"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      Ask Adeline for Help
+                    </button>
+                  ) : (
+                    <div className="border-2 border-[#2F4731] rounded-2xl overflow-hidden">
+                      <div className="bg-[#2F4731] px-4 py-2">
+                        <p className="text-white text-xs font-bold uppercase tracking-wide">Ask Adeline</p>
+                      </div>
+                      <div className="bg-white p-3 space-y-3 max-h-64 overflow-y-auto">
+                        {lessonMessages.map((m, i) => (
+                          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] px-3 py-2 rounded-xl text-sm ${m.role === 'user' ? 'bg-[#2F4731] text-white' : 'bg-[#E7DAC3] text-[#2F4731]'}`}>
+                              {m.content}
+                            </div>
+                          </div>
+                        ))}
+                        {isLessonChatLoading && (
+                          <div className="flex justify-start">
+                            <div className="bg-[#E7DAC3] px-3 py-2 rounded-xl">
+                              <Loader2 className="w-4 h-4 animate-spin text-[#2F4731]" />
+                            </div>
+                          </div>
+                        )}
+                        <div ref={lessonChatEndRef} />
+                      </div>
+                      <form onSubmit={handleLessonSubmit} className="flex gap-2 p-3 border-t border-[#E7DAC3]">
+                        <input
+                          value={lessonInput}
+                          onChange={handleLessonInputChange}
+                          placeholder="Ask a question about this lesson…"
+                          className="flex-1 text-sm border border-[#E7DAC3] rounded-xl px-3 py-2 focus:outline-none focus:border-[#2F4731]"
+                        />
+                        <button type="submit" disabled={isLessonChatLoading || !lessonInput.trim()}
+                          className="p-2 bg-[#2F4731] text-white rounded-xl hover:bg-[#BD6809] transition-colors disabled:opacity-40">
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
