@@ -481,8 +481,8 @@ export default async function DashboardPage() {
   // Render dashboard based on role
   switch (user.role) {
     case 'STUDENT': {
-      // Redirect students straight to chat with Adeline
-      redirect('/dashboard/chat');
+      // Redirect students straight to their learning path
+      redirect('/dashboard/journey');
     }
     case 'PARENT': {
       const { children, totalCredits, recentActivities, maxStudents } = await getParentDashboardData(session.userId);
