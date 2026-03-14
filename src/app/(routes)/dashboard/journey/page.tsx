@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mountain, TrendingUp, MapPin, MessageSquare, X, Loader2, Calendar, Award, AlertTriangle, BookOpen, Copy, Check, ChevronRight } from 'lucide-react';
+import { Mountain, TrendingUp, MapPin, MessageSquare, X, Loader2, Calendar, Award, AlertTriangle, BookOpen, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChat } from '@ai-sdk/react';
@@ -17,21 +17,19 @@ interface Credit {
   progress?: number;
 }
 
-interface LessonStep {
-  step: number;
-  title: string;
-  instruction: string;
-}
-
 interface Lesson {
   lessonTitle: string;
   lessonType: string;
   timeEstimate: string;
-  overview: string;
-  steps: LessonStep[];
-  materials: string[];
+  lessonContent: string;
+  keyFacts: string[];
+  imageSearchTerms: string[];
+  activity: {
+    title: string;
+    fullInstructions: string;
+    supplies: string[];
+  };
   completionCriteria: string;
-  chatPrompt: string;
 }
 
 interface JourneyPlan {
@@ -58,7 +56,6 @@ export default function JourneyPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [lessonLoading, setLessonLoading] = useState(false);
   const [lessonError, setLessonError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading: isChatLoading } = useChat({
     api: '/api/journey/change-route',
@@ -124,12 +121,6 @@ export default function JourneyPage() {
     }
   };
 
-  const copyPrompt = () => {
-    if (!lesson) return;
-    navigator.clipboard.writeText(lesson.chatPrompt);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   if (isLoading) {
     return (
@@ -563,45 +554,75 @@ export default function JourneyPage() {
                     </span>
                   </div>
 
-                  {/* Overview */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                    <h4 className="font-bold text-[#2F4731] mb-2 text-sm uppercase tracking-wide">Overview</h4>
-                    <p className="text-[#2F4731] leading-relaxed">{lesson.overview}</p>
+                  {/* THE ACTUAL LESSON */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                    <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide">📖 The Lesson</h4>
+                    <div className="text-[#2F4731] leading-relaxed text-sm space-y-3">
+                      {lesson.lessonContent.split('\n').filter(Boolean).map((para, i) => (
+                        <p key={i}>{para}</p>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Materials */}
-                  {lesson.materials.length > 0 && (
-                    <div>
-                      <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide">
-                        🎒 Materials & Resources
-                      </h4>
-                      <ul className="space-y-1.5">
-                        {lesson.materials.map((m, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-[#2F4731]/80">
-                            <span className="text-[#BD6809] mt-0.5 flex-shrink-0">◆</span> {m}
+                  {/* Key Facts */}
+                  {lesson.keyFacts?.length > 0 && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+                      <h4 className="font-bold text-indigo-900 mb-3 text-sm uppercase tracking-wide">🧠 Remember These</h4>
+                      <ul className="space-y-2">
+                        {lesson.keyFacts.map((fact, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-indigo-900">
+                            <span className="font-black text-indigo-500 flex-shrink-0">{i + 1}.</span>
+                            {fact}
                           </li>
                         ))}
                       </ul>
                     </div>
                   )}
 
-                  {/* Steps */}
-                  <div>
-                    <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide">
-                      🗺️ Today's Steps
-                    </h4>
-                    <div className="space-y-3">
-                      {lesson.steps.map((s) => (
-                        <div key={s.step} className="flex gap-3">
-                          <div className="w-7 h-7 rounded-full bg-[#2F4731] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-                            {s.step}
-                          </div>
-                          <div className="flex-1 bg-white border border-[#E7DAC3] rounded-xl p-3">
-                            <p className="font-bold text-[#2F4731] text-sm mb-1">{s.title}</p>
-                            <p className="text-[#2F4731]/70 text-sm leading-relaxed">{s.instruction}</p>
-                          </div>
+                  {/* Image Search Links */}
+                  {lesson.imageSearchTerms?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#2F4731] mb-2 text-sm uppercase tracking-wide">�️ See It</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {lesson.imageSearchTerms.map((term, i) => (
+                          <a
+                            key={i}
+                            href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(term)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#BD6809] text-[#BD6809] text-xs font-bold rounded-xl hover:bg-amber-50 transition-colors"
+                          >
+                            🔍 {term}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hands-On Activity */}
+                  <div className="border-2 border-[#2F4731] rounded-2xl overflow-hidden">
+                    <div className="bg-[#2F4731] px-4 py-3">
+                      <h4 className="font-bold text-white text-sm uppercase tracking-wide">🛠️ Your Activity: {lesson.activity.title}</h4>
+                    </div>
+                    <div className="p-4 space-y-4 bg-white">
+                      {lesson.activity.supplies?.length > 0 && (
+                        <div>
+                          <p className="font-bold text-[#2F4731] text-xs uppercase tracking-wide mb-2">Supplies</p>
+                          <ul className="flex flex-wrap gap-2">
+                            {lesson.activity.supplies.map((s, i) => (
+                              <li key={i} className="px-2 py-1 bg-[#E7DAC3] text-[#2F4731] text-xs font-medium rounded-lg">{s}</li>
+                            ))}
+                          </ul>
                         </div>
-                      ))}
+                      )}
+                      <div>
+                        <p className="font-bold text-[#2F4731] text-xs uppercase tracking-wide mb-2">Instructions</p>
+                        <div className="text-[#2F4731] text-sm leading-relaxed space-y-2">
+                          {lesson.activity.fullInstructions.split('\n').filter(Boolean).map((line, i) => (
+                            <p key={i}>{line}</p>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -611,23 +632,6 @@ export default function JourneyPage() {
                       ✅ You're Done When...
                     </h4>
                     <p className="text-emerald-700 text-sm leading-relaxed">{lesson.completionCriteria}</p>
-                  </div>
-
-                  {/* Chat prompt copy */}
-                  <div className="bg-[#2F4731]/5 border border-[#2F4731]/20 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-bold text-[#2F4731] text-sm">💬 Ask Adeline for Help</h4>
-                      <button
-                        onClick={copyPrompt}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2F4731] text-white text-xs font-bold rounded-xl hover:bg-[#BD6809] transition-colors"
-                                             >
-                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copied ? 'Copied!' : 'Copy Prompt'}
-                      </button>
-                    </div>
-                    <p className="text-[#2F4731]/60 text-xs italic leading-relaxed">
-                      "{lesson.chatPrompt}"
-                    </p>
                   </div>
                 </>
               )}
