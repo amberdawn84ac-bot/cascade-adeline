@@ -8,19 +8,12 @@ import { loadConfig } from '@/lib/config';
 
 export const maxDuration = 30;
 
-const justiceThemeSchema = z.object({
-  systemicIssue: z.string().describe('A real systemic injustice the book touches on'),
-  realWorldConnection: z.string().describe('A specific real case, event, or statistic that connects'),
-  actionPrompt: z.string().describe('One concrete action the student could take to learn more or help'),
-});
-
 const bookSchema = z.object({
   title: z.string().describe('Exact published book title'),
   author: z.string().describe('Author full name'),
   coverDescription: z.string().describe('2-sentence vivid description of what this book is about'),
   whyYouWillLoveIt: z.string().describe('1-2 sentences connecting this book specifically to the student\'s interests'),
   gutenbergUrl: z.string().nullable().describe('Project Gutenberg URL if this is a public domain book (e.g. https://www.gutenberg.org/ebooks/74), otherwise null'),
-  justiceTheme: justiceThemeSchema.nullable().describe('Only include for books that genuinely deal with injustice, inequality, power, or systemic issues. Null for pure adventure/fiction/picture books.'),
 });
 
 const curateSchema = z.object({
@@ -77,8 +70,7 @@ CURATION RULES:
 3. ONLY recommend books you are 100% certain exist with the exact title and author
 4. For public domain books on Project Gutenberg, provide the exact URL (format: https://www.gutenberg.org/ebooks/[ID])
    - Common Gutenberg IDs: Treasure Island=120, Tom Sawyer=74, Little Women=514, Secret Garden=113, Wizard of Oz=55, Swiss Family Robinson=11707
-5. justiceTheme: ONLY add for books genuinely dealing with power, inequality, or injustice — skip for adventure/science/picture books
-6. Do NOT recommend books you are unsure about — accuracy of title and author is non-negotiable`,
+5. Do NOT recommend books you are unsure about — accuracy of title and author is non-negotiable`,
       },
       {
         role: 'user',

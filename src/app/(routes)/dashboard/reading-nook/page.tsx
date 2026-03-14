@@ -14,11 +14,6 @@ interface LivingBook {
   gutenbergUrl?: string;
   coverDescription: string;
   whyYouWillLoveIt: string;
-  justiceTheme?: {
-    systemicIssue: string;
-    realWorldConnection: string;
-    actionPrompt: string;
-  };
 }
 
 interface ReadingEntry {
@@ -245,25 +240,6 @@ export default function ReadingNookPage() {
                           <p className="text-xs font-bold text-amber-800 mb-1">Why you&apos;ll love it</p>
                           <p className="text-xs text-amber-700 leading-relaxed">{book.whyYouWillLoveIt}</p>
                         </div>
-                        {book.justiceTheme && (
-                          <div className="bg-red-50 border border-red-300 rounded-lg p-3">
-                            <p className="text-xs font-bold text-red-800 mb-2 uppercase tracking-wider">⚖️ Justice Connection</p>
-                            <div className="space-y-2">
-                              <div>
-                                <p className="text-[10px] font-semibold text-red-700 mb-0.5">ISSUE:</p>
-                                <p className="text-xs text-red-900">{book.justiceTheme.systemicIssue}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-semibold text-red-700 mb-0.5">REAL CASE:</p>
-                                <p className="text-xs text-red-900">{book.justiceTheme.realWorldConnection}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-semibold text-red-700 mb-0.5">ACTION:</p>
-                                <p className="text-xs text-red-900">{book.justiceTheme.actionPrompt}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
