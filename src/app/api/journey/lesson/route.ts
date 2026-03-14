@@ -30,14 +30,19 @@ const lessonSchema = z.object({
   activity: z.object({
     title: z.string().describe('Name of the hands-on activity'),
     fullInstructions: z.string().describe(
-      'Complete, specific step-by-step instructions for the hands-on activity. '
-      + 'INCLUDE all technique details — not "draw something like cave art" but '
-      + '"mix a small amount of dirt or cocoa powder with water to make a paste, '
-      + 'dip your finger or a stick in it, then draw an animal outline on brown paper bag..." '
-      + 'Write it as if Adeline is standing right there guiding every move.'
+      'COMPLETE, FULLY EXECUTABLE step-by-step instructions. Zero missing details. '
+      + 'COOKING/BAKING: include the FULL recipe — every ingredient with exact measurement '
+      + '(e.g. "2¼ cups all-purpose flour", "1 tsp baking soda", "¾ cup granulated sugar"), '
+      + 'oven temperature (e.g. "Preheat to 375°F"), bake time (e.g. "bake 9-11 minutes"), '
+      + 'and every step in order. Do NOT say "add ingredients" — list them all with amounts. '
+      + 'MATH: include actual numbers, the full problem set, exact calculations to perform. '
+      + 'SCIENCE: include exact quantities, temperatures, wait times, and what to observe. '
+      + 'ART/CRAFT: include exact dimensions, quantities of materials, specific motions. '
+      + 'RULE: A student with zero prior knowledge must be able to execute this perfectly '
+      + 'using only what is written here. If anything is vague, it is wrong.'
     ),
-    supplies: z.array(z.string()).describe('Common household supplies needed'),
-  }).describe('The hands-on activity — fully explained with every technique detail'),
+    supplies: z.array(z.string()).describe('Every supply needed with quantities where relevant (e.g. "2¼ cups all-purpose flour", "1 stick butter")'),
+  }).describe('The hands-on activity — fully executable with zero missing details'),
   completionCriteria: z.string().describe('Specific evidence that shows mastery — what they made, answered, or demonstrated'),
 });
 
@@ -97,7 +102,12 @@ CRITICAL LESSON DELIVERY RULES:
    - If the lesson is about cave art, DESCRIBE the cave paintings — colors used (ochre, charcoal, hematite), the animals depicted, the techniques (blowing pigment through a bone tube, finger painting, scraping), the specific caves (Lascaux, Altamira, Chauvet), what they tell us about early humans.
    - Do NOT write "go find pictures of cave art" — describe what those pictures show. Teach it.
 2. imageSearchTerms: Give specific, precise search terms so clicking them immediately shows the right images.
-3. activity.fullInstructions: Give the COMPLETE technique, step-by-step. If making cave art: exactly what materials to use as substitutes, exactly how to mix them, exactly what motions to use. A student who has never done this should be able to follow it perfectly with zero additional research.
+3. activity.fullInstructions: This field must be 100% EXECUTABLE with zero vagueness.
+   - COOKING/BAKING lesson: Write the FULL recipe. Every ingredient with exact measurement. Oven temp. Exact bake time. Every step in order. "Add the dry ingredients" is WRONG. "Whisk together 2¼ cups flour, 1 tsp baking soda, and 1 tsp salt in a bowl" is RIGHT.
+   - MATH lesson: Write out the actual problems with real numbers. Include the full worked example. Give 3-5 practice problems with specific numbers to solve.
+   - SCIENCE experiment: Exact quantities, temps, wait times, what changes to look for.
+   - ART/CRAFT: Exact materials with amounts, dimensions, step-by-step motions.
+   - Universal rule: A student standing in their kitchen or at their desk must be able to complete this using ONLY what is written here. If they would need to look anything up, you have failed.
 4. Adapt every word to the student's exact grade level from the student context above.`,
       },
       {
