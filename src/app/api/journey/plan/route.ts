@@ -6,6 +6,10 @@ import { z } from 'zod';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import { loadConfig } from '@/lib/config';
 
+export const maxDuration = 60; // Vercel: allow up to 60s for LLM call
+
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 const learningPlanSchema = z.object({
   activeExpeditions: z.array(z.object({
     title: z.string().describe('Creative title that connects the subject to student interests'),
@@ -29,13 +33,14 @@ export async function GET(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Get student profile
+    // Get student profile + cached journey snapshot
     const student = await prisma.user.findUnique({
       where: { id: user.userId },
       select: { 
         gradeLevel: true,
         interests: true,
         createdAt: true,
+        metadata: true,
       }
     });
 
@@ -43,7 +48,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    // Get all earned credits from transcript
+    // Get live credit totals from transcript (always fresh — fast DB query)
     const transcriptEntries = await prisma.transcriptEntry.findMany({
       where: { userId: user.userId },
       orderBy: { dateCompleted: 'desc' },
@@ -61,20 +66,35 @@ export async function GET(req: NextRequest) {
       ? Math.floor((Date.now() - new Date(lastActivity.dateCompleted).getTime()) / (1000 * 60 * 60 * 24))
       : 999;
 
-    // Calculate graduation date (4 years from enrollment or based on grade level)
+    // Calculate graduation date
     const gradeLevel = Number(student.gradeLevel) || 9;
-    const yearsToGraduation = Math.max(1, 13 - gradeLevel); // 12th grade = graduation
+    const yearsToGraduation = Math.max(1, 13 - gradeLevel);
     const graduationDate = new Date();
     graduationDate.setFullYear(graduationDate.getFullYear() + yearsToGraduation);
-    graduationDate.setMonth(4); // May graduation
+    graduationDate.setMonth(4); // May
 
-    // Standard graduation requirements (24 credits total)
     const TOTAL_CREDITS_NEEDED = 24;
 
-    // Get student context for AI personalization
+    // --- Cache check: serve stored snapshot if < 24 hours old ---
+    const forceRefresh = req.nextUrl.searchParams.get('refresh') === 'true';
+    const meta = (student.metadata ?? {}) as Record<string, unknown>;
+    const cachedAt = meta.journeyPlanCachedAt as string | undefined;
+    const cachedPlan = meta.journeyPlanSnapshot as Record<string, unknown> | undefined;
+    if (!forceRefresh && cachedPlan && cachedAt && Date.now() - new Date(cachedAt).getTime() < CACHE_TTL_MS) {
+      return NextResponse.json({
+        ...cachedPlan,
+        creditsEarned: totalCreditsEarned, // always live
+        lastActivity: lastActivity ? {
+          activityName: lastActivity.activityName,
+          date: lastActivity.dateCompleted.toISOString(),
+          daysSince: daysSinceLastActivity,
+        } : undefined,
+      });
+    }
+
+    // --- Cache miss: generate plan with LLM ---
     const studentContext = await buildStudentContextPrompt(user.userId);
 
-    // Generate personalized learning plan
     const config = loadConfig();
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
       .withStructuredOutput(learningPlanSchema);
@@ -129,10 +149,9 @@ Generate a plan that will get them to ${TOTAL_CREDITS_NEEDED} credits by graduat
       }
     ]);
 
-    return NextResponse.json({
+    const snapshot = {
       graduationDate: graduationDate.toISOString(),
       totalCreditsNeeded: TOTAL_CREDITS_NEEDED,
-      creditsEarned: totalCreditsEarned,
       activeExpeditions: result.activeExpeditions.map((exp, i) => ({
         ...exp,
         id: `active-${i}`,
@@ -143,12 +162,29 @@ Generate a plan that will get them to ${TOTAL_CREDITS_NEEDED} credits by graduat
         id: `planned-${i}`,
         status: 'planned' as const,
       })),
+      adelineMessage: result.adelineMessage,
+    };
+
+    // Persist snapshot to User.metadata (fire-and-forget)
+    prisma.user.update({
+      where: { id: user.userId },
+      data: {
+        metadata: {
+          ...meta,
+          journeyPlanSnapshot: snapshot,
+          journeyPlanCachedAt: new Date().toISOString(),
+        },
+      },
+    }).catch(err => console.error('[journey/plan] Cache write failed:', err));
+
+    return NextResponse.json({
+      ...snapshot,
+      creditsEarned: totalCreditsEarned,
       lastActivity: lastActivity ? {
         activityName: lastActivity.activityName,
         date: lastActivity.dateCompleted.toISOString(),
         daysSince: daysSinceLastActivity,
       } : undefined,
-      adelineMessage: result.adelineMessage,
     });
 
   } catch (error) {

@@ -34,6 +34,7 @@ interface JourneyPlan {
 export default function JourneyPage() {
   const [plan, setPlan] = useState<JourneyPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCredit, setSelectedCredit] = useState<Credit | null>(null);
   const [showChangeRoute, setShowChangeRoute] = useState(false);
 
@@ -48,16 +49,22 @@ export default function JourneyPage() {
     }
   });
 
-  const loadPlan = async () => {
+  const loadPlan = async (refresh = false) => {
     setIsLoading(true);
+    setLoadError(null);
     try {
-      const response = await fetch('/api/journey/plan');
+      const url = refresh ? '/api/journey/plan?refresh=true' : '/api/journey/plan';
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setPlan(data);
+      } else {
+        const body = await response.json().catch(() => ({}));
+        setLoadError((body as any).details || (body as any).error || `Server error ${response.status}`);
       }
     } catch (error) {
       console.error('Failed to load journey plan:', error);
+      setLoadError(error instanceof Error ? error.message : 'Network error');
     } finally {
       setIsLoading(false);
     }
@@ -87,9 +94,16 @@ export default function JourneyPage() {
     return (
       <div className="min-h-screen bg-[#FFFEF7] flex items-center justify-center p-6">
         <Card className="border-2 border-red-200 bg-red-50 max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-3" />
-            <p className="text-red-900">Failed to load your journey plan. Please try again.</p>
+          <CardContent className="p-6 text-center space-y-4">
+            <AlertTriangle className="w-12 h-12 text-red-600 mx-auto" />
+            <p className="text-red-900 font-bold">Failed to load your journey plan.</p>
+            {loadError && <p className="text-red-700 text-sm font-mono bg-red-100 p-2 rounded">{loadError}</p>}
+            <button
+              onClick={() => loadPlan(true)}
+              className="bg-[#2F4731] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#BD6809] transition-colors"
+            >
+              Try Again
+            </button>
           </CardContent>
         </Card>
       </div>
