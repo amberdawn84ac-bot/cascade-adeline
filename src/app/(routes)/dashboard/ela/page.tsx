@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
 import prisma from '@/lib/db';
 import { ZPDRecommendations } from '@/components/learning/ZPDRecommendations';
+import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
 
 export default async function ElaPage() {
   const session = await getSessionUser();
@@ -42,6 +43,16 @@ export default async function ElaPage() {
           Welcome to the literary exploration zone! Here you can analyze texts, develop your writing voice,
           and build a portfolio of your best work.
         </p>
+      </div>
+
+      {/* Today's Lessons from Learning Plan */}
+      <div className="bg-white rounded-[2rem] p-6 border border-rose-100">
+        <h3 className="text-sm font-black uppercase tracking-widest text-rose-800 mb-4">Today's Language Arts Lessons</h3>
+        <SubjectLessonsPanel
+          subject="Language Arts"
+          keywords={['english', 'language arts', 'ela', 'writing', 'literature', 'reading', 'composition', 'grammar', 'creative writing', 'poetry', 'journalism', 'speech', 'communications', 'rhetoric', 'vocabulary']}
+          accentColor="#e11d48"
+        />
       </div>
 
       {/* Activities Grid */}

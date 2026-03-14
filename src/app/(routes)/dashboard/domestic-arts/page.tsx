@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Sprout, Beef, Flower2, AlertTriangle, Users, Camera, CheckCircle } from 'lucide-react';
+import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
 
 type CategoryId = 'preservation' | 'livestock-sheep' | 'livestock-poultry' | 'livestock-horses' | 'greenhouse' | 'fiber-arts';
 
@@ -113,6 +114,16 @@ export default function HomesteadingPage() {
       </div>
 
       <div className="p-6 max-w-5xl mx-auto w-full space-y-8">
+
+        {/* Today's Lessons from Learning Plan */}
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-widest text-green-800 mb-4">Today's Lessons</h2>
+          <SubjectLessonsPanel
+            subject="Homesteading & Life Skills"
+            keywords={['domestic', 'homestead', 'home economics', 'cooking', 'culinary', 'sewing', 'fiber', 'agriculture', 'life skills', 'practical arts', 'health', 'nutrition', 'gardening', 'farming', 'livestock', 'preservation', 'crafts']}
+            accentColor="#16a34a"
+          />
+        </div>
 
         {/* Category Grid */}
         <div>

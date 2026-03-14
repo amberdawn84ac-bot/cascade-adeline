@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, X, AlertTriangle, Users } from 'lucide-react';
 import { Telescope, MasonJar, VineDivider, MagnifyingGlass } from '@/components/illustrations';
+import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
 
 // Types from our central types file
 interface ScienceEntry {
@@ -452,6 +453,16 @@ export default function SciencePage() {
             <Telescope className="w-8 h-8 text-emerald-600 opacity-70" />
         </div>
       </div>
+
+       {/* Today's Lessons from Learning Plan */}
+       <div className="p-6 border-b border-emerald-200 bg-white/70">
+         <h3 className="text-sm font-black uppercase tracking-widest text-emerald-800 mb-4">Today's Science Lessons</h3>
+         <SubjectLessonsPanel
+           subject="Science"
+           keywords={['science', 'biology', 'chemistry', 'physics', 'earth science', 'environmental', 'anatomy', 'ecology', 'geology', 'astronomy', 'botany', 'zoology', 'nature']}
+           accentColor="#059669"
+         />
+       </div>
 
        {/* Navigation */}
        <div className="flex border-b border-emerald-200 bg-white/50 overflow-x-auto">

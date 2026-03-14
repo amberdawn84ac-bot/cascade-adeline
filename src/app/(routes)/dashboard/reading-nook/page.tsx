@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, BookOpen, Send, Book, RefreshCw, Volume2, Mic, MicOff } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
+import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
 
 interface LivingBook {
   title: string;
@@ -192,7 +193,16 @@ export default function ReadingNookPage() {
 
         {/* ── MY BOOKSHELF ── */}
         {activeTab === 'bookshelf' && (
-          <div className="p-6 max-w-5xl mx-auto">
+          <div className="p-6 max-w-5xl mx-auto space-y-8">
+            {/* Today's Reading Lessons from Learning Plan */}
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-widest text-amber-800 mb-4">Today's Reading Lessons</h2>
+              <SubjectLessonsPanel
+                subject="Reading & Literature"
+                keywords={['reading', 'literature', 'english', 'language arts', 'ela', 'writing', 'composition', 'grammar', 'creative writing', 'poetry', 'journalism', 'speech', 'communications', 'rhetoric', 'vocabulary', 'phonics']}
+                accentColor="#b45309"
+              />
+            </div>
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-amber-900">Your Living Books</h2>

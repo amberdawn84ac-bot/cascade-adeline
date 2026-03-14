@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
 
 interface TimelineEntry {
   id?: string;
@@ -125,6 +126,16 @@ export default function HistoryPage() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Today's Lessons from Learning Plan */}
+      <div className="bg-white rounded-[2rem] p-8 border-2 border-indigo-100">
+        <h3 className="text-sm font-black uppercase tracking-widest text-indigo-800 mb-4">Today's History Lessons</h3>
+        <SubjectLessonsPanel
+          subject="History"
+          keywords={['history', 'social studies', 'government', 'civics', 'geography', 'economics', 'world history', 'american history', 'political', 'sociology', 'anthropology', 'culture']}
+          accentColor="#4f46e5"
+        />
       </div>
 
       {/* Timeline Generator */}
