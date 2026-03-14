@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
-import { openai } from '@ai-sdk/openai';
+import { getModel } from '@/lib/ai-models';
+import { loadConfig } from '@/lib/config';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -23,7 +24,7 @@ export async function GET() {
   }
 
   const students = await prisma.user.findMany({
-    where: { role: 'STUDENT' },
+    where: { parentId: user.userId },
     select: {
       id: true,
       name: true,
@@ -88,8 +89,9 @@ export async function GET() {
     recentActivityDays: s.userActivities.length,
   }));
 
+  const config = loadConfig();
   const result = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: getModel(config.models.default),
     temperature: 0.3,
     schema: interventionSchema,
     prompt: `You are Adeline, an AI learning coach helping a teacher identify students who need intervention.

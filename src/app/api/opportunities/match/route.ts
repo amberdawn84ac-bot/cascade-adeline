@@ -4,6 +4,7 @@ import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
+import { loadConfig } from '@/lib/config';
 
 const matchSchema = z.object({
   matches: z.array(z.object({
@@ -83,7 +84,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json([]);
   }
 
-  const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.3 }).withStructuredOutput(matchSchema);
+  const config = loadConfig();
+  const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.3 }).withStructuredOutput(matchSchema);
 
   const competitionList = eligibleCompetitions.map(c => ({
     id: c.id,

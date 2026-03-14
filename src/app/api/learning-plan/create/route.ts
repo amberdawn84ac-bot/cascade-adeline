@@ -4,6 +4,7 @@ import prisma from '@/lib/db';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { loadConfig } from '@/lib/config';
 
 const learningPlanSchema = z.object({
   subjects: z.array(z.object({
@@ -56,7 +57,8 @@ export async function POST(req: NextRequest) {
     });
 
     // Generate personalized learning plan using AI
-    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.7 })
+    const config = loadConfig();
+    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
       .withStructuredOutput(learningPlanSchema);
 
     const result = await llm.invoke([

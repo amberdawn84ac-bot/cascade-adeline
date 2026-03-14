@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { ChatOpenAI } from '@langchain/openai';
+import { loadConfig } from '@/lib/config';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
@@ -37,7 +38,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     participantCounts[msg.author.name] = (participantCounts[msg.author.name] || 0) + 1;
   }
 
-  const llm = new ChatOpenAI({ model: 'gpt-4o-mini', temperature: 0.7 });
+  const config = loadConfig();
+  const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o-mini', temperature: 0.7 });
 
   const result = await llm.invoke([
     {

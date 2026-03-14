@@ -7,6 +7,7 @@ import { moderateContent } from '@/lib/safety/content-moderator';
 import prisma from '@/lib/db';
 import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
 import { shouldRefuse } from '@/lib/learning/scaffolding-guardian';
+import { recordInteraction, calculateCognitiveLoad } from '@/lib/cognitive-load';
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,10 +49,39 @@ export async function POST(req: NextRequest) {
 
     const student = await prisma.user.findUnique({
       where: { id: user.userId },
-      select: { gradeLevel: true }
+      select: { gradeLevel: true, messageCount: true, messageResetAt: true }
     });
 
     const gradeLevel = student?.gradeLevel || '3';
+
+    // ── Rate limiting ──────────────────────────────────────────────────────────
+    const DAILY_LIMIT = 50; // free tier; paid plans can raise this via metadata
+    const now = new Date();
+    const resetAt = student?.messageResetAt;
+    const needsReset = !resetAt || (now.getTime() - resetAt.getTime()) > 24 * 60 * 60 * 1000;
+    const currentCount = needsReset ? 0 : (student?.messageCount ?? 0);
+
+    if (needsReset) {
+      await prisma.user.update({
+        where: { id: user.userId },
+        data: { messageCount: 0, messageResetAt: now },
+      });
+    }
+
+    if (currentCount >= DAILY_LIMIT) {
+      const limitMsg = "You've reached your 50 message daily limit! Your count resets every 24 hours. Upgrade to a paid plan for unlimited conversations with Adeline. 🌿";
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(`0:${JSON.stringify(limitMsg)}\n`));
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        status: 429,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' },
+      });
+    }
 
     const initialState = {
       messages: [new HumanMessage(maskedContent.masked)],
@@ -67,8 +97,40 @@ export async function POST(req: NextRequest) {
       metadata: { timestamp: new Date().toISOString(), user_role: user.role, gradeLevel: gradeLevel },
     };
 
+    const aiStartTime = Date.now();
     const result = await adelineBrainRunnable.invoke(initialState);
+    const responseTimeMs = Date.now() - aiStartTime;
+
+    // Increment message count (non-blocking)
+    prisma.user.update({
+      where: { id: user.userId },
+      data: { messageCount: { increment: 1 } },
+    }).catch(err => console.error('[RateLimit] Failed to increment count:', err));
     
+    // Log user activity so analytics has real session duration data (non-blocking)
+    prisma.userActivity.create({
+      data: {
+        userId: user.userId,
+        activityType: 'chat',
+        duration: Math.round(responseTimeMs / 1000 / 60) || 1, // minutes, min 1
+        metadata: { intent: result.intent ?? 'CHAT', gradeLevel },
+      },
+    }).catch(() => {});
+
+    // Cognitive load tracking (non-blocking)
+    const sessionId = `chat-${Math.floor(aiStartTime / 60000)}`; // bucket per minute
+    const messageId = `msg-${aiStartTime}`;
+    const editDistance = maskedContent.masked.length; // proxy: message length
+    const sentimentScore = moderationResult.severity !== 'safe' ? -0.5 : 0; // rough signal
+    recordInteraction({ userId: user.userId, sessionId, messageId, responseTimeMs, editDistance, sentimentScore })
+      .catch(err => console.error('[CognitiveLoad] record failed:', err));
+    calculateCognitiveLoad({ userId: user.userId, responseTimeMs, editDistance, sentimentScore })
+      .then(load => {
+        if (load.level === 'HIGH' || load.level === 'CRITICAL') {
+          console.warn(`[CognitiveLoad] User ${user.userId} load=${load.level} score=${load.score.toFixed(2)}`);
+        }
+      }).catch(() => {});
+
     // MEMEX: Non-blocking memory indexing - extract and store important facts from this conversation
     // Build conversation history for memory extraction
     const conversationForMemory = [

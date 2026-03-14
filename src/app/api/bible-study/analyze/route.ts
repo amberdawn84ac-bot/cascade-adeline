@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
+import { loadConfig } from '@/lib/config';
 
 const analysisSchema = z.object({
   passage: z.string().describe('The passage text in English'),
@@ -38,7 +39,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing reference' }, { status: 400 });
     }
 
-    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.3 })
+    const config = loadConfig();
+    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.3 })
       .withStructuredOutput(analysisSchema);
 
     const result = await llm.invoke([

@@ -43,7 +43,7 @@ async function getStudentDashboardData(userId: string) {
     ela: { earned: 0, total: 0 },
     history: { earned: 0, total: 0 },
     arcade: { earned: 0, total: 0 },
-    agora: { earned: 0, total: 0 },
+    'community-board': { earned: 0, total: 0 },
     'domestic-arts': { earned: 0, total: 0 },
     'bible-study': { earned: 0, total: 0 },
   };
@@ -67,9 +67,9 @@ async function getStudentDashboardData(userId: string) {
     } else if (subject.includes('computer') || subject.includes('tech') || subject.includes('code') || subject.includes('game')) {
       roomStats.arcade.total++;
       if (isMastered) roomStats.arcade.earned++;
-    } else if (subject.includes('agora')) {
-      roomStats.agora.total++;
-      if (isMastered) roomStats.agora.earned++;
+    } else if (subject.includes('community')) {
+      roomStats['community-board'].total++;
+      if (isMastered) roomStats['community-board'].earned++;
     } else if (subject.includes('domestic') || subject.includes('arts')) {
       roomStats['domestic-arts'].total++;
       if (isMastered) roomStats['domestic-arts'].earned++;
@@ -117,27 +117,44 @@ async function getParentDashboardData(userId: string) {
 }
 
 async function getTeacherDashboardData(userId: string) {
-  // For teachers, we'd fetch their assigned students
-  // For now, return similar structure but with higher student limit
-  return { 
-    children: [], // Would be populated with teacher's students
-    totalCredits: 0, 
-    recentActivities: [],
-    maxStudents: 40 
-  };
+  const students = await prisma.user.findMany({
+    where: { parentId: userId },
+    include: {
+      transcriptEntries: { orderBy: { dateCompleted: 'desc' }, take: 5 },
+      standardsProgress: { include: { standard: true }, take: 10 },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 40,
+  });
+
+  const totalCredits = students.reduce((sum: number, s: any) =>
+    sum + s.transcriptEntries.reduce((cs: number, e: any) => cs + Number(e.creditsEarned), 0), 0
+  );
+
+  const recentActivities = students.flatMap((s: any) =>
+    s.transcriptEntries.map((e: any) => ({
+      studentName: s.name,
+      activity: e.activityName,
+      credits: e.creditsEarned,
+      date: e.dateCompleted,
+      subject: e.mappedSubject,
+    }))
+  ).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
+
+  return { children: students, totalCredits, recentActivities, maxStudents: 40 };
 }
 
 const ROOMS = [
   {
-    id: 'agora',
-    title: 'The Agora',
+    id: 'community-board',
+    title: 'Community Board',
     subtitle: 'Student Community Feed',
     icon: Users,
     color: 'bg-orange-500/10',
     borderColor: 'border-orange-500/20',
     textColor: 'text-orange-800',
     description: 'See what your fellow students are building, learning, and discovering.',
-    link: '/dashboard/agora'
+    link: '/dashboard/community-board'
   },
   {
     id: 'science',

@@ -386,6 +386,21 @@ model UserConceptMastery {
   @@index([userId])
 }
 
+model UserInteractionStats {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  sessionId       String   @map("session_id")
+  messageId       String   @map("message_id")
+  responseTimeMs  Int      @map("response_time_ms")
+  editDistance    Int      @map("edit_distance")
+  sentimentScore  Float    @map("sentiment_score")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("user_interaction_stats")
+}
+
 model LLMTrace {
   id            String   @id @default(uuid()) @db.Uuid
   traceId       String   @map("trace_id")

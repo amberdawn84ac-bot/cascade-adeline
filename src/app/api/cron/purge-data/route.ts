@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
       await tx.reflectionEntry.deleteMany({ where: { userId: { in: userIds } } });
       await tx.userConceptMastery.deleteMany({ where: { userId: { in: userIds } } });
       await tx.learningGap.deleteMany({ where: { userId: { in: userIds } } });
+      await tx.userActivity.deleteMany({ where: { userId: { in: userIds } } });
+      await tx.userInteractionStats.deleteMany({ where: { userId: { in: userIds } } });
       await tx.conversationMemory.deleteMany({ where: { userId: { in: userIds } } });
       await tx.transcriptEntry.deleteMany({ where: { userId: { in: userIds } } });
       await tx.subscription.deleteMany({ where: { userId: { in: userIds } } });

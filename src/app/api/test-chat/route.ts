@@ -19,6 +19,11 @@ import { AdelineGraphState } from '@/lib/langgraph/types';
  *   /api/test-chat?prompt=What+should+I+learn+today
  */
 export async function GET(req: NextRequest) {
+  const secret = req.headers.get('x-debug-secret') || req.nextUrl.searchParams.get('secret');
+  if (process.env.NODE_ENV !== 'development' && secret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const prompt = req.nextUrl.searchParams.get('prompt') || 'Hello Adeline!';
 
   let state: AdelineGraphState = {

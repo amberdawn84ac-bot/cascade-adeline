@@ -44,7 +44,7 @@ export async function GET() {
   }
 
   const pendingEntries = await prisma.transcriptEntry.findMany({
-    where: { approvedById: null, user: { role: 'STUDENT' } },
+    where: { approvedById: null, user: { parentId: user.userId } },
     include: {
       user: { select: { id: true, name: true, gradeLevel: true } },
       evidenceArtifact: { select: { id: true, title: true, fileUrl: true } },

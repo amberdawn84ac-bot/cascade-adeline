@@ -523,6 +523,448 @@ function CodeQuest({ onBack }: { onBack: () => void }) {
   );
 }
 
+// ─── Logic Labyrinth ─────────────────────────────────────────────────────────
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+interface LogicPuzzle {
+  type: string;
+  display: string;
+  answer: number | string;
+  options: (number | string)[];
+  hint: string;
+}
+
+type PuzzleDifficulty = 'easy' | 'medium' | 'hard';
+
+const LOGIC_PUZZLES: Record<PuzzleDifficulty, LogicPuzzle[]> = {
+  easy: [
+    { type: 'sequence', display: '2, 4, ?, 8, 10', answer: 6, options: [5, 6, 7, 9], hint: 'Count by 2s' },
+    { type: 'sequence', display: '5, 10, 15, ?, 25', answer: 20, options: [18, 19, 20, 22], hint: 'Count by 5s' },
+    { type: 'sequence', display: '1, 3, 5, ?, 9', answer: 7, options: [6, 7, 8, 10], hint: 'Odd numbers in order' },
+    { type: 'sequence', display: '10, 20, 30, ?, 50', answer: 40, options: [35, 38, 40, 45], hint: 'Count by 10s' },
+    { type: 'sequence', display: '1, 4, 9, 16, ?', answer: 25, options: [20, 24, 25, 36], hint: 'Square numbers: 1², 2², 3²…' },
+    { type: 'operator', display: '6 ? 3 = 18', answer: '×', options: ['+', '−', '×', '÷'], hint: '6 times 3 equals 18' },
+    { type: 'operator', display: '12 ? 4 = 3', answer: '÷', options: ['+', '−', '×', '÷'], hint: '12 divided by 4' },
+    { type: 'operator', display: '8 ? 5 = 13', answer: '+', options: ['+', '−', '×', '÷'], hint: '8 plus 5' },
+    { type: 'missing', display: '3 × ? = 21', answer: 7, options: [6, 7, 8, 9], hint: '21 divided by 3' },
+    { type: 'missing', display: '? + 9 = 15', answer: 6, options: [5, 6, 7, 8], hint: '15 minus 9' },
+    { type: 'missing', display: '24 ÷ ? = 6', answer: 4, options: [3, 4, 5, 6], hint: 'What divides 24 to get 6?' },
+    { type: 'missing', display: '? × 7 = 49', answer: 7, options: [6, 7, 8, 9], hint: '7 times 7' },
+  ],
+  medium: [
+    { type: 'sequence', display: '2, 6, 18, 54, ?', answer: 162, options: [108, 144, 162, 180], hint: 'Multiply by 3 each time' },
+    { type: 'sequence', display: '100, 50, 25, ?, 6.25', answer: 12.5, options: [10, 12, 12.5, 13], hint: 'Divide by 2 each time' },
+    { type: 'sequence', display: '1, 1, 2, 3, 5, 8, ?', answer: 13, options: [11, 12, 13, 14], hint: 'Add the two previous numbers' },
+    { type: 'sequence', display: '3, 9, 27, 81, ?', answer: 243, options: [162, 200, 243, 270], hint: 'Powers of 3' },
+    { type: 'operator', display: '45 ? 9 = 36', answer: '−', options: ['+', '−', '×', '÷'], hint: '45 minus 9' },
+    { type: 'operator', display: '7 ? 8 = 56', answer: '×', options: ['+', '−', '×', '÷'], hint: '7 times 8' },
+    { type: 'missing', display: '? ÷ 8 = 9', answer: 72, options: [64, 70, 72, 80], hint: '9 times 8' },
+    { type: 'missing', display: '15 × ? = 180', answer: 12, options: [10, 11, 12, 15], hint: '180 divided by 15' },
+    { type: 'missing', display: '√? = 8', answer: 64, options: [48, 56, 64, 72], hint: '8 squared equals?' },
+    { type: 'pattern', display: 'If 1♦1 = 2, 2♦2 = 8, 3♦3 = 18, then 4♦4 = ?', answer: 32, options: [24, 28, 32, 36], hint: 'Pattern: 2 × a²' },
+    { type: 'pattern', display: 'In the pattern: 2, 5, 11, 23, ?, each term is doubled and 1 is added', answer: 47, options: [43, 45, 47, 50], hint: '23 × 2 + 1' },
+  ],
+  hard: [
+    { type: 'sequence', display: '2, 3, 5, 7, 11, 13, ?', answer: 17, options: [14, 15, 16, 17], hint: 'These are prime numbers' },
+    { type: 'pattern', display: 'If 3★5 = 34 and 4★2 = 20, then 5★3 = ?', answer: 34, options: [28, 30, 34, 40], hint: 'Try a² + b²' },
+    { type: 'missing', display: '3² + ? = 5²', answer: 16, options: [14, 15, 16, 20], hint: '25 − 9 = ?' },
+    { type: 'missing', display: '(? + 6) × 4 = 48', answer: 6, options: [4, 5, 6, 8], hint: '48 ÷ 4 = 12, then 12 − 6' },
+    { type: 'missing', display: '? % of 80 = 20', answer: 25, options: [20, 25, 30, 40], hint: '20 ÷ 80 × 100' },
+    { type: 'sequence', display: '128, 64, 32, 16, ?', answer: 8, options: [6, 8, 10, 12], hint: 'Divide by 2 each time' },
+    { type: 'pattern', display: 'If A=1, Z=26, then M + O = ?', answer: 28, options: [25, 26, 28, 30], hint: 'M = 13, O = 15' },
+    { type: 'missing', display: '4! = 24, so 5! = ?', answer: 120, options: [60, 100, 120, 125], hint: 'Factorial: 5 × 4!' },
+    { type: 'pattern', display: 'If FISH = 42 (F=6, I=9, S=19, H=8), then CAT = ?', answer: 24, options: [20, 22, 24, 26], hint: 'Sum each letter\'s position: C=3, A=1, T=20' },
+    { type: 'sequence', display: '1, 8, 27, 64, ?', answer: 125, options: [100, 108, 125, 216], hint: 'Cube numbers: 1³, 2³, 3³…' },
+  ],
+};
+
+function LogicLabyrinth({ onBack }: { onBack: () => void }) {
+  const [difficulty, setDifficulty] = useState<PuzzleDifficulty | null>(null);
+  const [puzzles, setPuzzles] = useState<LogicPuzzle[]>([]);
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState<number | string | null>(null);
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [lives, setLives] = useState(3);
+  const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+
+  const startGame = (diff: PuzzleDifficulty) => {
+    const pool = LOGIC_PUZZLES[diff];
+    const picked = shuffleArray(pool).slice(0, 10);
+    setPuzzles(picked);
+    setDifficulty(diff);
+    setCurrent(0);
+    setSelected(null);
+    setFeedback(null);
+    setLives(3);
+    setScore(0);
+    setStreak(0);
+    setGameOver(false);
+    setShowHint(false);
+  };
+
+  const handleAnswer = (opt: number | string) => {
+    if (feedback) return;
+    setSelected(opt);
+    const puzzle = puzzles[current];
+    const isCorrect = String(opt) === String(puzzle.answer);
+    setFeedback(isCorrect ? 'correct' : 'wrong');
+    if (isCorrect) {
+      const bonus = streak >= 2 ? 20 : 10;
+      setScore(s => s + bonus);
+      setStreak(s => s + 1);
+    } else {
+      setLives(l => l - 1);
+      setStreak(0);
+    }
+  };
+
+  const handleNext = () => {
+    const newLives = feedback === 'wrong' ? lives - 1 : lives;
+    if (newLives <= 0 && feedback === 'wrong') { setGameOver(true); return; }
+    const nextIdx = current + 1;
+    if (nextIdx >= puzzles.length) {
+      setGameOver(true);
+      fetch('/api/arcade/award-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game: 'logic', result: { difficulty, score } }),
+      }).catch(console.error);
+      return;
+    }
+    setCurrent(nextIdx);
+    setSelected(null);
+    setFeedback(null);
+    setShowHint(false);
+  };
+
+  if (!difficulty) return (
+    <div className="max-w-2xl mx-auto space-y-5">
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+      <div className="bg-emerald-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-emerald-700">Logic Labyrinth · Choose Difficulty</div>
+      <div className="grid grid-cols-3 gap-4">
+        {(['easy', 'medium', 'hard'] as PuzzleDifficulty[]).map(d => (
+          <Card key={d} className="border-2 border-emerald-200 hover:border-emerald-400 cursor-pointer transition-all hover:shadow-md" onClick={() => startGame(d)}>
+            <CardContent className="p-6 text-center space-y-3">
+              <div className="text-4xl">{d === 'easy' ? '🌱' : d === 'medium' ? '🔥' : '⚡'}</div>
+              <h3 className="font-black text-[#2F4731] capitalize text-lg">{d}</h3>
+              <p className="text-xs text-[#2F4731]/60">{d === 'easy' ? 'Patterns & basic operations' : d === 'medium' ? 'Sequences & logic' : 'Advanced puzzles'}</p>
+              <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white">Play</Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (gameOver) return (
+    <div className="max-w-xl mx-auto space-y-5">
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+      <Card className="border-2 border-emerald-200 text-center py-10"><CardContent>
+        <Trophy className="w-16 h-16 text-[#BD6809] mx-auto mb-4" />
+        <h2 className="text-3xl font-black text-[#2F4731] mb-2">{lives > 0 ? 'Labyrinth Conquered!' : 'Out of Lives!'}</h2>
+        <p className="text-[#2F4731]/70 mb-2">{current}/{puzzles.length} puzzles solved</p>
+        <p className="text-3xl font-black text-emerald-600 mb-6">{score} points</p>
+        <div className="flex gap-3 justify-center">
+          <Button onClick={() => setDifficulty(null)} variant="outline" className="border-emerald-300 text-emerald-700">Change Difficulty</Button>
+          <Button onClick={() => startGame(difficulty)} className="bg-emerald-500 hover:bg-emerald-600 text-white">Play Again</Button>
+        </div>
+      </CardContent></Card>
+    </div>
+  );
+
+  const puzzle = puzzles[current];
+  if (!puzzle) return null;
+
+  return (
+    <div className="max-w-xl mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+        <div className="flex items-center gap-4">
+          <div className="flex gap-1">{Array.from({ length: 3 }).map((_, i) => <Heart key={i} className={`w-5 h-5 ${i < lives ? 'text-red-500 fill-red-500' : 'text-gray-200 fill-gray-200'}`} />)}</div>
+          <div className="flex items-center gap-1 font-black text-emerald-600 text-lg"><Star className="w-5 h-5 fill-emerald-500 text-emerald-500" /> {score}</div>
+        </div>
+      </div>
+      <div className="bg-emerald-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-emerald-700">
+        Logic Labyrinth · {difficulty} · {current + 1}/{puzzles.length}
+        {streak >= 2 && <span className="ml-2 text-orange-500">🔥 {streak}x streak! +20</span>}
+      </div>
+      <Card className="border-2 border-emerald-200"><CardContent className="p-8 space-y-6">
+        <div className="text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-3">
+            {puzzle.type === 'sequence' ? 'Complete the Sequence' : puzzle.type === 'operator' ? 'Find the Missing Operator' : puzzle.type === 'pattern' ? 'Crack the Pattern' : 'Find the Missing Number'}
+          </p>
+          <div className="bg-emerald-50 rounded-2xl p-6 border-2 border-emerald-100">
+            <p className="text-3xl font-black text-[#2F4731] font-mono">{puzzle.display}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {puzzle.options.map((opt, i) => {
+            let btnClass = 'border-2 border-emerald-200 bg-white hover:border-emerald-400 text-[#2F4731] font-bold text-lg py-4 rounded-2xl transition-all';
+            if (feedback && String(opt) === String(puzzle.answer)) btnClass = 'border-2 border-green-400 bg-green-50 text-green-700 font-bold text-lg py-4 rounded-2xl';
+            else if (feedback && String(opt) === String(selected) && String(selected) !== String(puzzle.answer)) btnClass = 'border-2 border-red-300 bg-red-50 text-red-600 font-bold text-lg py-4 rounded-2xl';
+            return <button key={i} onClick={() => handleAnswer(opt)} disabled={!!feedback} className={btnClass}>{opt}</button>;
+          })}
+        </div>
+        {!feedback && !showHint && (
+          <button onClick={() => setShowHint(true)} className="text-xs text-emerald-600 hover:underline w-full text-center">💡 Show Hint</button>
+        )}
+        {showHint && <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800 text-center">💡 {puzzle.hint}</div>}
+        {feedback && (
+          <div className={`rounded-2xl p-4 text-center ${feedback === 'correct' ? 'bg-green-50 border-2 border-green-200' : 'bg-red-50 border-2 border-red-200'}`}>
+            <p className={`font-black text-lg mb-1 ${feedback === 'correct' ? 'text-green-700' : 'text-red-600'}`}>
+              {feedback === 'correct' ? `✓ Correct! +${streak >= 2 ? '20' : '10'} pts` : `✗ The answer was ${puzzle.answer}`}
+            </p>
+            <p className="text-sm text-gray-600 mb-3">{puzzle.hint}</p>
+            <Button onClick={handleNext} className="bg-emerald-500 hover:bg-emerald-600 text-white">
+              {current + 1 >= puzzles.length ? 'See Results' : 'Next Puzzle →'}
+            </Button>
+          </div>
+        )}
+      </CardContent></Card>
+    </div>
+  );
+}
+
+// ─── Historical Cartographer ─────────────────────────────────────────────────
+
+type MapEra = 'rome' | 'egypt' | 'colonial' | 'medieval';
+
+interface MapQuestion {
+  question: string;
+  answer: string;
+  options: string[];
+}
+
+const MAP_ERAS: Record<MapEra, { name: string; emoji: string; questions: MapQuestion[] }> = {
+  rome: {
+    name: 'Roman Empire',
+    emoji: '🏛️',
+    questions: [
+      { question: 'This city, built on seven hills along the Tiber River, was the capital of the Roman Empire.', answer: 'Rome', options: ['Rome', 'Carthage', 'Alexandria', 'Athens'] },
+      { question: 'This wealthy North African city was Rome\'s greatest rival, destroyed in 146 BC after the Punic Wars.', answer: 'Carthage', options: ['Carthage', 'Numantia', 'Syracuse', 'Corinth'] },
+      { question: 'This Egyptian city became a major center of learning under Roman rule, known for its famous library.', answer: 'Alexandria', options: ['Alexandria', 'Athens', 'Antioch', 'Ephesus'] },
+      { question: 'Hadrian\'s Wall was built to mark the northern frontier of Roman Britain, running across this modern country.', answer: 'England', options: ['England', 'Scotland', 'Wales', 'Ireland'] },
+      { question: 'This city, later renamed Constantinople, became the capital of the Eastern Roman (Byzantine) Empire.', answer: 'Byzantium', options: ['Byzantium', 'Pergamon', 'Nicaea', 'Smyrna'] },
+      { question: 'The Colosseum in Rome could hold approximately how many spectators at gladiatorial games?', answer: '50,000', options: ['10,000', '25,000', '50,000', '100,000'] },
+      { question: 'The Punic Wars were fought between Rome and which empire across the Mediterranean?', answer: 'Carthage', options: ['Greece', 'Carthage', 'Persia', 'Egypt'] },
+      { question: 'Julius Caesar crossed this river in 49 BC, an act of war against the Roman Senate.', answer: 'Rubicon', options: ['Tiber', 'Rubicon', 'Rhine', 'Danube'] },
+      { question: 'This famous Roman road was the first great highway, connecting Rome to the port of Brindisi.', answer: 'Via Appia', options: ['Via Aurelia', 'Via Appia', 'Via Flaminia', 'Via Salaria'] },
+      { question: 'At its greatest extent under Emperor Trajan, the Roman Empire stretched from Britain to which modern-day country in the east?', answer: 'Iraq', options: ['Iran', 'Iraq', 'Turkey', 'Syria'] },
+    ],
+  },
+  egypt: {
+    name: 'Ancient Egypt',
+    emoji: '🏺',
+    questions: [
+      { question: 'The Great Pyramid of Giza, the largest of the ancient wonders, was built as a tomb for which pharaoh?', answer: 'Khufu', options: ['Ramesses II', 'Khufu', 'Tutankhamun', 'Cleopatra'] },
+      { question: 'This river\'s annual flooding deposited rich silt across the land, making Egypt\'s agriculture possible.', answer: 'Nile', options: ['Nile', 'Euphrates', 'Tigris', 'Jordan'] },
+      { question: 'Egypt\'s last pharaoh, she formed alliances with both Julius Caesar and Mark Antony.', answer: 'Cleopatra VII', options: ['Nefertiti', 'Cleopatra VII', 'Hatshepsut', 'Nefertari'] },
+      { question: 'This ancient city was the capital during the New Kingdom period and the location of the Valley of the Kings.', answer: 'Thebes', options: ['Memphis', 'Thebes', 'Heliopolis', 'Alexandria'] },
+      { question: 'The Rosetta Stone, which helped decode hieroglyphics, was written in three scripts. What was the Egyptian script that was NOT hieroglyphics?', answer: 'Demotic', options: ['Cuneiform', 'Linear B', 'Demotic', 'Phoenician'] },
+      { question: 'Which Egyptian god presided over the dead and weighed souls against a feather of truth?', answer: 'Anubis', options: ['Ra', 'Osiris', 'Anubis', 'Horus'] },
+      { question: 'Ancient Egyptians used this plant material, grown along the Nile, to make an early form of paper.', answer: 'Papyrus', options: ['Papyrus', 'Clay', 'Vellum', 'Bamboo'] },
+      { question: 'The intact tomb of this boy-pharaoh was famously discovered by Howard Carter in 1922.', answer: 'Tutankhamun', options: ['Ramesses II', 'Akhenaten', 'Tutankhamun', 'Seti I'] },
+      { question: 'This female pharaoh ruled successfully for over 20 years and often depicted herself wearing a false beard.', answer: 'Hatshepsut', options: ['Nefertiti', 'Cleopatra', 'Hatshepsut', 'Nefertari'] },
+      { question: 'The ancient Egyptians believed the soul had two parts. What was the winged spirit that could leave the body called?', answer: 'Ba', options: ['Ka', 'Ba', 'Ankh', 'Akh'] },
+    ],
+  },
+  colonial: {
+    name: 'Colonial America',
+    emoji: '⚓',
+    questions: [
+      { question: 'The "Shot Heard Round the World" — the first shots of the American Revolution — was fired in the countryside outside this city.', answer: 'Boston', options: ['Philadelphia', 'New York', 'Boston', 'Richmond'] },
+      { question: 'The Declaration of Independence was debated and signed primarily in this Pennsylvania city in 1776.', answer: 'Philadelphia', options: ['Boston', 'Philadelphia', 'New York', 'Williamsburg'] },
+      { question: 'England\'s first permanent settlement in North America, founded in 1607 in Virginia, was named for King James I.', answer: 'Jamestown', options: ['Plymouth', 'Jamestown', 'Roanoke', 'St. Augustine'] },
+      { question: 'The Pilgrims arrived on the Mayflower in 1620 and established their colony at this location in Massachusetts.', answer: 'Plymouth', options: ['Cape Cod', 'Plymouth', 'Boston', 'Providence'] },
+      { question: 'This colony was founded by William Penn in 1681 as a refuge for Quakers seeking religious freedom.', answer: 'Pennsylvania', options: ['Maryland', 'Rhode Island', 'Pennsylvania', 'New Jersey'] },
+      { question: 'Washington\'s Continental Army endured a brutal winter encampment at this Pennsylvania location in 1777–78.', answer: 'Valley Forge', options: ['Trenton', 'Valley Forge', 'Yorktown', 'Bunker Hill'] },
+      { question: 'The American Revolution ended with the British surrender at this Virginia location in 1781.', answer: 'Yorktown', options: ['Saratoga', 'Bunker Hill', 'Yorktown', 'Camden'] },
+      { question: 'This southern colony was founded by James Oglethorpe in 1733, initially as a refuge for English debtors.', answer: 'Georgia', options: ['South Carolina', 'Virginia', 'Georgia', 'North Carolina'] },
+      { question: 'The Boston Tea Party was a protest against the British government\'s tax on which product?', answer: 'Tea', options: ['Sugar', 'Tea', 'Cotton', 'Tobacco'] },
+      { question: 'Roger Williams founded this Rhode Island city in 1636 after being banished from Massachusetts for his religious views.', answer: 'Providence', options: ['Newport', 'Providence', 'Portsmouth', 'Warwick'] },
+    ],
+  },
+  medieval: {
+    name: 'Medieval Europe',
+    emoji: '🏰',
+    questions: [
+      { question: 'In 1066, William the Conqueror crossed the English Channel and invaded England from this French region.', answer: 'Normandy', options: ['Brittany', 'Normandy', 'Burgundy', 'Flanders'] },
+      { question: 'The Black Death entered Europe through ports in 1347, killing an estimated one-third of Europe\'s population. What caused it?', answer: 'Bubonic plague', options: ['Smallpox', 'Bubonic plague', 'Cholera', 'Typhus'] },
+      { question: 'The Crusades were a series of holy wars launched to recapture this city sacred to Christianity, Judaism, and Islam.', answer: 'Jerusalem', options: ['Damascus', 'Constantinople', 'Jerusalem', 'Antioch'] },
+      { question: 'Magna Carta, signed in 1215, limited the power of the English king and is considered a foundation of constitutional law. Which king signed it?', answer: 'King John', options: ['King Richard', 'King John', 'King Henry II', 'King Edward'] },
+      { question: 'This Frankish king was crowned Holy Roman Emperor on Christmas Day, 800 AD, uniting much of Western Europe.', answer: 'Charlemagne', options: ['Otto I', 'Charlemagne', 'Frederick Barbarossa', 'Henry IV'] },
+      { question: 'Joan of Arc famously led the French army to relieve the siege of which city in 1429, turning the tide of the Hundred Years\' War?', answer: 'Orléans', options: ['Paris', 'Chartres', 'Orléans', 'Reims'] },
+      { question: 'The Black Death originated in Asia and spread to Europe along this major trade route connecting China to the Mediterranean.', answer: 'Silk Road', options: ['Spice Route', 'Silk Road', 'Amber Road', 'Incense Route'] },
+      { question: 'Viking explorers from this Scandinavian country established settlements in Iceland and later reached North America.', answer: 'Norway', options: ['Denmark', 'Norway', 'Sweden', 'Finland'] },
+      { question: 'The Battle of Hastings in 1066 was fought near this town on the southern coast of England.', answer: 'Hastings', options: ['Dover', 'Brighton', 'Hastings', 'Pevensey'] },
+      { question: 'This movement sent thousands of common people — including children — on an ill-fated journey to recapture the Holy Land.', answer: 'The Crusades', options: ['The Inquisition', 'The Crusades', 'The Reformation', 'The Renaissance'] },
+    ],
+  },
+};
+
+function HistoricalCartographer({ onBack }: { onBack: () => void }) {
+  const [era, setEra] = useState<MapEra | null>(null);
+  const [round, setRound] = useState(0);
+  const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [gameOver, setGameOver] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!era || feedback !== null || gameOver) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+    setTimeLeft(30);
+    timerRef.current = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(timerRef.current!);
+          setFeedback('wrong');
+          setLives(l => l - 1);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round, era, gameOver]);
+
+  const startGame = (e: MapEra) => {
+    setEra(e); setRound(0); setScore(0); setLives(3);
+    setSelected(null); setFeedback(null); setGameOver(false);
+  };
+
+  const handleAnswer = (opt: string) => {
+    if (feedback) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    const q = MAP_ERAS[era!].questions[round];
+    const isCorrect = opt === q.answer;
+    setSelected(opt);
+    setFeedback(isCorrect ? 'correct' : 'wrong');
+    if (isCorrect) setScore(s => s + (timeLeft > 20 ? 15 : timeLeft > 10 ? 10 : 5));
+    else setLives(l => l - 1);
+  };
+
+  const handleNext = () => {
+    const curLives = feedback === 'wrong' ? lives - 1 : lives;
+    if (curLives <= 0 && feedback === 'wrong') { setGameOver(true); return; }
+    const nextRound = round + 1;
+    if (nextRound >= MAP_ERAS[era!].questions.length) {
+      setGameOver(true);
+      fetch('/api/arcade/award-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game: 'cartographer', result: { era, score } }),
+      }).catch(console.error);
+      return;
+    }
+    setRound(nextRound);
+    setSelected(null);
+    setFeedback(null);
+  };
+
+  if (!era) return (
+    <div className="max-w-2xl mx-auto space-y-5">
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+      <div className="bg-rose-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-rose-700">Historical Cartographer · Choose an Era</div>
+      <div className="grid grid-cols-2 gap-4">
+        {(Object.keys(MAP_ERAS) as MapEra[]).map(e => {
+          const eraData = MAP_ERAS[e];
+          return (
+            <Card key={e} className="border-2 border-rose-200 hover:border-rose-400 cursor-pointer transition-all hover:shadow-md" onClick={() => startGame(e)}>
+              <CardContent className="p-6 text-center space-y-3">
+                <div className="text-4xl">{eraData.emoji}</div>
+                <h3 className="font-black text-[#2F4731] text-lg">{eraData.name}</h3>
+                <p className="text-xs text-[#2F4731]/60">{eraData.questions.length} questions · 30 sec each</p>
+                <Button className="w-full bg-rose-500 hover:bg-rose-600 text-white">Explore →</Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  if (gameOver) {
+    const eraData = MAP_ERAS[era];
+    return (
+      <div className="max-w-xl mx-auto space-y-5">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+        <Card className="border-2 border-rose-200 text-center py-10"><CardContent>
+          <Trophy className="w-16 h-16 text-[#BD6809] mx-auto mb-4" />
+          <h2 className="text-3xl font-black text-[#2F4731] mb-2">{lives > 0 ? 'Expedition Complete!' : 'Expedition Failed!'}</h2>
+          <p className="text-[#2F4731]/70 mb-1">{round}/{eraData.questions.length} questions answered</p>
+          <p className="text-3xl font-black text-rose-600 mb-6">{score} points</p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => setEra(null)} variant="outline" className="border-rose-300 text-rose-700">Choose Era</Button>
+            <Button onClick={() => startGame(era)} className="bg-rose-500 hover:bg-rose-600 text-white">Play Again</Button>
+          </div>
+        </CardContent></Card>
+      </div>
+    );
+  }
+
+  const eraData = MAP_ERAS[era];
+  const q = eraData.questions[round];
+
+  return (
+    <div className="max-w-xl mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2F4731]/60 hover:text-[#2F4731]"><ChevronLeft className="w-4 h-4" /> Back</button>
+        <div className="flex items-center gap-4">
+          <div className={`text-sm font-black px-2 py-1 rounded-lg ${timeLeft <= 10 ? 'text-red-500 bg-red-50 animate-pulse' : 'text-[#2F4731]/60'}`}>⏱ {timeLeft}s</div>
+          <div className="flex gap-1">{Array.from({ length: 3 }).map((_, i) => <Heart key={i} className={`w-5 h-5 ${i < lives ? 'text-red-500 fill-red-500' : 'text-gray-200 fill-gray-200'}`} />)}</div>
+          <div className="flex items-center gap-1 font-black text-rose-600 text-lg"><Star className="w-5 h-5 fill-rose-500 text-rose-500" /> {score}</div>
+        </div>
+      </div>
+      <div className="bg-rose-50 rounded-2xl p-2 text-center text-xs font-bold uppercase tracking-widest text-rose-700">
+        {eraData.emoji} {eraData.name} · Question {round + 1}/{eraData.questions.length}
+      </div>
+      <Card className="border-2 border-rose-200"><CardContent className="p-8 space-y-6">
+        <div className="bg-rose-50 rounded-2xl p-5 border-2 border-rose-100">
+          <p className="text-[#2F4731] text-lg leading-relaxed text-center">{q.question}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {q.options.map((opt, i) => {
+            let btnClass = 'border-2 border-rose-200 bg-white hover:border-rose-400 text-[#2F4731] font-bold py-4 rounded-2xl transition-all text-sm';
+            if (feedback && opt === q.answer) btnClass = 'border-2 border-green-400 bg-green-50 text-green-700 font-bold py-4 rounded-2xl text-sm';
+            else if (feedback && opt === selected && selected !== q.answer) btnClass = 'border-2 border-red-300 bg-red-50 text-red-600 font-bold py-4 rounded-2xl text-sm';
+            return <button key={i} onClick={() => handleAnswer(opt)} disabled={!!feedback} className={btnClass}>{opt}</button>;
+          })}
+        </div>
+        {feedback && (
+          <div className={`rounded-2xl p-4 text-center ${feedback === 'correct' ? 'bg-green-50 border-2 border-green-200' : 'bg-red-50 border-2 border-red-200'}`}>
+            <p className={`font-black text-lg mb-1 ${feedback === 'correct' ? 'text-green-700' : 'text-red-600'}`}>
+              {feedback === 'correct'
+                ? `✓ Correct! +${timeLeft > 20 ? '15' : timeLeft > 10 ? '10' : '5'} pts`
+                : timeLeft === 0 ? `⏱ Time's up! The answer was: ${q.answer}` : `✗ The answer was: ${q.answer}`}
+            </p>
+            <Button onClick={handleNext} className="bg-rose-500 hover:bg-rose-600 text-white mt-2">
+              {round + 1 >= eraData.questions.length ? 'See Results' : 'Next Question →'}
+            </Button>
+          </div>
+        )}
+      </CardContent></Card>
+    </div>
+  );
+}
+
 // ─── Game Hub ─────────────────────────────────────────────────────────────────
 
 export default function ArcadePage() {
@@ -539,8 +981,8 @@ export default function ArcadePage() {
   if (activeGame === 'spelling') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><SpellingBee onBack={() => setActiveGame(null)} /></div>;
   if (activeGame === 'typing') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><TypingRacer onBack={() => setActiveGame(null)} /></div>;
   if (activeGame === 'coding') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><CodeQuest onBack={() => setActiveGame(null)} /></div>;
-  if (activeGame === 'math-puzzle') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><div className="max-w-xl mx-auto text-center py-20"><h2 className="text-3xl font-bold text-[#2F4731] mb-4">Logic Labyrinth</h2><p className="text-[#2F4731]/60 mb-8">This game is currently under construction by Adeline's engineers. Check back soon!</p><Button onClick={() => setActiveGame(null)}>Back to Arcade</Button></div></div>;
-  if (activeGame === 'map-challenge') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><div className="max-w-xl mx-auto text-center py-20"><h2 className="text-3xl font-bold text-[#2F4731] mb-4">Historical Cartographer</h2><p className="text-[#2F4731]/60 mb-8">This game is currently under construction by Adeline's engineers. Check back soon!</p><Button onClick={() => setActiveGame(null)}>Back to Arcade</Button></div></div>;
+  if (activeGame === 'math-puzzle') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><LogicLabyrinth onBack={() => setActiveGame(null)} /></div>;
+  if (activeGame === 'map-challenge') return <div className="p-6 min-h-screen bg-[#FFFEF7]"><HistoricalCartographer onBack={() => setActiveGame(null)} /></div>;
 
   return (
     <div className="flex flex-col min-h-full bg-[#FFFEF7]">

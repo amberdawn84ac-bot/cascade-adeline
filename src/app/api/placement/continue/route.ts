@@ -3,6 +3,7 @@ import prisma from '@/lib/db';
 import { generateText } from 'ai';
 import { getModel } from '@/lib/ai-models';
 import { loadConfig } from '@/lib/config';
+import { getSessionUser } from '@/lib/auth';
 
 /**
  * POST /api/placement/continue — Submit an answer and get the next question.
@@ -27,6 +28,14 @@ export async function POST(req: NextRequest) {
 
   if (!assessment) {
     return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });
+  }
+
+  // If the assessment has an owner, verify the caller matches
+  if (assessment.userId) {
+    const user = await getSessionUser();
+    if (!user || user.userId !== assessment.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   if (assessment.status === 'COMPLETED') {

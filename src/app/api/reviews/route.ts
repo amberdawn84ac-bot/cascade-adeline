@@ -8,11 +8,8 @@ import { getDueReviews, recordReview } from '@/lib/spaced-repetition';
  */
 export async function GET(req: NextRequest) {
   const sessionUser = await getSessionUser();
-  const userId = sessionUser?.userId || req.nextUrl.searchParams.get('userId');
-
-  if (!userId) {
-    return NextResponse.json({ error: 'userId required' }, { status: 400 });
-  }
+  if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = sessionUser.userId;
 
   const limit = Number(req.nextUrl.searchParams.get('limit')) || 10;
   const subjectArea = req.nextUrl.searchParams.get('subject') || undefined;
@@ -32,14 +29,10 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   const sessionUser = await getSessionUser();
+  if (!sessionUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const body = await req.json();
-  const { conceptId, quality, userId: bodyUserId } = body as {
-    conceptId?: string;
-    quality?: number;
-    userId?: string;
-  };
-
-  const userId = sessionUser?.userId || bodyUserId;
+  const { conceptId, quality } = body as { conceptId?: string; quality?: number };
+  const userId = sessionUser.userId;
 
   if (!userId || !conceptId || quality === undefined) {
     return NextResponse.json(

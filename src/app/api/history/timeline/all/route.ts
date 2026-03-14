@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    // Fetch all True History timeline entries from TranscriptEntry table
+    // Fetch True History timeline entries for the current user only
     const entries = await prisma.transcriptEntry.findMany({
       where: {
+        userId: user.userId,
         OR: [
           { activityName: { startsWith: 'True History:' } },
           { activityName: { startsWith: 'Historical Investigation:' } },

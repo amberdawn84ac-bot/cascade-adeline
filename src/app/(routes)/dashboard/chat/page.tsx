@@ -10,6 +10,8 @@ import { DailyBreadWidget } from '@/components/daily-bread/DailyBreadWidget';
 import { WhatsNextWidget } from '@/components/daily-bread/WhatsNextWidget';
 import JourneyMap from '@/components/dashboard/JourneyMap';
 import { GenUIRenderer } from '@/components/gen-ui/GenUIRenderer';
+import { SpacedRepWidget } from '@/components/dashboard/SpacedRepWidget';
+import { SectionErrorBoundary } from '@/components/ui/SectionErrorBoundary';
 
 const CREAM = '#FFFEF7';
 const PALM = '#2F4731';
@@ -251,9 +253,10 @@ export default function DashboardChatPage() {
           background: '#FAF8F2', padding: '16px 14px',
           display: 'flex', flexDirection: 'column', gap: 12,
         }}>
-          <JourneyMap />
-          <DailyBreadWidget onStudy={handleSendPrompt} />
-          <WhatsNextWidget onPrompt={handleSendPrompt} />
+          <SectionErrorBoundary label="Journey Map"><JourneyMap /></SectionErrorBoundary>
+          <SectionErrorBoundary label="Memory Review"><SpacedRepWidget /></SectionErrorBoundary>
+          <SectionErrorBoundary label="Daily Bread"><DailyBreadWidget onStudy={handleSendPrompt} /></SectionErrorBoundary>
+          <SectionErrorBoundary label="What's Next"><WhatsNextWidget onPrompt={handleSendPrompt} /></SectionErrorBoundary>
         </div>
       )}
     </div>

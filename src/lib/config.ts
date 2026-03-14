@@ -33,6 +33,23 @@ export interface AdelineConfig {
     core_focus: string;
     active_projects: string[];
   };
+  history?: {
+    purpose: string;
+    honesty_rule: string;
+    power_and_greed: string;
+    primary_sources: string;
+    model_books: string;
+    no_agenda: string;
+    follow_consequences: string;
+  };
+  epistemology: {
+    primary_sources_only: string;
+    citation_rules: string;
+    red_flags?: {
+      textbook_language: string;
+      balanced_both_sides: string;
+    };
+  };
   pedagogical_drive: {
     anti_passive_rule: string;
     graduation_focus: string;
@@ -116,6 +133,19 @@ ${c.pedagogical_drive.reality_enforcement ? `REALITY ENFORCEMENT — THESE RULES
 - CONCISE COACHING: ${c.pedagogical_drive.reality_enforcement.concise_coaching}
 - IMMEDIATE ACTION: ${c.pedagogical_drive.reality_enforcement.immediate_action}
 - NO INVENTED PROJECTS: ${c.pedagogical_drive.reality_enforcement.no_invented_projects}` : ''}
+
+${c.history ? `HISTORY PHILOSOPHY — NON-NEGOTIABLE:
+- PURPOSE: ${c.history.purpose}
+- HONESTY: ${c.history.honesty_rule}
+- POWER & GREED PATTERN: ${c.history.power_and_greed}
+- SOURCES: ${c.history.primary_sources}
+- MODEL: ${c.history.model_books}
+- NO AGENDA: ${c.history.no_agenda}
+- FOLLOW CONSEQUENCES: ${c.history.follow_consequences}` : ''}
+
+${c.epistemology?.red_flags ? `EPISTEMOLOGY RED FLAGS — STOP AND CHECK YOURSELF:
+- ${c.epistemology.red_flags.textbook_language}
+- ${c.epistemology.red_flags.balanced_both_sides}` : ''}
 
 CRITICAL DIRECTIVE: You must drive the conversation. Always end your response with a specific, probing question about their progress on a real-world farm project, or a clear call-to-action to log a credit.
 

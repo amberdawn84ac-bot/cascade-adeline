@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
+import { loadConfig } from '@/lib/config';
 
 const requestSchema = z.object({
   systemPrompt: z.string(),
@@ -18,7 +19,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { systemPrompt, context, messages, initiating } = requestSchema.parse(body);
 
-    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.8, maxTokens: 400 });
+    const config = loadConfig();
+    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.8, maxTokens: 400 });
 
     const formattedMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
       {

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies, headers } from 'next/headers';
 import prisma from '../db';
 import crypto from 'crypto';
+import { sendMFASetupEmail as sendMFAEmail } from '../email/email-service';
 
 export interface MFASetupResult {
   secret: string;
@@ -122,6 +123,11 @@ export async function verifyAndEnableMFA(
       where: { userId },
       data: { enabled: true },
     });
+
+    // Send confirmation email with backup codes (non-blocking)
+    sendMFASetupEmail(userId).catch(err =>
+      console.error('[MFA] Failed to send setup email:', err)
+    );
     
     return { valid: true, userId };
   } catch (error) {
@@ -311,21 +317,18 @@ async function verifyTOTPTokenForLogin(
  */
 export async function sendMFASetupEmail(userId: string): Promise<void> {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
-    
+    const [user, credential] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),
+      prisma.userMFACredential.findUnique({ where: { userId }, select: { backupCodes: true } }),
+    ]);
+
     if (!user?.email) {
       throw new Error('User email not found');
     }
-    
-    // In a real implementation, you'd send an email with the setup instructions
-    console.log(`[MFA] Setup email sent to: ${user.email}`);
-    
-    // TODO: Integrate with email service
-    // await emailService.sendMFASetupEmail(user.email, setupDetails);
-    
+
+    const backupCodes = Array.isArray(credential?.backupCodes) ? credential.backupCodes as string[] : [];
+    await sendMFAEmail(user.email, backupCodes);
+
   } catch (error) {
     console.error('[MFA] Failed to send setup email:', error);
     throw new Error('Failed to send MFA setup email');

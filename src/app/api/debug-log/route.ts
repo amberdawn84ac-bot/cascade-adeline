@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV !== 'development') {
+    return new Response('Not available', { status: 404 });
+  }
   try {
     const body = await request.json();
     console.log('[Browser Console]', body.log);

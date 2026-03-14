@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const { sessionId, displayName, grade, interests, learningStyle } = body;
 
   const sessionUser = await getSessionUser();
-  const userId = sessionUser?.userId || body.userId;
+  const userId = sessionUser?.userId ?? null;
 
   if (!userId && !sessionId) {
     return NextResponse.json({ error: 'User ID or Session ID required' }, { status: 400 });

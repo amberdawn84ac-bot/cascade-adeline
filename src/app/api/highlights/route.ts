@@ -8,6 +8,18 @@ export async function GET() {
 
   const highlights: Array<Record<string, unknown>> = [];
 
+  // Manual highlights stored in the Highlight table
+  try {
+    const stored = await prisma.highlight.findMany({
+      where: { userId: user.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+    stored.forEach(h => highlights.push({ ...h }));
+  } catch {
+    // table may not exist yet
+  }
+
   // Auto-generated highlights from high-quality reflections
   try {
     const reflections = await prisma.reflectionEntry.findMany({
@@ -75,17 +87,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Content is required' }, { status: 400 });
   }
 
-  // Store as a manual highlight in conversation memory metadata
-  const highlight = {
-    id: crypto.randomUUID(),
-    userId: user.userId,
-    content,
-    type: 'MANUAL',
-    source: 'manual',
-    userNote: userNote || null,
-    createdAt: new Date(),
-  };
+  const highlight = await prisma.highlight.create({
+    data: {
+      userId: user.userId,
+      content,
+      type: 'MANUAL',
+      source: 'manual',
+      userNote: userNote || null,
+    },
+  });
 
-  return NextResponse.json(highlight);
+  return NextResponse.json(highlight, { status: 201 });
 }
 

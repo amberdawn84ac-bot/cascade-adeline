@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJob } from '@/lib/jobs/queue';
+import { getSessionUser } from '@/lib/auth';
 
 /**
  * GET /api/jobs/[id] — Poll for job status and result.
@@ -12,12 +13,19 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { id } = await params;
   const waitSeconds = Number(req.nextUrl.searchParams.get('wait')) || 0;
 
   let job = await getJob(id);
   if (!job) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+  }
+
+  if ((job as any).userId && (job as any).userId !== user.userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // Long-poll: wait up to N seconds for completion

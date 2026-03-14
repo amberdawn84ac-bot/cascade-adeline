@@ -47,7 +47,7 @@ const NAV_ITEMS = [
       { label: 'Expeditions', href: '/dashboard/expeditions', icon: MapPin },
       { label: 'Bible Study', href: '/dashboard/bible-study', icon: BookOpen },
       { label: 'Writing Desk', href: '/dashboard/ela', icon: Feather },
-      { label: 'Student Feed', href: '/dashboard/agora', icon: Users },
+      { label: 'Community Board', href: '/dashboard/community-board', icon: Users },
       { label: 'My Learning Path', href: '/dashboard/journey', icon: Mountain },
     ]
   },
@@ -90,7 +90,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   // Filter nav items based on user role
   const filteredNavItems = NAV_ITEMS.filter(item => {
     if (item.label === 'Family Portal') {
-      return userRole === 'parent' || userRole === 'admin';
+      return userRole === 'parent' || userRole === 'teacher' || userRole === 'admin';
     }
     return true;
   });

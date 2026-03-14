@@ -389,6 +389,7 @@ Keep it to 300-400 words and end with a scripture verse that relates to their gr
 
 /**
  * Track character growth over time.
+ * Uses per-month activity + reflection counts as a proxy score when no historical assessments exist.
  */
 export async function getCharacterGrowthTrend(
   userId: string,
@@ -399,37 +400,64 @@ export async function getCharacterGrowthTrend(
   trend: 'improving' | 'stable' | 'declining';
   monthlyData: Array<{ month: string; score: number }>;
 }> {
-  // This would typically use historical data
-  // For now, return simulated trend data
   const currentMetrics = await assessCharacterGrowth(userId);
   const currentScore = currentMetrics.holisticScore;
-  
-  // Simulate historical data (in production, this would query actual historical assessments)
-  const monthlyData = Array.from({ length: months }, (_, i) => {
-    const monthDate = new Date();
-    monthDate.setMonth(monthDate.getMonth() - (months - 1 - i));
-    const monthName = monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    
-    // Simulate gradual improvement
-    const baseScore = currentScore * 0.7;
-    const improvement = (i / months) * (currentScore - baseScore);
-    const randomVariation = (Math.random() - 0.5) * 0.1;
-    
+
+  // Build monthly buckets going back `months` months
+  const now = new Date();
+  const buckets = Array.from({ length: months }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(1);
+    d.setMonth(d.getMonth() - (months - 1 - i));
     return {
-      month: monthName,
-      score: Math.max(0, Math.min(1, baseScore + improvement + randomVariation)),
+      start: new Date(d),
+      end: new Date(d.getFullYear(), d.getMonth() + 1, 1),
+      label: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
     };
-  }).reverse();
+  });
 
-  const previousScore = monthlyData[0]?.score || currentScore;
-  const trend = currentScore > previousScore + 0.05 ? 'improving' : 
-                  currentScore < previousScore - 0.05 ? 'declining' : 'stable';
+  // Fetch activity counts per bucket from real DB data
+  const [transcripts, reflections] = await Promise.all([
+    prisma.transcriptEntry.findMany({
+      where: { userId, dateCompleted: { gte: buckets[0].start } },
+      select: { dateCompleted: true, creditsEarned: true },
+    }),
+    prisma.reflectionEntry.findMany({
+      where: { userId, createdAt: { gte: buckets[0].start } },
+      select: { createdAt: true },
+    }),
+  ]);
 
-  return {
-    currentScore,
-    previousScore,
-    trend,
-    monthlyData,
-  };
+  // Find the max activity count across buckets so we can normalise to 0-1
+  const bucketsWithCounts = buckets.map(b => {
+    const activityCount = transcripts.filter(
+      t => t.dateCompleted >= b.start && t.dateCompleted < b.end
+    ).length;
+    const reflectionCount = reflections.filter(
+      r => r.createdAt >= b.start && r.createdAt < b.end
+    ).length;
+    return { ...b, count: activityCount + reflectionCount * 2 };
+  });
+
+  const maxCount = Math.max(...bucketsWithCounts.map(b => b.count), 1);
+
+  const monthlyData = bucketsWithCounts.map((b, i) => {
+    // Last bucket uses live currentScore; earlier buckets scale from activity volume
+    const isLast = i === buckets.length - 1;
+    const score = isLast
+      ? currentScore
+      : Math.min(currentScore, (b.count / maxCount) * currentScore);
+    return { month: b.label, score: Math.max(0, Math.min(1, score)) };
+  });
+
+  const previousScore = monthlyData[0]?.score ?? currentScore;
+  const trend =
+    currentScore > previousScore + 0.05
+      ? 'improving'
+      : currentScore < previousScore - 0.05
+      ? 'declining'
+      : 'stable';
+
+  return { currentScore, previousScore, trend, monthlyData };
 }
 

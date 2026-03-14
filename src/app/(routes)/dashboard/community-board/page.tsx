@@ -19,14 +19,14 @@ interface FeedItem {
   metadata?: any;
 }
 
-export default function AgoraPage() {
+export default function CommunityBoardPage() {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        const res = await fetch('/api/agora/feed');
+        const res = await fetch('/api/community-board/feed');
         if (res.ok) {
           const data = await res.json();
           
@@ -75,7 +75,7 @@ export default function AgoraPage() {
             <Users className="w-12 h-12 text-[#BD6809]" />
             <div>
               <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-                Student Feed
+                Community Board
               </h1>
               <p className="text-white/80 mt-1">See what your fellow students are building, learning, and discovering.</p>
             </div>
@@ -94,7 +94,7 @@ export default function AgoraPage() {
             <CardContent className="p-12 text-center">
               <Sparkles className="w-12 h-12 text-[#BD6809] mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold text-[#2F4731] mb-2">It's quiet here...</h3>
-              <p className="text-[#2F4731]/70">Complete projects with photos to see them show up in The Agora!</p>
+              <p className="text-[#2F4731]/70">Complete projects with photos to see them show up on the Community Board!</p>
             </CardContent>
           </Card>
         ) : (

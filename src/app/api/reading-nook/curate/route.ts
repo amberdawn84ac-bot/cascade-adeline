@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
+import { loadConfig } from '@/lib/config';
 
 interface GoogleBook {
   id: string;
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) {
     const interests = student?.interests || [];
 
     // Use LLM to generate targeted search queries based on student profile
-    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.7 })
+    const config = loadConfig();
+    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
       .withStructuredOutput(bookRecommendationSchema);
 
     let searchQueries: string[] = [];

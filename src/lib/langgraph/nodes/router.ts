@@ -2,6 +2,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { AdelineStateType } from "../state";
 import { ChatOpenAI } from "@langchain/openai";
 import { z } from "zod";
+import { loadConfig } from '@/lib/config';
 export const router = async (state: AdelineStateType): Promise<Partial<AdelineStateType>> => {
 const { messages } = state;
 const lastMessage = messages[messages.length - 1];
@@ -17,7 +18,8 @@ const routerSchema = z.object({
 intent: z.enum(["CHAT", "BRAINSTORM", "INVESTIGATE", "LOG_CREDIT"])
 });
 
-const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0 }).withStructuredOutput(routerSchema);
+const config = loadConfig();
+const llm = new ChatOpenAI({ model: config.models.default || "gpt-4o", temperature: 0 }).withStructuredOutput(routerSchema);
 
 try {
 const result = await llm.invoke([

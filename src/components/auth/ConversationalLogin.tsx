@@ -75,10 +75,12 @@ export function ConversationalLogin() {
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
-      if (error) throw error;
+      if (!res.ok) throw new Error('Request failed');
       setError('Password reset email sent! Check your inbox.');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to send reset email');

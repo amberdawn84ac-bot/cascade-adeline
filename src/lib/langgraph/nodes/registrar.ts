@@ -24,7 +24,7 @@ export async function registrar(state: AdelineStateType): Promise<Partial<Adelin
     
     // Initialize LangChain ChatOpenAI model
     const model = new ChatOpenAI({
-      model: "gpt-4o-mini",
+      model: config.models.default || "gpt-4o-mini",
       temperature: 0.3,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });

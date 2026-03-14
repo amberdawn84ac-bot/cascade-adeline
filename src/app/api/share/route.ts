@@ -16,14 +16,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing investigationId' }, { status: 400 });
     }
 
-    // Verify the user owns this investigation (or has access to it)
-    // This is a simplified check. In a real app, you'd check ownership or permissions.
     const investigation = await prisma.investigation.findUnique({
       where: { id: investigationId },
     });
 
     if (!investigation) {
       return NextResponse.json({ error: 'Investigation not found' }, { status: 404 });
+    }
+
+    if (investigation.userId !== session.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Generate a unique, secure share ID

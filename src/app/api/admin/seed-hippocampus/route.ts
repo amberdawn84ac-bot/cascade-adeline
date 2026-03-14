@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { embed } from 'ai';
 import { getEmbeddingModel } from '@/lib/ai-models';
@@ -41,6 +42,9 @@ Direct Quotes about Shaping Student Behavior: Funders and architects sought to c
 ];
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user || user.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   try {
     const config = loadConfig();
     const embeddingModelId = config.models.embeddings || 'text-embedding-3-small';

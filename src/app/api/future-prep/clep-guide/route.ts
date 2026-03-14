@@ -3,6 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { loadConfig } from '@/lib/config';
 
 const LAUNCHPAD_SYSTEM_PROMPT = `You are an elite academic coach specializing in CLEP exam preparation and Dual Enrollment success.
 
@@ -39,7 +40,8 @@ export async function POST(req: NextRequest) {
 
     const studentContext = await buildStudentContextPrompt(user.userId);
 
-    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.4, maxTokens: 1500 }).withStructuredOutput(studyGuideSchema);
+    const config = loadConfig();
+    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.4, maxTokens: 1500 }).withStructuredOutput(studyGuideSchema);
 
     const userPrompt = [
       `Generate a rigorous, college-level CLEP study guide for: **${examName}**.`,

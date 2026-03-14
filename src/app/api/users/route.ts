@@ -15,6 +15,11 @@ const ROLE_MAP = {
 } as const;
 
 export async function POST(req: NextRequest) {
+  const secret = req.headers.get('x-webhook-secret');
+  if (!process.env.USER_PROVISION_SECRET || secret !== process.env.USER_PROVISION_SECRET) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const body = (await req.json()) as CreateUserBody;
     const { userId, name, role } = body;

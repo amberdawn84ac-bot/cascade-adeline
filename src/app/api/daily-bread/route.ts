@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import redis from '@/lib/redis';
+import { loadConfig } from '@/lib/config';
 
 export async function GET() {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -14,7 +15,8 @@ export async function GET() {
 
   // Generate with OpenAI
   try {
-    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.7 });
+    const config = loadConfig();
+    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 });
 
     const response = await llm.invoke([
       {

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ChatOpenAI } from '@langchain/openai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { findPatternByTags, findPatternById, getAllPatterns, UIPattern } from '@/lib/gen-ui/pattern-library';
+import { loadConfig } from '@/lib/config';
 
 // Zod schema for Hebrew Study data validation
 const HebrewStudySchema = z.object({
@@ -32,8 +33,9 @@ function isHebrewStudyCandidate(text: string | undefined): boolean {
 
 async function generateHebrewStudyContent(prompt: string): Promise<z.infer<typeof HebrewStudySchema> | null> {
   try {
+    const config = loadConfig();
     const model = new ChatOpenAI({
-      model: 'gpt-4o',
+      model: config.models.default || 'gpt-4o',
       temperature: 0.3,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
@@ -119,7 +121,8 @@ async function retrievePatternFromLibrary(state: AdelineGraphState): Promise<{ p
   const pattern = findPatternByTags(tags);
   if (!pattern) return null;
   
-  const model = new ChatOpenAI({ model: 'gpt-4o-mini', temperature: 0.3 });
+  const plannerConfig = loadConfig();
+  const model = new ChatOpenAI({ model: plannerConfig.models.default || 'gpt-4o-mini', temperature: 0.3 });
   
   try {
     const structuredModel = model.withStructuredOutput(pattern.propsSchema);

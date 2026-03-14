@@ -55,11 +55,19 @@ export interface LTIUser {
 
 /**
  * Validate LTI 1.3 launch request.
+ * Requires ENTERPRISE_LTI_ENABLED=true — LTI is an enterprise-only feature.
  */
 export async function validateLTILaunch(
   launchData: LTILaunchRequest,
   ltiSecret: string
 ): Promise<{ valid: boolean; user?: LTIUser; error?: string }> {
+  if (process.env.ENTERPRISE_LTI_ENABLED !== 'true') {
+    return {
+      valid: false,
+      error: 'LTI integration is an enterprise feature. Contact hello@dear-adeline.com to upgrade.',
+    };
+  }
+
   try {
     // Step 1: Verify OAuth signature
     const signatureValid = await verifyOAuthSignature(launchData, ltiSecret);

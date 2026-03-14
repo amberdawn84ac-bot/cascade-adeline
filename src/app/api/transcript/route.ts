@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 
 function parseDate(value?: string) {
   if (!value) return undefined;
@@ -12,42 +13,36 @@ function isUuid(id: string | null | undefined) {
 }
 
 export async function GET(req: NextRequest) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) return new Response('Unauthorized', { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const studentId = searchParams.get('studentId') || undefined;
   const subject = searchParams.get('subject') || undefined;
   const startDate = parseDate(searchParams.get('startDate') || undefined);
   const endDate = parseDate(searchParams.get('endDate') || undefined);
 
-  const requesterId = searchParams.get('requesterId') || undefined;
-  const requesterRole = (searchParams.get('requesterRole') || '').toUpperCase();
-
-  // Basic RLS enforcement: student can only see own; parent can see children; others forbidden.
-  if (!requesterId) return new Response('Unauthorized', { status: 401 });
-  if (!isUuid(requesterId)) return new Response('Invalid requesterId', { status: 400 });
-  if (requesterRole !== 'STUDENT' && requesterRole !== 'PARENT') {
-    return new Response('Forbidden', { status: 403 });
-  }
+  const requesterId = sessionUser.userId;
+  const requesterRole = sessionUser.role; // always from session, never query params
 
   if (studentId && !isUuid(studentId)) return new Response('Invalid studentId', { status: 400 });
-  if ((startDate && !parseDate(searchParams.get('startDate') || undefined)) || (endDate && !parseDate(searchParams.get('endDate') || undefined))) {
-    return new Response('Invalid date format', { status: 400 });
-  }
 
   let allowedStudentIds: string[] = [];
   if (requesterRole === 'STUDENT') {
     if (studentId && studentId !== requesterId) return new Response('Forbidden', { status: 403 });
     allowedStudentIds = [requesterId];
-  } else if (requesterRole === 'PARENT') {
-    const parent = await prisma.user.findUnique({
+  } else if (requesterRole === 'PARENT' || requesterRole === 'TEACHER') {
+    const manager = await prisma.user.findUnique({
       where: { id: requesterId },
       select: { children: { select: { id: true } } },
     });
-    allowedStudentIds = parent?.children.map((c: { id: string }) => c.id) || [];
-    if (!studentId && allowedStudentIds.length === 0) return new Response('Forbidden', { status: 403 });
+    allowedStudentIds = manager?.children.map((c: { id: string }) => c.id) || [];
     if (studentId && !allowedStudentIds.includes(studentId)) return new Response('Forbidden', { status: 403 });
-    if (!studentId) {
-      // default to all children
-    }
+  } else if (requesterRole === 'ADMIN') {
+    // admins can see any student — no restriction
+    if (studentId) allowedStudentIds = [studentId];
+  } else {
+    return new Response('Forbidden', { status: 403 });
   }
 
   const where: any = {};

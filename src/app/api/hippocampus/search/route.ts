@@ -3,10 +3,14 @@ import { embed } from 'ai';
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';
 import { getEmbeddingModel } from '@/lib/ai-models';
+import { getSessionUser } from '@/lib/auth';
 
 type SourceType = 'PRIMARY' | 'CURATED' | 'SECONDARY' | 'MAINSTREAM';
 
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) return new Response('Unauthorized', { status: 401 });
+
   const { query } = (await req.json()) as { query?: string };
   if (!query || typeof query !== 'string' || !query.trim()) return new Response('Missing query', { status: 400 });
 

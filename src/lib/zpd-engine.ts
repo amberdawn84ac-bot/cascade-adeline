@@ -423,6 +423,13 @@ export async function updateMastery(
       } as any,
     },
   });
+
+  // Seed spaced-repetition queue the first time mastery crosses 0.5
+  // (non-blocking — if already scheduled this is a no-op in scheduleConceptReview)
+  if (newLevel >= 0.5 && currentLevel < 0.5) {
+    const { scheduleConceptReview } = await import('./spaced-repetition');
+    scheduleConceptReview(userId, conceptId).catch(() => {});
+  }
 }
 
 /**

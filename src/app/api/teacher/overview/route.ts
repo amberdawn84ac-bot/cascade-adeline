@@ -9,17 +9,17 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const totalStudents = await prisma.user.count({ where: { role: 'STUDENT' } });
+  const totalStudents = await prisma.user.count({ where: { parentId: user.userId } });
 
   const recentActivity = await prisma.userActivity.findMany({
-    where: { user: { role: 'STUDENT' } },
+    where: { user: { parentId: user.userId } },
     include: { user: { select: { id: true, name: true } } },
     orderBy: { createdAt: 'desc' },
     take: 20,
   });
 
   const learningGaps = await prisma.learningGap.findMany({
-    where: { user: { role: 'STUDENT' }, severity: { in: ['MODERATE', 'SIGNIFICANT'] } },
+    where: { user: { parentId: user.userId }, severity: { in: ['MODERATE', 'SIGNIFICANT'] } },
     include: {
       user: { select: { id: true, name: true } },
       concept: { select: { name: true, subjectArea: true } },
@@ -29,7 +29,7 @@ export async function GET() {
   });
 
   const transcriptsPending = await prisma.transcriptEntry.count({
-    where: { approvedById: null, user: { role: 'STUDENT' } },
+    where: { approvedById: null, user: { parentId: user.userId } },
   });
 
   const groupActivity = await prisma.scienceGroup.findMany({

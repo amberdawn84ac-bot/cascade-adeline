@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { openai } from '@ai-sdk/openai';
+import { getModel } from '@/lib/ai-models';
+import { loadConfig } from '@/lib/config';
 import { streamText } from 'ai';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 
@@ -39,8 +40,9 @@ The student is proposing a change to credit ID: ${creditId}
 
 Be warm, encouraging, and helpful. Guide them, don't demand.`
 
+    const config = loadConfig();
     const result = await streamText({
-      model: openai('gpt-4o'),
+      model: getModel(config.models.default),
       temperature: 0.8,
       messages: [
         { role: 'system', content: systemPrompt },

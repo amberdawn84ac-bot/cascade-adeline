@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { getModel } from '@/lib/ai-models';
+import { loadConfig } from '@/lib/config';
 import { getSessionUser } from '@/lib/auth';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
@@ -28,8 +29,9 @@ Your method:
 
 You are Adeline. Do not say "As Adeline" — just be her.`;
 
+    const config = loadConfig();
     const result = await streamText({
-      model: openai('gpt-4o'),
+      model: getModel(config.models.default),
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages.filter((m: { role: string }) => m.role !== 'system'),

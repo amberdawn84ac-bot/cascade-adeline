@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
+import { loadConfig } from '@/lib/config';
 
 const requestSchema = z.object({
   category: z.enum(['preservation', 'livestock-sheep', 'livestock-poultry', 'livestock-horses', 'greenhouse', 'fiber-arts']),
@@ -43,7 +44,8 @@ export async function POST(req: NextRequest) {
       'fiber-arts': 'processing raw wool from shearing through washing, carding, spinning, and dyeing for practical use',
     };
 
-    const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.6 })
+    const config = loadConfig();
+    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.6 })
       .withStructuredOutput(projectSchema);
 
     // Check if this is a simple request that needs clarification first
