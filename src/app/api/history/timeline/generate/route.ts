@@ -6,6 +6,7 @@ import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
+import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
 const timelineSchema = z.object({
   topic: z.string().describe("The historical event or era"),
@@ -34,10 +35,24 @@ export async function POST(req: NextRequest) {
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
     const { query } = await req.json();
-    if (!query) return NextResponse.json({ error: "Missing query" }, { status: 400 });
+    if (!query) return NextResponse.json({ error: 'Missing query' }, { status: 400 });
+
+    const userData = await prisma.user.findUnique({ where: { id: user.userId }, select: { gradeLevel: true } });
+    const gradeBracket = getGradeBracket(userData?.gradeLevel ?? '');
+    const topicKey = query.toLowerCase().trim();
+
+    const cached = await getCachedContent('history-timeline', topicKey, gradeBracket);
+    if (cached) {
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'History', activityType: 'historical-research',
+        activityName: `Historical Research: ${cached.topic}`,
+        metadata: { topic: query },
+        masteryDemonstrated: true,
+      });
+      return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
+    }
 
     const studentContext = await buildStudentContextPrompt(user.userId);
-
     const config = loadConfig();
 
     // 1. Vector Search the Hippocampus Database (graceful fallback if unavailable)
@@ -121,10 +136,13 @@ Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${stu
         { timeline: result }
       );
 
+      await saveToCache('history-timeline', topicKey, gradeBracket, result as unknown as Record<string, unknown>);
+
       return NextResponse.json({
         ...result,
         creditsEarned: creditResult.creditsEarned,
         standardLinked: creditResult.standardLinked,
+        cached: false,
       });
     } catch (llmError) {
       console.error("[history/generate] LLM error, using fallback:", llmError);

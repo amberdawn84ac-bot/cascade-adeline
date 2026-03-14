@@ -5,14 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
-
-function getGradeBracket(gradeStr: string): string {
-  const g = gradeStr.toLowerCase().trim();
-  if (/^(k|kg|kindergarten|1st?|first|2nd?|second|grade[\s-]*[12])/.test(g)) return 'K-2';
-  if (/^(3rd?|third|4th?|fourth|5th?|fifth|grade[\s-]*[345])/.test(g)) return '3-5';
-  if (/^(6th?|sixth|7th?|seventh|8th?|eighth|grade[\s-]*[678])/.test(g)) return '6-8';
-  return '9-12';
-}
+import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
 const encyclopediaSchema = z.object({
   title: z.string().describe("The specific topic title, exactly as searched"),
@@ -41,20 +34,8 @@ export async function POST(req: NextRequest) {
     const normalizedTopic = query.toLowerCase().trim();
 
     // --- Cache-first: return saved entry if it exists ---
-    const cached = await prisma.encyclopediaEntry.findUnique({
-      where: { topic_gradeLevel: { topic: normalizedTopic, gradeLevel: gradeBracket } },
-    });
-    if (cached) {
-      return NextResponse.json({
-        title: cached.topic,
-        coreConcept: cached.coreConcept,
-        appliedReality: cached.appliedReality,
-        fieldChallenge: cached.fieldChallenge,
-        imageUrl: cached.imageUrl,
-        isColoringPage: cached.isColoringPage,
-        cached: true,
-      });
-    }
+    const cached = await getCachedContent('science-encyclopedia', normalizedTopic, gradeBracket);
+    if (cached) return NextResponse.json({ ...cached, cached: true });
 
     // --- Not cached: generate via AI ---
     const studentContext = await buildStudentContextPrompt(user.userId);
@@ -115,25 +96,11 @@ ${studentContext}`,
     }
 
     const isColoringPage = isEarlyElementary && !!imageUrl;
+    const payload = { ...result, imageUrl, isColoringPage };
 
-    // --- Save to cache for future requests ---
-    try {
-      await prisma.encyclopediaEntry.create({
-        data: {
-          topic: normalizedTopic,
-          gradeLevel: gradeBracket,
-          coreConcept: result.coreConcept,
-          appliedReality: result.appliedReality,
-          fieldChallenge: result.fieldChallenge,
-          imageUrl: imageUrl ?? undefined,
-          isColoringPage,
-        },
-      });
-    } catch (cacheErr) {
-      console.error('Cache save failed (non-fatal):', cacheErr);
-    }
+    await saveToCache('science-encyclopedia', normalizedTopic, gradeBracket, payload);
 
-    return NextResponse.json({ ...result, imageUrl, isColoringPage, cached: false });
+    return NextResponse.json({ ...payload, cached: false });
   } catch (error) {
     console.error("Encyclopedia generation error:", error);
     return NextResponse.json({ error: "Failed to generate entry" }, { status: 500 });

@@ -792,21 +792,18 @@ model CompetitionMatch {
   @@index([dismissed])
 }
 
-model EncyclopediaEntry {
-  id             String   @id @default(uuid()) @db.Uuid
-  topic          String
-  gradeLevel     String   @map("grade_level")
-  coreConcept    String   @map("core_concept")
-  appliedReality String   @map("applied_reality")
-  fieldChallenge String   @map("field_challenge")
-  imageUrl       String?  @map("image_url")
-  isColoringPage Boolean  @default(false) @map("is_coloring_page")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+model GlobalContentCache {
+  id         String   @id @default(uuid()) @db.Uuid
+  module     String
+  topicKey   String   @map("topic_key")
+  gradeLevel String   @map("grade_level")
+  content    Json
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  @@unique([topic, gradeLevel])
-  @@index([topic, gradeLevel])
-  @@map("encyclopedia_entries")
+  @@unique([module, topicKey, gradeLevel])
+  @@index([module, topicKey, gradeLevel])
+  @@map("global_content_cache")
 }
 
 enum UserRole {

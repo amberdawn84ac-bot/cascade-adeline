@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 import { loadConfig } from '@/lib/config';
+import { getCachedContent, saveToCache } from '@/lib/cache/contentCache';
 
 const requestSchema = z.object({
   category: z.enum(['preservation', 'livestock-sheep', 'livestock-poultry', 'livestock-horses', 'greenhouse', 'fiber-arts']),
@@ -33,6 +34,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { category, focus, skillLevel } = requestSchema.parse(body);
 
+    // --- Cache-first (skill level acts as the grade bracket for homesteading) ---
+    const topicKey = `${category}:${focus.toLowerCase().trim()}`;
+    const isSimpleRequest = focus.length < 30 && !focus.includes('recipe') && !focus.includes('how to');
+    if (!isSimpleRequest) {
+      const cached = await getCachedContent('domestic-arts', topicKey, skillLevel);
+      if (cached) {
+        const creditResult = await awardCreditsForActivity(user.userId, {
+          subject: 'Domestic Arts', activityType: 'homesteading-project',
+          activityName: `Homesteading: ${cached.title}`,
+          metadata: { category, focus, difficulty: cached.difficulty, yield: cached.yield },
+          masteryDemonstrated: true,
+        });
+        return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
+      }
+    }
+
     const studentContext = await buildStudentContextPrompt(user.userId);
 
     const CATEGORY_CONTEXT: Record<string, string> = {
@@ -48,9 +65,6 @@ export async function POST(req: NextRequest) {
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.6 })
       .withStructuredOutput(projectSchema);
 
-    // Check if this is a simple request that needs clarification first
-    const isSimpleRequest = focus.length < 30 && !focus.includes('recipe') && !focus.includes('how to');
-    
     if (isSimpleRequest) {
       // Ask clarifying questions instead of overwhelming them
       const conversationalResponse = {
@@ -116,10 +130,13 @@ CRITICAL RULES:
         { project: result }
       );
 
+      await saveToCache('domestic-arts', topicKey, skillLevel, result as unknown as Record<string, unknown>);
+
       return NextResponse.json({
         ...result,
         creditsEarned: creditResult.creditsEarned,
         standardLinked: creditResult.standardLinked,
+        cached: false,
       });
     } catch (llmError) {
       console.error('[Homesteading/generate] LLM Error:', llmError);

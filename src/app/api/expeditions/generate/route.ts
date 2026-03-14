@@ -3,7 +3,9 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
+import prisma from '@/lib/db';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
 const expeditionSchema = z.object({
   location: z.string().describe("The full name of the location"),
@@ -38,8 +40,14 @@ export async function POST(req: NextRequest) {
     const { location } = await req.json();
     if (!location) return NextResponse.json({ error: 'Missing location' }, { status: 400 });
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const userData = await prisma.user.findUnique({ where: { id: user.userId }, select: { gradeLevel: true } });
+    const gradeBracket = getGradeBracket(userData?.gradeLevel ?? '');
+    const topicKey = location.toLowerCase().trim();
 
+    const cached = await getCachedContent('expedition', topicKey, gradeBracket);
+    if (cached) return NextResponse.json({ ...cached, cached: true });
+
+    const studentContext = await buildStudentContextPrompt(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || 'gpt-4o',
@@ -64,7 +72,8 @@ The deliveryTarget must be concrete enough that the student could actually find 
       { role: 'user', content: `Survey location: ${location}` },
     ]);
 
-    return NextResponse.json(result);
+    await saveToCache('expedition', topicKey, gradeBracket, result as unknown as Record<string, unknown>);
+    return NextResponse.json({ ...result, cached: false });
   } catch (error) {
     console.error('Expedition generation error:', error);
     return NextResponse.json({ error: 'Failed to generate expedition report' }, { status: 500 });

@@ -6,6 +6,7 @@ import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
+import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
 const experimentSchema = z.object({
   title: z.string().describe("A fun, catchy title for the experiment"),
@@ -28,14 +29,27 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
-
     const body = await req.json();
     const { query } = body;
-    if (!query) {
-      return NextResponse.json({ error: "Missing query" }, { status: 400 });
+    if (!query) return NextResponse.json({ error: 'Missing query' }, { status: 400 });
+
+    // --- Cache-first ---
+    const userData = await prisma.user.findUnique({ where: { id: user.userId }, select: { gradeLevel: true } });
+    const gradeBracket = getGradeBracket(userData?.gradeLevel ?? '');
+    const topicKey = query.toLowerCase().trim();
+    const cached = await getCachedContent('science-experiment', topicKey, gradeBracket);
+    if (cached) {
+      // Still award credits even on cache hit — student did the work
+      const creditResult = await awardCreditsForActivity(user.userId, {
+        subject: 'Science', activityType: 'experiment',
+        activityName: `Science Experiment: ${cached.title}`,
+        metadata: { topic: query, difficulty: cached.difficulty, timeRequired: cached.timeRequired },
+        masteryDemonstrated: true,
+      });
+      return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
     }
 
+    const studentContext = await buildStudentContextPrompt(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || "gpt-4o",
@@ -121,10 +135,13 @@ Make it create REAL CHANGE, not feel-good neighbor visits. But present this to t
         { experiment: result }
       );
 
+      await saveToCache('science-experiment', topicKey, gradeBracket, result as unknown as Record<string, unknown>);
+
       return NextResponse.json({
         ...result,
         creditsEarned: creditResult.creditsEarned,
         standardLinked: creditResult.standardLinked,
+        cached: false,
       });
     } catch (llmError) {
       console.error("Experiment generation LLM error:", llmError);
