@@ -224,17 +224,37 @@ export default function ReadingNookPage() {
                       <div className="flex-1 p-4 flex flex-col gap-3">
                         <p className="text-xs text-gray-500 leading-relaxed italic">{book.coverDescription}</p>
                         
-                        {book.gutenbergUrl && (
-                          <a 
-                            href={book.gutenbergUrl} 
-                            target="_blank" 
+                        <div className="flex flex-col gap-2">
+                          {book.gutenbergUrl && (
+                            <a
+                              href={book.gutenbergUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                            >
+                              <BookOpen className="w-4 h-4" />
+                              Read Free (Gutenberg)
+                            </a>
+                          )}
+                          <a
+                            href={`https://openlibrary.org/search?q=${encodeURIComponent(book.title + ' ' + book.author)}`}
+                            target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                            className="bg-sky-600 hover:bg-sky-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
                           >
                             <BookOpen className="w-4 h-4" />
-                            Read Online Free
+                            Find on Open Library
                           </a>
-                        )}
+                          <a
+                            href={`https://www.google.com/search?q=${encodeURIComponent(book.title + ' ' + book.author + ' read online free')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="border border-amber-300 hover:bg-amber-50 text-amber-800 text-center py-2 px-4 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                          >
+                            <BookOpen className="w-4 h-4" />
+                            Search Online
+                          </a>
+                        </div>
                         
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-auto">
                           <p className="text-xs font-bold text-amber-800 mb-1">Why you&apos;ll love it</p>
