@@ -10,6 +10,31 @@ export const maxDuration = 60; // Vercel: allow up to 60s for LLM call
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+/**
+ * Parse gradeLevel stored as "3", "K", "K-2", "3-5", "6-8", "9-12", etc.
+ * Returns the numeric grade (K=0).
+ */
+function parseGradeLevel(raw: string | null): number {
+  if (!raw) return 9;
+  const s = raw.trim().toLowerCase();
+  if (s === 'k' || s === 'kindergarten') return 0;
+  // Range like "K-2" → average of 0 and 2 = 1
+  const rangeK = s.match(/^k-(\d+)$/);
+  if (rangeK) return Math.round(parseInt(rangeK[1]) / 2);
+  // Range like "3-5", "6-8", "9-12"
+  const range = s.match(/^(\d+)-(\d+)$/);
+  if (range) return Math.round((parseInt(range[1]) + parseInt(range[2])) / 2);
+  // Single number
+  const n = parseInt(s);
+  return isNaN(n) ? 9 : n;
+}
+
+function getSchoolLevel(grade: number): 'elementary' | 'middle' | 'high' {
+  if (grade <= 5) return 'elementary';
+  if (grade <= 8) return 'middle';
+  return 'high';
+}
+
 const learningPlanSchema = z.object({
   activeExpeditions: z.array(z.object({
     title: z.string().describe('Creative title that connects the subject to student interests'),
@@ -67,13 +92,15 @@ export async function GET(req: NextRequest) {
       : 999;
 
     // Calculate graduation date
-    const gradeLevel = Number(student.gradeLevel) || 9;
+    const gradeLevel = parseGradeLevel(student.gradeLevel);
+    const schoolLevel = getSchoolLevel(gradeLevel);
     const yearsToGraduation = Math.max(1, 13 - gradeLevel);
     const graduationDate = new Date();
     graduationDate.setFullYear(graduationDate.getFullYear() + yearsToGraduation);
     graduationDate.setMonth(4); // May
 
-    const TOTAL_CREDITS_NEEDED = 24;
+    // Credits scale by school level
+    const TOTAL_CREDITS_NEEDED = schoolLevel === 'high' ? 24 : schoolLevel === 'middle' ? 16 : 8;
 
     // --- Cache check: serve stored snapshot if < 24 hours old ---
     const forceRefresh = req.nextUrl.searchParams.get('refresh') === 'true';
@@ -99,53 +126,90 @@ export async function GET(req: NextRequest) {
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
       .withStructuredOutput(learningPlanSchema);
 
-    const result = await llm.invoke([
-      {
-        role: 'system',
-        content: `You are Adeline, a wise, encouraging, and supportive graduation coach. You are building a personalized learning plan for this student.
+    const gradeLabel = gradeLevel === 0 ? 'Kindergarten' : `Grade ${gradeLevel}`;
 
-${studentContext}
+    const schoolLevelPrompt = schoolLevel === 'elementary' ? `
+SCHOOL LEVEL: ELEMENTARY (${gradeLabel})
+This is a young child in elementary school. ALL course suggestions MUST match their developmental stage.
 
-CRITICAL MAPPING RULES:
-1. Map standard academic requirements to the student's ACTUAL interests
-   - If they need PE and love horses → "Equestrian Care & Physical Conditioning"
-   - If they need Chemistry and run a homestead → "Food Preservation & Kitchen Chemistry"
-   - If they need History and care about justice → "Primary Source Investigation: Mass Incarceration"
+AGE-APPROPRIATE CONTENT RULES — ABSOLUTE:
+- NO welding, metalwork, woodshop, or any trade/shop coursework
+- NO AP, CLEP, dual enrollment, or college-level content
+- NO high school credit frameworks
+- NO abstract formal algebra, chemistry, physics, or advanced academic subjects
+- YES to: reading, writing stories, number sense, basic arithmetic, nature science, social studies (community/family/maps), art, music, physical activity, hands-on projects
+- Lesson titles should sound FUN and age-appropriate: "Backyard Nature Lab", "Story World Writing", "Math Through Cooking"
 
-2. Active Expeditions (0-3 items): Credits they are CURRENTLY working on based on recent transcript activity
-   - Look at their recent transcript entries
-   - If they logged something in the last 7 days, it's active
-   - Include realistic progress estimates
+LEARNING MILESTONES (${TOTAL_CREDITS_NEEDED} total, each = 1 milestone):
+- Reading & Language Arts: 2 milestones
+- Math: 2 milestones  
+- Science & Nature: 1 milestone
+- Social Studies / World Around Us: 1 milestone
+- Art, Music, or Movement: 1 milestone
+- Interest-Based Project: 1 milestone (connect directly to their passions)
+` : schoolLevel === 'middle' ? `
+SCHOOL LEVEL: MIDDLE SCHOOL (${gradeLabel})
+This student is in middle school — transitioning from elementary foundations to high school readiness.
 
-3. Trail Ahead (4-8 items): The remaining credits they need, personalized to their path
-   - Calculate what subjects they still need based on standard requirements
-   - Map each requirement to their interests creatively
-   - Prioritize based on their chosen path (trade/business/college/balanced)
+AGE-APPROPRIATE CONTENT RULES:
+- NO AP, CLEP, or dual enrollment
+- YES to: pre-algebra or algebra 1, life science/earth science/intro chemistry, American history, world cultures, composition, literature, electives tied to interests
+- Courses should be exploratory and interest-driven, not overly academic
+- Titles should be engaging: "Detective Science", "The Story of Civilizations", "Algebra Through Architecture"
 
-4. Adeline's Message: A warm, specific, and encouraging message based on their activity
-   - If they haven't logged anything in 4+ days: Gently check in and offer help getting unstuck
-   - If they're active: Celebrate their momentum and suggest the next exciting step
-   - Always reference specific work, not vague encouragement
-   - Use their name if you know it
-   - Be inspiring and supportive, never harsh or demanding
+LEARNING MILESTONES (${TOTAL_CREDITS_NEEDED} total, each = 1 milestone):
+- Language Arts: 3 milestones
+- Math: 3 milestones
+- Science: 2 milestones
+- History/Social Studies: 2 milestones
+- Electives tied to interests: 4 milestones
+- PE/Health: 1 milestone
+- Character/Service: 1 milestone
+` : `
+SCHOOL LEVEL: HIGH SCHOOL (${gradeLabel})
 
-CREDIT RULE — NON-NEGOTIABLE: Each course = EXACTLY 1.0 credit. Never assign 2, 3, or 4 credits to one item.
-Instead of "English: 4 credits", list FOUR separate 1-credit courses:
-  → "Literature of the American Frontier" (1 credit), "Composition I: Narrative Writing" (1 credit), etc.
-
-GRADUATION REQUIREMENTS (24 individual 1-credit courses):
+GRADUATION REQUIREMENTS (${TOTAL_CREDITS_NEEDED} individual 1-credit courses):
 - English: 4 courses
 - Math: 3 courses
 - Science: 3 courses
 - History/Social Studies: 3 courses
 - Electives: 6 courses (map directly to student interests)
-- Trade/Business/CLEP: 3 courses
+- Trade/Business/CLEP/Dual Enrollment: 3 courses
 - Character/Service: 2 courses
+`;
+
+    const result = await llm.invoke([
+      {
+        role: 'system',
+        content: `You are Adeline, a wise and encouraging homeschool learning coach. You are building a personalized learning plan for this student.
+
+${studentContext}
+${schoolLevelPrompt}
+CRITICAL MAPPING RULES:
+1. Map every subject requirement to the student's ACTUAL interests
+   - Loves horses + needs science → "Equine Biology & Animal Care"
+   - Loves cooking + needs chemistry → "Kitchen Chemistry & Food Science"
+   - Loves Minecraft + needs math → "Architecture Math: Area, Volume & Design"
+
+2. Active Expeditions (0-3 items): What they are CURRENTLY working on
+   - If they logged something in the last 7 days, mark it active
+   - Include realistic progress estimates
+
+3. Trail Ahead (4-8 items): Next milestones mapped to their interests
+   - List the most important next subjects based on their level
+   - Every title must feel exciting, not like a textbook chapter
+
+4. Adeline's Message: Warm, specific, encouraging
+   - If idle 4+ days: gently check in and suggest one concrete first step
+   - If active: celebrate momentum and hint at what's next
+   - Never harsh; always name-specific if you know their name
+
+CREDIT RULE — NON-NEGOTIABLE: Each course = EXACTLY 1.0 credit/milestone. Never assign 2, 3, or 4.
 
 The student has earned ${totalCreditsEarned} credits so far.
 Last activity: ${lastActivity ? `${lastActivity.activityName} (${daysSinceLastActivity} days ago)` : 'None logged'}
 
-List the next 6-8 individual 1-credit courses as trailAhead. Every creditsNeeded value must be 1.0.`
+List the next 4-8 individual 1-credit courses as trailAhead. Every creditsNeeded value must be 1.0.`
       },
       {
         role: 'user',

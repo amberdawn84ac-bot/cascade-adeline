@@ -39,6 +39,26 @@ export async function POST(req: NextRequest) {
       select: { name: true, gradeLevel: true, interests: true },
     });
 
+    // Parse grade level for age-appropriate content enforcement
+    const rawGrade = student?.gradeLevel ?? null;
+    const gradeNum = (() => {
+      if (!rawGrade) return 9;
+      const s = rawGrade.trim().toLowerCase();
+      if (s === 'k' || s === 'kindergarten') return 0;
+      const rangeK = s.match(/^k-(\d+)$/);
+      if (rangeK) return Math.round(parseInt(rangeK[1]) / 2);
+      const range = s.match(/^(\d+)-(\d+)$/);
+      if (range) return Math.round((parseInt(range[1]) + parseInt(range[2])) / 2);
+      const n = parseInt(s);
+      return isNaN(n) ? 9 : n;
+    })();
+
+    const gradeGuard = gradeNum <= 5
+      ? `\nAGE-APPROPRIATE LESSON RULES (Elementary — Grade ${gradeNum}):\n- Use simple, concrete language a ${6 + gradeNum}-year-old understands\n- Activities must be hands-on, playful, and safe (no power tools, welding, or shop work)\n- No AP, CLEP, or college-level content\n- Good activity types: nature walks, drawing, counting games, read-alouds, cooking projects, building with blocks/cardboard, simple experiments with household materials\n- Time estimate: 20-45 minutes max\n`
+      : gradeNum <= 8
+      ? `\nAGE-APPROPRIATE LESSON RULES (Middle School — Grade ${gradeNum}):\n- Exploratory and engaging; connect to real-world problems\n- No AP, CLEP, or dual enrollment yet\n- Good activity types: research projects, science experiments, writing workshops, maker projects, history investigations\n- Time estimate: 45-90 minutes\n`
+      : '';
+
     const config = loadConfig();
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
       .withStructuredOutput(lessonSchema);
@@ -49,15 +69,15 @@ export async function POST(req: NextRequest) {
         content: `You are Adeline, a brilliant homeschool teacher creating a hands-on, real-world lesson.
 
 ${studentContext}
-
-The student's name is ${student?.name ?? 'Explorer'}, grade ${student?.gradeLevel ?? 'unknown'}.
+${gradeGuard}
+The student's name is ${student?.name ?? 'Explorer'}, grade ${rawGrade ?? 'unknown'}.
 Their interests: ${(student?.interests ?? []).join(', ') || 'not specified'}.
 
 LESSON DESIGN RULES:
-1. Make it CONCRETE — specific books, websites, real experiments, actual projects
+1. Make it CONCRETE — specific books, websites, real experiments, actual projects appropriate for their grade
 2. Connect directly to their interests whenever possible
 3. No busywork — every step should build real understanding or skill
-4. Steps should be achievable in one sitting (or one day for projects)
+4. Steps should be achievable in one sitting
 5. The chatPrompt should be specific enough that pasting it into chat immediately gets useful help`,
       },
       {
