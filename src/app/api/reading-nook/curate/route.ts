@@ -6,32 +6,25 @@ import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';
 
-interface GoogleBook {
-  id: string;
-  volumeInfo: {
-    title: string;
-    authors?: string[];
-    description?: string;
-    imageLinks?: {
-      thumbnail?: string;
-      smallThumbnail?: string;
-    };
-    categories?: string[];
-    averageRating?: number;
-    previewLink?: string;
-    infoLink?: string;
-  };
-  accessInfo?: {
-    viewability?: string;
-    embeddable?: boolean;
-    publicDomain?: boolean;
-    webReaderLink?: string;
-  };
-}
+export const maxDuration = 30;
 
-const bookRecommendationSchema = z.object({
-  searchQueries: z.array(z.string()).length(4).describe('4 specific book search queries based on student interests and grade level'),
-  whyRecommendations: z.array(z.string()).length(4).describe('Why each search query matches the student\'s interests'),
+const justiceThemeSchema = z.object({
+  systemicIssue: z.string().describe('A real systemic injustice the book touches on'),
+  realWorldConnection: z.string().describe('A specific real case, event, or statistic that connects'),
+  actionPrompt: z.string().describe('One concrete action the student could take to learn more or help'),
+});
+
+const bookSchema = z.object({
+  title: z.string().describe('Exact published book title'),
+  author: z.string().describe('Author full name'),
+  coverDescription: z.string().describe('2-sentence vivid description of what this book is about'),
+  whyYouWillLoveIt: z.string().describe('1-2 sentences connecting this book specifically to the student\'s interests'),
+  gutenbergUrl: z.string().nullable().describe('Project Gutenberg URL if this is a public domain book (e.g. https://www.gutenberg.org/ebooks/74), otherwise null'),
+  justiceTheme: justiceThemeSchema.nullable().describe('Only include for books that genuinely deal with injustice, inequality, power, or systemic issues. Null for pure adventure/fiction/picture books.'),
+});
+
+const curateSchema = z.object({
+  books: z.array(bookSchema).length(4).describe('Exactly 4 book recommendations'),
 });
 
 export async function POST(req: NextRequest) {
@@ -41,144 +34,62 @@ export async function POST(req: NextRequest) {
 
     const studentContext = await buildStudentContextPrompt(user.userId);
 
-    // Get student's grade level for age-appropriate filtering
     const student = await prisma.user.findUnique({
       where: { id: user.userId },
-      select: { gradeLevel: true, interests: true }
+      select: { gradeLevel: true, interests: true, name: true }
     });
 
-    const gradeLevel = student?.gradeLevel || 'Middle School';
+    const gradeLevel = student?.gradeLevel || '9';
     const interests = student?.interests || [];
+    const name = student?.name || 'Explorer';
 
-    // Use LLM to generate targeted search queries based on student profile
+    // Parse grade for age-appropriate content
+    const gradeNum = (() => {
+      const s = gradeLevel.trim().toLowerCase();
+      if (s === 'k' || s === 'kindergarten') return 0;
+      const rk = s.match(/^k-(\d+)$/); if (rk) return Math.round(parseInt(rk[1]) / 2);
+      const r = s.match(/^(\d+)-(\d+)$/); if (r) return Math.round((parseInt(r[1]) + parseInt(r[2])) / 2);
+      const n = parseInt(s); return isNaN(n) ? 9 : n;
+    })();
+
+    const ageGuard = gradeNum <= 5
+      ? `IMPORTANT: ${name} is in elementary school (grade ${gradeNum}). Recommend ONLY picture books, early chapter books, or illustrated non-fiction appropriate for ages ${5 + gradeNum}–${7 + gradeNum}. NO young adult, NO mature themes, NO complex historical trauma. Examples: Magic Tree House, Mercy Watson, Henry and Mudge, Who Was? biographies for kids, National Geographic Kids.`
+      : gradeNum <= 8
+      ? `IMPORTANT: ${name} is in middle school (grade ${gradeNum}). Recommend middle-grade or early young adult books appropriate for ages ${10 + (gradeNum - 6)}–${13 + (gradeNum - 6)}.`
+      : `${name} is in high school (grade ${gradeNum}). You may recommend young adult and classic/contemporary literary fiction.`;
+
     const config = loadConfig();
-    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
-      .withStructuredOutput(bookRecommendationSchema);
+    const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.8 })
+      .withStructuredOutput(curateSchema);
 
-    let searchQueries: string[] = [];
-    let whyRecommendations: string[] = [];
-
-    try {
-      const result = await llm.invoke([
-        {
-          role: 'system',
-          content: `You are Adeline, a classical librarian. Generate 4 specific book search queries for Google Books API based on the student's profile.${studentContext}
-
-RULES:
-- Each query should target age-appropriate books for ${gradeLevel} students
-- Match queries to their specific interests: ${interests.join(', ')}
-- Vary genres: fiction, non-fiction, adventure, biography, science, history
-- Use specific keywords that will find real, published books
-- Prioritize classic literature and well-regarded contemporary books
-
-Examples of good queries:
-- "children's adventure fiction ages 8-12"
-- "young adult science fiction space"
-- "middle grade historical fiction world war"
-- "biography for kids inventors"`,
-        },
-        {
-          role: 'user',
-          content: 'Generate 4 book search queries matched to my interests and grade level.',
-        },
-      ]);
-
-      searchQueries = result.searchQueries;
-      whyRecommendations = result.whyRecommendations;
-    } catch (llmError) {
-      console.error('[ReadingNook/curate] LLM Error, using default queries:', llmError);
-      searchQueries = [
-        `children's classic literature ages 8-12`,
-        `young adult adventure fiction`,
-        `middle grade science books`,
-        `biography for kids historical figures`
-      ];
-      whyRecommendations = [
-        'Classic literature builds vocabulary and cultural literacy',
-        'Adventure stories engage imagination and teach problem-solving',
-        'Science books inspire curiosity about the natural world',
-        'Biographies show how real people overcame challenges'
-      ];
-    }
-
-    // Fetch books from Google Books API
-    const books = [];
-    for (let i = 0; i < searchQueries.length; i++) {
-      try {
-        const query = encodeURIComponent(searchQueries[i]);
-        const response = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&orderBy=relevance&printType=books&langRestrict=en`
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.items && data.items.length > 0) {
-            const book: GoogleBook = data.items[0];
-            books.push({
-              title: book.volumeInfo.title,
-              author: book.volumeInfo.authors?.join(', ') || 'Unknown Author',
-              coverUrl: book.volumeInfo.imageLinks?.thumbnail || book.volumeInfo.imageLinks?.smallThumbnail || null,
-              description: book.volumeInfo.description || 'No description available.',
-              whyYouWillLoveIt: whyRecommendations[i],
-              googleBooksLink: book.volumeInfo.previewLink || book.volumeInfo.infoLink,
-              categories: book.volumeInfo.categories || [],
-              rating: book.volumeInfo.averageRating,
-              isPublicDomain: book.accessInfo?.publicDomain || false,
-              webReaderLink: book.accessInfo?.webReaderLink,
-            });
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to fetch book for query "${searchQueries[i]}":`, error);
-      }
-    }
-
-    // If we got fewer than 4 books, return what we have
-    if (books.length > 0) {
-      return NextResponse.json(books);
-    }
-
-    // Fallback to curated classics if API fails
-    return NextResponse.json([
+    const result = await llm.invoke([
       {
-        title: 'Treasure Island',
-        author: 'Robert Louis Stevenson',
-        coverUrl: null,
-        description: 'A thrilling tale of pirates, buried treasure, and high-seas adventure.',
-        whyYouWillLoveIt: 'Classic adventure story with memorable characters and exciting plot twists.',
-        googleBooksLink: 'https://www.google.com/books/edition/Treasure_Island/yLs8AAAAYAAJ',
-        isPublicDomain: true,
+        role: 'system',
+        content: `You are Adeline, a brilliant living-books librarian. You hand-pick REAL, published books for homeschool students based on their specific interests and grade level.
+
+${studentContext}
+
+${ageGuard}
+
+CURATION RULES:
+1. Pick books that DIRECTLY connect to their interests: ${interests.length > 0 ? interests.join(', ') : 'general learning'}
+2. Vary formats: 1 fiction, 1 non-fiction, 1 biography or history, 1 wild card that surprises them
+3. ONLY recommend books you are 100% certain exist with the exact title and author
+4. For public domain books on Project Gutenberg, provide the exact URL (format: https://www.gutenberg.org/ebooks/[ID])
+   - Common Gutenberg IDs: Treasure Island=120, Tom Sawyer=74, Little Women=514, Secret Garden=113, Wizard of Oz=55, Swiss Family Robinson=11707
+5. justiceTheme: ONLY add for books genuinely dealing with power, inequality, or injustice — skip for adventure/science/picture books
+6. Do NOT recommend books you are unsure about — accuracy of title and author is non-negotiable`,
       },
       {
-        title: 'Little Women',
-        author: 'Louisa May Alcott',
-        coverUrl: null,
-        description: 'Follow the March sisters through their journey from childhood to adulthood.',
-        whyYouWillLoveIt: 'A story of family, ambition, and finding your own path.',
-        googleBooksLink: 'https://www.google.com/books/edition/Little_Women/qBIEAAAAYAAJ',
-        isPublicDomain: true,
-      },
-      {
-        title: 'The Adventures of Tom Sawyer',
-        author: 'Mark Twain',
-        coverUrl: null,
-        description: 'Tom Sawyer\'s adventures along the Mississippi River.',
-        whyYouWillLoveIt: 'Full of humor, friendship, and clever problem-solving.',
-        googleBooksLink: 'https://www.google.com/books/edition/The_Adventures_of_Tom_Sawyer/VBQEAAAAYAAJ',
-        isPublicDomain: true,
-      },
-      {
-        title: 'The Secret Garden',
-        author: 'Frances Hodgson Burnett',
-        coverUrl: null,
-        description: 'Mary Lennox discovers a hidden garden and transforms herself.',
-        whyYouWillLoveIt: 'A beautiful story about healing, nature, and personal growth.',
-        googleBooksLink: 'https://www.google.com/books/edition/The_Secret_Garden/KBQEAAAAYAAJ',
-        isPublicDomain: true,
+        role: 'user',
+        content: `Curate 4 books specifically for me. My interests: ${interests.join(', ') || 'open to anything great'}. Grade: ${gradeLevel}.`,
       },
     ]);
+
+    return NextResponse.json(result.books);
+
   } catch (error) {
     console.error('[ReadingNook/curate] Error:', error);
-    return NextResponse.json({ error: 'Failed to curate books' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to curate books', details: error instanceof Error ? error.message : 'Unknown' }, { status: 500 });
   }
 }
