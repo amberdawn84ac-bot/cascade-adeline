@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, X, AlertTriangle, ScrollText, FileText, Users } from 'lucide-react';
+import { Loader2, Plus, X, AlertTriangle, Users } from 'lucide-react';
 import { Telescope, MasonJar, VineDivider, MagnifyingGlass } from '@/components/illustrations';
 
 // Types from our central types file
@@ -14,16 +14,8 @@ interface ScienceEntry {
   id?: string;
   title?: string;
   topic?: string;
-  category?: string;
-  hypothesis: string;
-  observation: string;
-  conclusion: string;
-  funFact?: string;
-  fieldNotes?: string[];
-  references?: string[];
-  sources?: { title: string; uri: string }[];
-  primarySourceCitation?: string;
-  directQuote?: string;
+  coreConcept?: string;
+  appliedReality?: string;
   fieldChallenge?: string;
 }
 
@@ -557,10 +549,9 @@ export default function SciencePage() {
                                     <span className={`text-xs font-bold uppercase tracking-wider ${selectedId === entry.id ? 'text-emerald-700' : 'text-emerald-400'}`}>
                                         Chapter {idx + 1}
                                     </span>
-                                    <span className="text-[10px] text-emerald-500 italic">{entry.category}</span>
                                 </div>
                                 <div className={`text-lg leading-tight group-hover:text-emerald-700 ${selectedId === entry.id ? 'text-emerald-900 font-semibold' : 'text-emerald-700'}`}>
-                                    {entry.topic}
+                                    {entry.title || entry.topic}
                                 </div>
                             </button>
                         ))
@@ -590,66 +581,25 @@ export default function SciencePage() {
                             </div>
 
                             <div className="text-center mb-8">
-                                <span className="inline-block border-b border-emerald-600 text-emerald-700 text-xs font-bold uppercase tracking-widest mb-2 px-2 pb-1">
-                                    {activeEntry.category}
-                                </span>
-                                <h1 className="text-4xl md:text-5xl text-emerald-900 mb-4 font-bold">{activeEntry.topic}</h1>
+                                <h1 className="text-4xl md:text-5xl text-emerald-900 mb-4 font-bold">{activeEntry.title || activeEntry.topic}</h1>
                                 <VineDivider className="w-32 h-6 text-emerald-400 mx-auto" />
                             </div>
 
-                            <div className="grid md:grid-cols-[1fr_200px] gap-8">
-                                <div className="space-y-6 text-lg leading-relaxed text-emerald-900">
-                                    <section>
-                                        <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-2">I. The Hypothesis</h3>
-                                        <p className="italic text-emerald-600 border-l-2 border-emerald-300 pl-4">{activeEntry.hypothesis}</p>
-                                    </section>
+                            <div className="space-y-6 text-lg leading-relaxed text-emerald-900">
+                                <section>
+                                    <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
+                                        🔬 Core Concept
+                                    </h3>
+                                    <p className="text-emerald-900 leading-relaxed">{activeEntry.coreConcept}</p>
+                                </section>
 
-                                    <section>
-                                        <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-2">II. Observation & Mechanism</h3>
-                                        <p className="text-justify">{activeEntry.observation}</p>
-                                    </section>
-
-                                    <section>
-                                        <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-2">III. Conclusion</h3>
-                                        <p className="font-bold">{activeEntry.conclusion}</p>
-                                    </section>
-                                </div>
-
-                                {/* Sidebar / Margin Notes */}
-                                <div className="md:border-l border-emerald-200 md:pl-6 space-y-6">
-                                    <div className="bg-emerald-50 p-4 border border-emerald-200 rounded">
-                                        <h4 className="text-lg text-emerald-900 mb-2 font-bold">Field Notes</h4>
-                                        <p className="text-sm italic text-emerald-700 leading-relaxed">
-                                            {activeEntry.funFact}
-                                        </p>
-                                    </div>
-                                    <div className="flex justify-center opacity-20">
-                                        <Telescope className="w-16 h-16 text-emerald-600" />
-                                    </div>
-                                </div>
+                                <section className="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-r-xl">
+                                    <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
+                                        🌱 Applied Reality
+                                    </h3>
+                                    <p className="text-emerald-800 leading-relaxed">{activeEntry.appliedReality}</p>
+                                </section>
                             </div>
-                            
-                            {/* Source Citations */}
-                            {activeEntry.sources && activeEntry.sources.length > 0 && (
-                                <div className="mt-8 pt-4 border-t border-emerald-200">
-                                    <h4 className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold mb-2">References & Citations</h4>
-                                    <ul className="space-y-1">
-                                        {activeEntry.sources.map((source, i) => (
-                                            <li key={i} className="text-xs truncate">
-                                                <a 
-                                                    href={source.uri} 
-                                                    target="_blank" 
-                                                    rel="noreferrer" 
-                                                    className="text-emerald-600 hover:text-emerald-800 hover:underline flex items-center gap-1"
-                                                >
-                                                    <span className="opacity-50">SC-{i+1}:</span> {source.title}
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
                         </div>
 
                         {/* Field Challenge */}
@@ -728,61 +678,19 @@ export default function SciencePage() {
                                 <h1 className="text-3xl font-bold text-emerald-900 mb-8 text-center">{generatedEntry.title}</h1>
                                 
                                 <div className="space-y-8">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-emerald-800 mb-3">Hypothesis</h3>
-                                        <p className="text-emerald-700 leading-relaxed italic">{generatedEntry.hypothesis}</p>
-                                    </div>
-                                    
-                                    <div>
-                                        <h3 className="text-lg font-bold text-emerald-800 mb-3">Observation</h3>
-                                        <p className="text-emerald-700 leading-relaxed">{generatedEntry.observation}</p>
-                                    </div>
-                                    
-                                    <div>
-                                        <h3 className="text-lg font-bold text-emerald-800 mb-3">Conclusion</h3>
-                                        <p className="text-emerald-700 leading-relaxed font-semibold">{generatedEntry.conclusion}</p>
-                                    </div>
-                                    
-                                    <div className="bg-emerald-50 p-6 border-l-4 border-emerald-600">
-                                        <h3 className="text-lg font-bold text-emerald-800 mb-3">Field Notes</h3>
-                                        <ul className="space-y-2">
-                                            {(generatedEntry.fieldNotes ?? []).map((note, i) => (
-                                                <li key={i} className="text-emerald-700 flex items-start gap-2">
-                                                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></span>
-                                                    {note}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                    
-                                    {/* Primary Source Evidence */}
-                                    {generatedEntry.primarySourceCitation && generatedEntry.directQuote && (
-                                        <div className="bg-amber-50 p-6 rounded-xl border-2 border-amber-300">
-                                            <h3 className="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
-                                                <ScrollText className="w-5 h-5" />
-                                                Primary Source Evidence
-                                            </h3>
-                                            <div className="bg-white p-4 rounded-lg border border-amber-200 mb-4">
-                                                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-2">Original Source Citation:</p>
-                                                <p className="text-amber-900 font-medium">{generatedEntry.primarySourceCitation}</p>
-                                            </div>
-                                            <div className="bg-[#FFFEF7] p-5 rounded-lg border-l-4 border-amber-600">
-                                                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-3">Direct Quote from Original Document:</p>
-                                                <blockquote className="text-amber-900 leading-relaxed italic" style={{ fontFamily: 'Georgia, serif' }}>
-                                                    "{generatedEntry.directQuote}"
-                                                </blockquote>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    <div>
-                                        <h3 className="text-lg font-bold text-emerald-800 mb-3">Additional References</h3>
-                                        <div className="space-y-1">
-                                            {(generatedEntry.references ?? []).map((ref, i) => (
-                                                <p key={i} className="text-emerald-600 text-sm italic">• {ref}</p>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    <section>
+                                        <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
+                                            🔬 Core Concept
+                                        </h3>
+                                        <p className="text-emerald-900 leading-relaxed">{generatedEntry.coreConcept}</p>
+                                    </section>
+
+                                    <section className="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-r-xl">
+                                        <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
+                                            🌱 Applied Reality
+                                        </h3>
+                                        <p className="text-emerald-800 leading-relaxed">{generatedEntry.appliedReality}</p>
+                                    </section>
                                 </div>
                                 
                                     {/* Field Challenge */}
@@ -1137,7 +1045,6 @@ export default function SciencePage() {
                     <Card className="border-2 border-emerald-200">
                       <CardHeader>
                         <CardTitle className="text-emerald-900 flex items-center gap-2">
-                          <FileText className="w-5 h-5" />
                           Quick Actions
                         </CardTitle>
                       </CardHeader>

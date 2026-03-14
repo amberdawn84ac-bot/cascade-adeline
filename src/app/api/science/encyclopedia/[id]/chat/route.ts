@@ -33,8 +33,8 @@ export async function POST(
   const studentContext = await buildStudentContextPrompt(user.userId);
 
   const topic = (entry?.title as string) || 'this topic';
-  const observation = (entry?.observation as string) || '';
-  const conclusion = (entry?.conclusion as string) || '';
+  const coreConcept = (entry?.coreConcept as string) || '';
+  const appliedReality = (entry?.appliedReality as string) || '';
   const fieldChallenge = (entry?.fieldChallenge as string) || '';
 
   const result = streamText({
@@ -44,8 +44,8 @@ export async function POST(
 ${studentContext}
 
 ENTRY CONTEXT:
-Core Concept: ${observation}
-Key Conclusion: ${conclusion}
+Core Concept: ${coreConcept}
+Applied Reality: ${appliedReality}
 Field Challenge You Gave Them: ${fieldChallenge}
 
 YOUR DIRECTIVE — SOCRATIC METHOD ONLY:
