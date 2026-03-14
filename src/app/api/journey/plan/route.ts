@@ -14,7 +14,7 @@ const learningPlanSchema = z.object({
   activeExpeditions: z.array(z.object({
     title: z.string().describe('Creative title that connects the subject to student interests'),
     subject: z.string().describe('The academic subject (e.g., Science, Math, English)'),
-    creditsNeeded: z.number().describe('Number of credits this will earn'),
+    creditsNeeded: z.number().describe('Always exactly 1.0 — one course = one credit in K-12'),
     description: z.string().describe('2-sentence description of what they will do'),
     progress: z.number().nullable().describe('Current progress percentage if in progress, or null'),
     dueDate: z.string().nullable().describe('Target completion date as ISO string, or null'),
@@ -22,7 +22,7 @@ const learningPlanSchema = z.object({
   trailAhead: z.array(z.object({
     title: z.string().describe('Creative title that maps requirement to student interests'),
     subject: z.string().describe('The academic subject requirement'),
-    creditsNeeded: z.number().describe('Number of credits needed'),
+    creditsNeeded: z.number().describe('Always exactly 1.0 — one course = one credit in K-12'),
     description: z.string().describe('How this could be earned based on their interests'),
   })),
   adelineMessage: z.string().describe('A warm, encouraging, and specific message based on their recent activity'),
@@ -129,19 +129,23 @@ CRITICAL MAPPING RULES:
    - Use their name if you know it
    - Be inspiring and supportive, never harsh or demanding
 
-STANDARD GRADUATION REQUIREMENTS (24 credits total):
-- English: 4 credits
-- Math: 3 credits  
-- Science: 3 credits
-- History/Social Studies: 3 credits
-- Electives: 6 credits
-- Trade/Business/CLEP: 3 credits
-- Character/Service: 2 credits
+CREDIT RULE — NON-NEGOTIABLE: Each course = EXACTLY 1.0 credit. Never assign 2, 3, or 4 credits to one item.
+Instead of "English: 4 credits", list FOUR separate 1-credit courses:
+  → "Literature of the American Frontier" (1 credit), "Composition I: Narrative Writing" (1 credit), etc.
+
+GRADUATION REQUIREMENTS (24 individual 1-credit courses):
+- English: 4 courses
+- Math: 3 courses
+- Science: 3 courses
+- History/Social Studies: 3 courses
+- Electives: 6 courses (map directly to student interests)
+- Trade/Business/CLEP: 3 courses
+- Character/Service: 2 courses
 
 The student has earned ${totalCreditsEarned} credits so far.
 Last activity: ${lastActivity ? `${lastActivity.activityName} (${daysSinceLastActivity} days ago)` : 'None logged'}
 
-Generate a plan that will get them to ${TOTAL_CREDITS_NEEDED} credits by graduation.`
+List the next 6-8 individual 1-credit courses as trailAhead. Every creditsNeeded value must be 1.0.`
       },
       {
         role: 'user',
