@@ -82,6 +82,7 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
   const [lives, setLives] = useState(3);
   const [round, setRound] = useState(1);
   const [correct, setCorrect] = useState<boolean | null>(null);
+  const [seenWords, setSeenWords] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const { speak, stopSpeaking, isListening, startListening, stopListening } = useSpellingSpeech();
 
@@ -91,22 +92,27 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
     speak(`${w.word}. ${w.word}. Part of speech: ${w.partOfSpeech}. Definition: ${w.definition}. Used in a sentence: ${maskedSentence}. ${w.word}.`);
   }, [speak]);
 
-  const fetchWord = useCallback(async () => {
+  const fetchWord = useCallback(async (previousWords: string[] = []) => {
     stopSpeaking();
     setPhase('loading');
     setInput('');
     setCorrect(null);
     try {
-      const res = await fetch('/api/arcade/spelling', { method: 'POST' });
+      const res = await fetch('/api/arcade/spelling', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seenWords: previousWords }),
+      });
       if (!res.ok) throw new Error('Failed');
       const w = await res.json();
       setWord(w);
+      setSeenWords(prev => [...prev, w.word]);
       setPhase('read');
       speakWord(w);
     } catch { setPhase('read'); }
   }, [speakWord, stopSpeaking]);
 
-  useEffect(() => { fetchWord(); }, [fetchWord]);
+  useEffect(() => { fetchWord([]); }, [fetchWord]);
   useEffect(() => () => stopSpeaking(), [stopSpeaking]);
 
   const awardSpellingCredits = (w: string, isCorrect: boolean) => {
@@ -127,7 +133,7 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
     awardSpellingCredits(word.word, isCorrect);
   };
 
-  const handleNext = () => { setRound(r => r + 1); fetchWord(); };
+  const handleNext = () => { setRound(r => r + 1); fetchWord(seenWords); };
 
   if (lives <= 0) return (
     <div className="max-w-2xl mx-auto space-y-5">
@@ -137,7 +143,7 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
         <h2 className="text-3xl font-black text-[#2F4731] mb-2">Game Over!</h2>
         <p className="text-[#2F4731]/70 mb-1">You reached round {round}</p>
         <p className="text-2xl font-black text-[#BD6809] mb-6">{score} points</p>
-        <Button onClick={() => { setLives(3); setScore(0); setRound(1); fetchWord(); }} className="bg-[#2F4731] text-white px-8">Play Again</Button>
+        <Button onClick={() => { setLives(3); setScore(0); setRound(1); setSeenWords([]); fetchWord([]); }} className="bg-[#2F4731] text-white px-8">Play Again</Button>
       </CardContent></Card>
     </div>
   );
