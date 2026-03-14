@@ -17,6 +17,8 @@ interface ScienceEntry {
   coreConcept?: string;
   appliedReality?: string;
   fieldChallenge?: string;
+  imageUrl?: string | null;
+  isColoringPage?: boolean;
 }
 
 interface ChatMessage {
@@ -585,6 +587,31 @@ export default function SciencePage() {
                                 <VineDivider className="w-32 h-6 text-emerald-400 mx-auto" />
                             </div>
 
+                            {/* Entry Image */}
+                            {activeEntry.imageUrl && (
+                              <div className="mb-8 flex flex-col items-center gap-3">
+                                <img
+                                  src={activeEntry.imageUrl}
+                                  alt={activeEntry.title || activeEntry.topic || 'Encyclopedia illustration'}
+                                  className="w-full max-w-sm rounded-xl border-2 border-emerald-200 shadow-md"
+                                />
+                                {activeEntry.isColoringPage && (
+                                  <button
+                                    onClick={() => {
+                                      const win = window.open('', '_blank');
+                                      if (win) {
+                                        win.document.write(`<html><head><title>Color: ${activeEntry.title || activeEntry.topic}</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;}img{max-width:100%;}</style></head><body><img src="${activeEntry.imageUrl}" onload="window.print()"/></body></html>`);
+                                        win.document.close();
+                                      }
+                                    }}
+                                    className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 py-2.5 rounded-xl shadow transition-colors text-sm"
+                                  >
+                                    🖨️ Print to Color!
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
                             <div className="space-y-6 text-lg leading-relaxed text-emerald-900">
                                 <section>
                                     <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
@@ -676,6 +703,31 @@ export default function SciencePage() {
                         <div className="max-w-3xl mx-auto">
                             <div className="border-4 border-double border-emerald-200 p-8 bg-white shadow-sm">
                                 <h1 className="text-3xl font-bold text-emerald-900 mb-8 text-center">{generatedEntry.title}</h1>
+
+                                {/* Generated Image */}
+                                {generatedEntry.imageUrl && (
+                                  <div className="mb-8 flex flex-col items-center gap-3">
+                                    <img
+                                      src={generatedEntry.imageUrl}
+                                      alt={generatedEntry.title || 'Encyclopedia illustration'}
+                                      className="w-full max-w-md rounded-xl border-2 border-emerald-200 shadow-md"
+                                    />
+                                    {generatedEntry.isColoringPage && (
+                                      <button
+                                        onClick={() => {
+                                          const win = window.open('', '_blank');
+                                          if (win) {
+                                            win.document.write(`<html><head><title>Color: ${generatedEntry.title}</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;}img{max-width:100%;}</style></head><body><img src="${generatedEntry.imageUrl}" onload="window.print()"/></body></html>`);
+                                            win.document.close();
+                                          }
+                                        }}
+                                        className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 py-2.5 rounded-xl shadow transition-colors text-sm"
+                                      >
+                                        🖨️ Print to Color!
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                                 
                                 <div className="space-y-8">
                                     <section>

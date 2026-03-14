@@ -51,7 +51,44 @@ ${studentContext}`,
       { role: 'user', content: `Topic: ${query}` }
     ]);
 
-    return NextResponse.json(result);
+    // --- Image generation ---
+    const userData = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { gradeLevel: true },
+    });
+
+    const gradeStr = (userData?.gradeLevel ?? '').toLowerCase().trim();
+    const isEarlyElementary = /^(k|kg|kindergarten|1st?|first|2nd?|second|grade[\s-]*[12])/.test(gradeStr);
+
+    const imageStyle = isEarlyElementary
+      ? 'black and white minimalist coloring book page, bold clean outlines only, no shading, no color, pure white background, simple and friendly, designed for a young child to color in'
+      : 'beautiful realistic educational illustration, vibrant colors, natural lighting, detailed and scientifically accurate';
+
+    let imageUrl: string | null = null;
+    try {
+      const imageRes = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt: `${query}: ${imageStyle}`,
+          n: 1,
+          size: '1024x1024',
+          quality: isEarlyElementary ? 'standard' : 'hd',
+        }),
+      });
+      if (imageRes.ok) {
+        const imageData = await imageRes.json();
+        imageUrl = imageData.data?.[0]?.url ?? null;
+      }
+    } catch (imgErr) {
+      console.error('Image generation failed (non-fatal):', imgErr);
+    }
+
+    return NextResponse.json({ ...result, imageUrl, isColoringPage: isEarlyElementary && !!imageUrl });
   } catch (error) {
     console.error("Encyclopedia generation error:", error);
     return NextResponse.json({ error: "Failed to generate entry" }, { status: 500 });
