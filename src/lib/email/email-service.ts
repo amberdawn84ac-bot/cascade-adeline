@@ -1,7 +1,10 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_ADDRESS = process.env.EMAIL_FROM ?? 'Adeline <hello@dear-adeline.com>';
+
+function getResend(): Resend {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 /**
  * Send MFA setup confirmation email with the user's backup codes.
@@ -19,7 +22,7 @@ export async function sendMFASetupEmail(
     .map(c => `<code style="display:block;font-family:monospace;font-size:14px;letter-spacing:2px;padding:4px 0;">${c}</code>`)
     .join('');
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM_ADDRESS,
     to: toEmail,
     subject: '🔐 Your Dear Adeline MFA Backup Codes',
@@ -51,7 +54,7 @@ export async function sendPasswordResetEmail(
     return;
   }
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM_ADDRESS,
     to: toEmail,
     subject: '🔑 Reset Your Dear Adeline Password',
@@ -81,7 +84,7 @@ export async function sendWelcomeEmail(
     return;
   }
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM_ADDRESS,
     to: toEmail,
     subject: `🌿 Welcome to Dear Adeline, ${displayName}!`,
