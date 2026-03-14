@@ -198,13 +198,13 @@ export default function JourneyPage() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Left: title + progress */}
             <div>
-              <p className="text-[#BD6809] font-bold uppercase tracking-widest text-xs mb-2" style={{ fontFamily: 'Kalam, cursive' }}>
+              <p className="text-[#BD6809] font-bold uppercase tracking-widest text-xs mb-2">
                 Graduation Ascent
               </p>
               <h1 className="text-5xl font-bold leading-tight mb-4" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                 The Summit
               </h1>
-              <p className="text-white/70 mb-6" style={{ fontFamily: 'Kalam, cursive' }}>
+              <p className="text-white/70 mb-6">
                 Every credit is a step up the mountain. The view from the top is worth every hard day.
               </p>
 
@@ -213,7 +213,7 @@ export default function JourneyPage() {
                 <div className="flex items-end justify-between">
                   <span className="text-6xl font-black text-white">{progressPercent}<span className="text-3xl text-[#BD6809]">%</span></span>
                   <div className="text-right">
-                    <p className="text-white/60 text-sm" style={{ fontFamily: 'Kalam, cursive' }}>to the summit</p>
+                    <p className="text-white/60 text-sm">to the summit</p>
                     <p className="text-[#BD6809] font-bold">{creditsRemaining} credits left</p>
                   </div>
                 </div>
@@ -225,7 +225,7 @@ export default function JourneyPage() {
                     <div className="absolute right-0 top-0 h-full w-2 bg-white/40 rounded-full" />
                   </div>
                 </div>
-                <div className="flex justify-between text-xs text-white/50" style={{ fontFamily: 'Kalam, cursive' }}>
+                <div className="flex justify-between text-xs text-white/50">
                   <span>Base Camp</span>
                   <span>{plan.creditsEarned} / {plan.totalCreditsNeeded} credits</span>
                   <span>⛰️ Summit</span>
@@ -237,11 +237,11 @@ export default function JourneyPage() {
             <div className="flex justify-center md:justify-end">
               <div className="bg-white/10 backdrop-blur border border-white/20 rounded-3xl p-8 text-center max-w-xs w-full">
                 <Award className="w-14 h-14 text-[#BD6809] mx-auto mb-3" />
-                <p className="text-white/60 uppercase tracking-widest text-xs mb-1" style={{ fontFamily: 'Kalam, cursive' }}>Target Summit</p>
+                <p className="text-white/60 uppercase tracking-widest text-xs mb-1">Target Summit</p>
                 <h2 className="text-3xl font-bold text-white mb-1" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>{gradMonth}</h2>
-                <p className="text-white/50 text-sm" style={{ fontFamily: 'Kalam, cursive' }}>Graduation Defense</p>
+                <p className="text-white/50 text-sm">Graduation Defense</p>
                 <div className="mt-4 pt-4 border-t border-white/10">
-                  <p className="text-white/60 text-xs" style={{ fontFamily: 'Kalam, cursive' }}>
+                  <p className="text-white/60 text-xs">
                     Not a test — a public demonstration of everything you've built.
                   </p>
                 </div>
@@ -301,11 +301,11 @@ export default function JourneyPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-[#2F4731] leading-relaxed text-base" style={{ fontFamily: 'Kalam, cursive', fontSize: '1.05rem' }}>
+                <p className="text-[#2F4731] leading-relaxed text-base" style={{ fontSize: '1.05rem' }}>
                   {plan.adelineMessage}
                 </p>
                 {plan.lastActivity && (
-                  <p className="text-xs text-[#2F4731]/50 mt-3 flex items-center gap-1" style={{ fontFamily: 'Kalam, cursive' }}>
+                  <p className="text-xs text-[#2F4731]/50 mt-3 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     Last logged: <strong>{plan.lastActivity.activityName}</strong> — {plan.lastActivity.daysSince === 0 ? 'today' : `${plan.lastActivity.daysSince} days ago`}
                   </p>
@@ -326,21 +326,21 @@ export default function JourneyPage() {
                 Active Expeditions
               </h2>
             </div>
-            <span className="text-sm text-[#2F4731]/50 border border-[#E7DAC3] px-3 py-1 rounded-full" style={{ fontFamily: 'Kalam, cursive' }}>
+            <span className="text-sm text-[#2F4731]/50 border border-[#E7DAC3] px-3 py-1 rounded-full">
               {Math.min(plan.activeExpeditions.length, 4)} active
             </span>
           </div>
-          <p className="text-[#2F4731]/60 mb-5 pl-10" style={{ fontFamily: 'Kalam, cursive' }}>
+          <p className="text-[#2F4731]/60 mb-5 pl-10">
             Courses you're working on right now. Click any card to get today's lesson.
           </p>
 
           {plan.activeExpeditions.length === 0 ? (
             <div className="rounded-3xl border-2 border-dashed border-amber-300 bg-amber-50 p-10 text-center">
               <span className="text-5xl block mb-3">⛺</span>
-              <p className="text-amber-900 font-bold text-lg" style={{ fontFamily: 'Kalam, cursive' }}>
+              <p className="text-amber-900 font-bold text-lg">
                 Base camp is empty. The summit doesn't wait.
               </p>
-              <p className="text-amber-700 text-sm mt-1" style={{ fontFamily: 'Kalam, cursive' }}>
+              <p className="text-amber-700 text-sm mt-1">
                 Click a course on the trail below to start your first expedition.
               </p>
             </div>
@@ -378,14 +378,14 @@ export default function JourneyPage() {
                       <ChevronRight className="w-5 h-5 text-[#BD6809] flex-shrink-0 group-hover:translate-x-1 transition-transform mt-1" />
                     </div>
 
-                    <p className="text-sm text-[#2F4731]/70 mb-4 leading-relaxed" style={{ fontFamily: 'Kalam, cursive' }}>
+                    <p className="text-sm text-[#2F4731]/70 mb-4 leading-relaxed">
                       {credit.description}
                     </p>
 
                     {credit.progress != null && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-[#2F4731]/50" style={{ fontFamily: 'Kalam, cursive' }}>Progress</span>
+                          <span className="text-xs text-[#2F4731]/50">Progress</span>
                           <span className="text-xs font-bold text-[#BD6809]">{credit.progress}%</span>
                         </div>
                         <div className="bg-[#E7DAC3] rounded-full h-2 overflow-hidden">
@@ -396,7 +396,7 @@ export default function JourneyPage() {
 
                     <div className="flex items-center justify-between">
                       {credit.dueDate ? (
-                        <span className="text-xs text-[#2F4731]/50 flex items-center gap-1" style={{ fontFamily: 'Kalam, cursive' }}>
+                        <span className="text-xs text-[#2F4731]/50 flex items-center gap-1">
                           <Calendar className="w-3 h-3" /> Target: {new Date(credit.dueDate).toLocaleDateString()}
                         </span>
                       ) : <span />}
@@ -421,7 +421,7 @@ export default function JourneyPage() {
               The Trail Ahead
             </h2>
           </div>
-          <p className="text-[#2F4731]/60 mb-8 pl-10" style={{ fontFamily: 'Kalam, cursive' }}>
+          <p className="text-[#2F4731]/60 mb-8 pl-10">
             Your next {plan.trailAhead.length} courses, mapped to your interests. Don't like the route? Change it.
           </p>
 
@@ -437,7 +437,7 @@ export default function JourneyPage() {
                     <div className="w-2 h-2 rounded-full bg-indigo-400" />
                   </div>
                   {/* Step number */}
-                  <div className="absolute left-1 top-4 text-[10px] font-bold text-indigo-300" style={{ fontFamily: 'Kalam, cursive' }}>
+                  <div className="absolute left-1 top-4 text-[10px] font-bold text-indigo-300">
                     {index + 1}
                   </div>
 
@@ -450,10 +450,10 @@ export default function JourneyPage() {
                           </h3>
                         </div>
                         <div className="flex flex-wrap gap-2 mb-2">
-                          <span className="text-xs text-[#2F4731]/50 border border-[#E7DAC3] px-2 py-0.5 rounded-full" style={{ fontFamily: 'Kalam, cursive' }}>
+                          <span className="text-xs text-[#2F4731]/50 border border-[#E7DAC3] px-2 py-0.5 rounded-full">
                             {credit.subject}
                           </span>
-                          <span className="text-xs text-[#2F4731]/50 border border-[#E7DAC3] px-2 py-0.5 rounded-full" style={{ fontFamily: 'Kalam, cursive' }}>
+                          <span className="text-xs text-[#2F4731]/50 border border-[#E7DAC3] px-2 py-0.5 rounded-full">
                             1 credit
                           </span>
                           {credit.title.toLowerCase().includes('clep') && (
@@ -466,7 +466,7 @@ export default function JourneyPage() {
                             <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">Dual Enrollment</span>
                           )}
                         </div>
-                        <p className="text-sm text-[#2F4731]/60 leading-relaxed" style={{ fontFamily: 'Kalam, cursive' }}>
+                        <p className="text-sm text-[#2F4731]/60 leading-relaxed">
                           {credit.description}
                         </p>
                       </div>
@@ -476,16 +476,14 @@ export default function JourneyPage() {
                         <button
                           onClick={() => openLesson(credit)}
                           className="flex items-center gap-1.5 px-3 py-2 bg-[#2F4731] text-white text-xs font-bold rounded-xl hover:bg-[#BD6809] transition-colors whitespace-nowrap"
-                          style={{ fontFamily: 'Kalam, cursive' }}
-                        >
+                                                 >
                           <BookOpen className="w-3.5 h-3.5" />
                           Today's Lesson
                         </button>
                         <button
                           onClick={() => handleChangeRoute(credit)}
                           className="flex items-center gap-1.5 px-3 py-2 border-2 border-indigo-200 text-indigo-700 text-xs font-bold rounded-xl hover:bg-indigo-50 transition-colors whitespace-nowrap"
-                          style={{ fontFamily: 'Kalam, cursive' }}
-                        >
+                                                 >
                           <MessageSquare className="w-3.5 h-3.5" />
                           Change Route
                         </button>
@@ -504,7 +502,7 @@ export default function JourneyPage() {
                   <p className="font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                     ⛰️ Graduation Defense — {gradMonth}
                   </p>
-                  <p className="text-xs text-[#2F4731]/60 mt-1" style={{ fontFamily: 'Kalam, cursive' }}>
+                  <p className="text-xs text-[#2F4731]/60 mt-1">
                     {creditsRemaining} more credits to go. You've got this.
                   </p>
                 </div>
@@ -523,13 +521,13 @@ export default function JourneyPage() {
             {/* Header */}
             <div className="bg-[#2F4731] p-6 flex items-start justify-between flex-shrink-0">
               <div>
-                <p className="text-[#BD6809] text-xs font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'Kalam, cursive' }}>
+                <p className="text-[#BD6809] text-xs font-bold uppercase tracking-widest mb-1">
                   Today's Lesson
                 </p>
                 <h3 className="text-2xl font-bold text-white leading-snug" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                   {lessonCredit.title}
                 </h3>
-                <p className="text-white/60 text-sm mt-1" style={{ fontFamily: 'Kalam, cursive' }}>{lessonCredit.subject}</p>
+                <p className="text-white/60 text-sm mt-1">{lessonCredit.subject}</p>
               </div>
               <button onClick={() => { setLessonCredit(null); setLesson(null); }} className="text-white/60 hover:text-white ml-4 flex-shrink-0">
                 <X className="w-6 h-6" />
@@ -541,7 +539,7 @@ export default function JourneyPage() {
               {lessonLoading && (
                 <div className="flex flex-col items-center justify-center py-16 gap-4">
                   <Loader2 className="w-10 h-10 animate-spin text-[#BD6809]" />
-                  <p className="text-[#2F4731]/60 italic" style={{ fontFamily: 'Kalam, cursive' }}>Adeline is designing your lesson...</p>
+                  <p className="text-[#2F4731]/60 italic">Adeline is designing your lesson...</p>
                 </div>
               )}
 
@@ -557,29 +555,29 @@ export default function JourneyPage() {
                 <>
                   {/* Meta row */}
                   <div className="flex flex-wrap gap-3">
-                    <span className="px-3 py-1 bg-[#2F4731]/10 text-[#2F4731] text-xs font-bold rounded-full capitalize" style={{ fontFamily: 'Kalam, cursive' }}>
+                    <span className="px-3 py-1 bg-[#2F4731]/10 text-[#2F4731] text-xs font-bold rounded-full capitalize">
                       📚 {lesson.lessonType}
                     </span>
-                    <span className="px-3 py-1 bg-[#BD6809]/10 text-[#BD6809] text-xs font-bold rounded-full" style={{ fontFamily: 'Kalam, cursive' }}>
+                    <span className="px-3 py-1 bg-[#BD6809]/10 text-[#BD6809] text-xs font-bold rounded-full">
                       ⏱ {lesson.timeEstimate}
                     </span>
                   </div>
 
                   {/* Overview */}
                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                    <h4 className="font-bold text-[#2F4731] mb-2 text-sm uppercase tracking-wide" style={{ fontFamily: 'Kalam, cursive' }}>Overview</h4>
-                    <p className="text-[#2F4731] leading-relaxed" style={{ fontFamily: 'Kalam, cursive' }}>{lesson.overview}</p>
+                    <h4 className="font-bold text-[#2F4731] mb-2 text-sm uppercase tracking-wide">Overview</h4>
+                    <p className="text-[#2F4731] leading-relaxed">{lesson.overview}</p>
                   </div>
 
                   {/* Materials */}
                   {lesson.materials.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide" style={{ fontFamily: 'Kalam, cursive' }}>
+                      <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide">
                         🎒 Materials & Resources
                       </h4>
                       <ul className="space-y-1.5">
                         {lesson.materials.map((m, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-[#2F4731]/80" style={{ fontFamily: 'Kalam, cursive' }}>
+                          <li key={i} className="flex items-start gap-2 text-sm text-[#2F4731]/80">
                             <span className="text-[#BD6809] mt-0.5 flex-shrink-0">◆</span> {m}
                           </li>
                         ))}
@@ -589,7 +587,7 @@ export default function JourneyPage() {
 
                   {/* Steps */}
                   <div>
-                    <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide" style={{ fontFamily: 'Kalam, cursive' }}>
+                    <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide">
                       🗺️ Today's Steps
                     </h4>
                     <div className="space-y-3">
@@ -599,8 +597,8 @@ export default function JourneyPage() {
                             {s.step}
                           </div>
                           <div className="flex-1 bg-white border border-[#E7DAC3] rounded-xl p-3">
-                            <p className="font-bold text-[#2F4731] text-sm mb-1" style={{ fontFamily: 'Kalam, cursive' }}>{s.title}</p>
-                            <p className="text-[#2F4731]/70 text-sm leading-relaxed" style={{ fontFamily: 'Kalam, cursive' }}>{s.instruction}</p>
+                            <p className="font-bold text-[#2F4731] text-sm mb-1">{s.title}</p>
+                            <p className="text-[#2F4731]/70 text-sm leading-relaxed">{s.instruction}</p>
                           </div>
                         </div>
                       ))}
@@ -609,26 +607,25 @@ export default function JourneyPage() {
 
                   {/* Completion criteria */}
                   <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
-                    <h4 className="font-bold text-emerald-800 mb-1 text-sm uppercase tracking-wide" style={{ fontFamily: 'Kalam, cursive' }}>
+                    <h4 className="font-bold text-emerald-800 mb-1 text-sm uppercase tracking-wide">
                       ✅ You're Done When...
                     </h4>
-                    <p className="text-emerald-700 text-sm leading-relaxed" style={{ fontFamily: 'Kalam, cursive' }}>{lesson.completionCriteria}</p>
+                    <p className="text-emerald-700 text-sm leading-relaxed">{lesson.completionCriteria}</p>
                   </div>
 
                   {/* Chat prompt copy */}
                   <div className="bg-[#2F4731]/5 border border-[#2F4731]/20 rounded-2xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-bold text-[#2F4731] text-sm" style={{ fontFamily: 'Kalam, cursive' }}>💬 Ask Adeline for Help</h4>
+                      <h4 className="font-bold text-[#2F4731] text-sm">💬 Ask Adeline for Help</h4>
                       <button
                         onClick={copyPrompt}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2F4731] text-white text-xs font-bold rounded-xl hover:bg-[#BD6809] transition-colors"
-                        style={{ fontFamily: 'Kalam, cursive' }}
-                      >
+                                             >
                         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         {copied ? 'Copied!' : 'Copy Prompt'}
                       </button>
                     </div>
-                    <p className="text-[#2F4731]/60 text-xs italic leading-relaxed" style={{ fontFamily: 'Kalam, cursive' }}>
+                    <p className="text-[#2F4731]/60 text-xs italic leading-relaxed">
                       "{lesson.chatPrompt}"
                     </p>
                   </div>
@@ -647,11 +644,11 @@ export default function JourneyPage() {
           <div className="bg-[#FFFEF7] rounded-3xl border-2 border-indigo-400 max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="bg-indigo-700 p-6 flex items-start justify-between flex-shrink-0">
               <div>
-                <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1" style={{ fontFamily: 'Kalam, cursive' }}>Change Your Route</p>
+                <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Change Your Route</p>
                 <h3 className="text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                   {selectedCredit.title}
                 </h3>
-                <p className="text-indigo-200 text-sm mt-1" style={{ fontFamily: 'Kalam, cursive' }}>
+                <p className="text-indigo-200 text-sm mt-1">
                   Tell Adeline how you'd like to earn this credit instead
                 </p>
               </div>
@@ -662,7 +659,7 @@ export default function JourneyPage() {
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-                <p className="text-sm text-indigo-900" style={{ fontFamily: 'Kalam, cursive' }}>
+                <p className="text-sm text-indigo-900">
                   <strong>Adeline:</strong> This is mapped as <strong>{selectedCredit.title}</strong> ({selectedCredit.subject}). 
                   Want to swap it for a CLEP test? An AP class? A homesteading project? Tell me and I'll reroute you.
                 </p>
@@ -670,17 +667,17 @@ export default function JourneyPage() {
 
               {messages.map((message, i) => (
                 <div key={i} className={`p-4 rounded-xl ${message.role === 'user' ? 'bg-blue-50 border border-blue-200 ml-8' : 'bg-green-50 border border-green-200 mr-8'}`}>
-                  <p className="text-xs font-bold mb-1 text-[#2F4731]" style={{ fontFamily: 'Kalam, cursive' }}>
+                  <p className="text-xs font-bold mb-1 text-[#2F4731]">
                     {message.role === 'user' ? 'You' : 'Adeline'}
                   </p>
-                  <p className="text-sm text-[#2F4731]" style={{ fontFamily: 'Kalam, cursive' }}>{message.content}</p>
+                  <p className="text-sm text-[#2F4731]">{message.content}</p>
                 </div>
               ))}
 
               {isChatLoading && (
                 <div className="flex items-center gap-2 text-[#2F4731]/50">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm italic" style={{ fontFamily: 'Kalam, cursive' }}>Adeline is charting a new route...</span>
+                  <span className="text-sm italic">Adeline is charting a new route...</span>
                 </div>
               )}
             </div>
@@ -692,8 +689,7 @@ export default function JourneyPage() {
                   onChange={handleInputChange}
                   placeholder="e.g. I want to do a CLEP test instead..."
                   className="flex-1 px-4 py-3 border-2 border-[#E7DAC3] rounded-xl focus:border-indigo-400 focus:outline-none text-sm"
-                  style={{ fontFamily: 'Kalam, cursive' }}
-                  disabled={isChatLoading}
+                                   disabled={isChatLoading}
                 />
                 <Button type="submit" disabled={isChatLoading || !input.trim()} className="bg-indigo-700 hover:bg-indigo-800 rounded-xl">
                   Send
