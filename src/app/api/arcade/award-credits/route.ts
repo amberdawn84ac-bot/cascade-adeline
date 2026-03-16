@@ -60,11 +60,12 @@ type ReviewResult = {
 };
 
 function calcSpellingCredits(result: SpellingResult) {
-  // Mastery of one grade-level vocabulary word = 1/200 of annual ELA vocabulary standards
+  // Spelling is ~20-25% of total ELA work. A 2nd grader masters 300-500 words/year.
+  // At 0.001 cr/word, 500 words = 0.5 cr, leaving room for reading, writing, grammar, etc.
   if (result.correct) {
-    return 0.005; // Demonstrated mastery of this specific learning objective
+    return 0.001; // Demonstrated mastery of this specific learning objective
   } else {
-    return 0.001; // Exposure and attempt (partial progress toward mastery)
+    return 0.0002; // Exposure and attempt (partial progress toward mastery)
   }
 }
 

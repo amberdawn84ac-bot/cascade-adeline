@@ -63,7 +63,7 @@ model User {
   age                     Int?
   gradeLevel              String?                   @map("grade_level")
   interests               String[]
-  learningStyle           String?                   @default("general")
+  learningStyle           String                    @default("EXPEDITION") // "EXPEDITION" (unified cross-curricular) or "CLASSIC" (siloed subjects with worksheets)
   onboardingComplete      Boolean                   @default(false)
   coppaConsentAt          DateTime?                 @map("coppa_consent_at")
   coppaConsentBy          String?                   @map("coppa_consent_by") @db.Uuid

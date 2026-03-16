@@ -7,12 +7,13 @@ const GRADE_LEVELS = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '1
 const INTEREST_OPTIONS = ['Science', 'Math', 'Reading', 'Writing', 'History', 'Art', 'Music', 'Coding', 'Nature', 'Business', 'Sports', 'Cooking'];
 
 interface Props {
-  user: { name?: string; email?: string; role?: string; gradeLevel?: string; interests?: string[] };
+  user: { name?: string; email?: string; role?: string; gradeLevel?: string; interests?: string[]; learningStyle?: string };
 }
 
 export function SettingsForm({ user }: Props) {
   const [gradeLevel, setGradeLevel] = useState(user.gradeLevel || '');
   const [interests, setInterests] = useState<string[]>(user.interests || []);
+  const [learningStyle, setLearningStyle] = useState(user.learningStyle || 'EXPEDITION');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -29,7 +30,7 @@ export function SettingsForm({ user }: Props) {
       const res = await fetch('/api/users/onboarding', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gradeLevel, interests }),
+        body: JSON.stringify({ gradeLevel, interests, learningStyle }),
       });
       if (!res.ok) throw new Error('Save failed');
       setMessage('Settings saved!');
@@ -84,6 +85,44 @@ export function SettingsForm({ user }: Props) {
                 {g === 'K' ? 'Kindergarten' : `Grade ${g}`}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-widest text-[#2F4731]/50 mb-3 block">Learning Mode</label>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setLearningStyle('EXPEDITION')}
+              className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                learningStyle === 'EXPEDITION'
+                  ? 'bg-[#BD6809] border-[#BD6809] text-white'
+                  : 'border-[#E7DAC3] text-[#2F4731] hover:border-[#BD6809]'
+              }`}
+            >
+              <div className="font-bold mb-1">🗺️ Expedition Mode</div>
+              <div className={`text-sm ${
+                learningStyle === 'EXPEDITION' ? 'text-white/90' : 'text-[#2F4731]/60'
+              }`}>
+                Unified, cross-curricular learning adventures. Perfect for project-based learners.
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLearningStyle('CLASSIC')}
+              className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                learningStyle === 'CLASSIC'
+                  ? 'bg-[#2F4731] border-[#2F4731] text-white'
+                  : 'border-[#E7DAC3] text-[#2F4731] hover:border-[#2F4731]'
+              }`}
+            >
+              <div className="font-bold mb-1">📚 Classic Mode</div>
+              <div className={`text-sm ${
+                learningStyle === 'CLASSIC' ? 'text-white/90' : 'text-[#2F4731]/60'
+              }`}>
+                Traditional, siloed subjects with structured lessons and printable worksheets.
+              </div>
+            </button>
           </div>
         </div>
 

@@ -16,6 +16,7 @@ export default async function SettingsPage() {
       role: true,
       gradeLevel: true,
       interests: true,
+      learningStyle: true,
     },
   });
 
@@ -28,6 +29,7 @@ export default async function SettingsPage() {
     role: user.role || undefined,
     gradeLevel: user.gradeLevel || undefined,
     interests: user.interests || undefined,
+    learningStyle: user.learningStyle || 'EXPEDITION',
   };
 
   return (

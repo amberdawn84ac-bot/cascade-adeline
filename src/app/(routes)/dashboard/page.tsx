@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { MissionBriefing } from '@/components/ui/quests/MissionBriefing';
 import KnowledgeHerbarium from '@/components/dashboard/KnowledgeHerbarium';
 import { getUserAdaptiveContent, getAttentionSpanForGrade, getInteractiveTypeForGrade } from '@/lib/adaptive-content';
+import { ClassicDashboard } from '@/components/dashboard/ClassicDashboard';
 
 async function getStudentDashboardData(userId: string) {
   // Fetch standards progress grouped by subject
@@ -468,10 +469,10 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Get user role from database
+  // Get user role and learning style from database
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { role: true }
+    select: { role: true, learningStyle: true }
   });
 
   if (!user) {
@@ -481,8 +482,13 @@ export default async function DashboardPage() {
   // Render dashboard based on role
   switch (user.role) {
     case 'STUDENT': {
-      // Redirect students straight to their learning path
-      redirect('/dashboard/journey');
+      // Route based on learning style preference
+      if (user.learningStyle === 'CLASSIC') {
+        return <ClassicDashboard />;
+      } else {
+        // Default to EXPEDITION mode (unified cross-curricular journey)
+        redirect('/dashboard/journey');
+      }
     }
     case 'PARENT': {
       const { children, totalCredits, recentActivities, maxStudents } = await getParentDashboardData(session.userId);
