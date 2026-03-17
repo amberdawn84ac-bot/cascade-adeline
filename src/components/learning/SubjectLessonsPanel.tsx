@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { BookOpen, ChevronRight, Loader2, X, AlertTriangle, MessageSquare, Send, TrendingUp, MapPin, RefreshCw } from 'lucide-react';
+import { BookOpen, ChevronRight, Loader2, X, AlertTriangle, MessageSquare, Send, TrendingUp, MapPin, RefreshCw, Clock, Target } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
+import { MathWorkspace } from '@/components/lessons/MathWorkspace';
+import { ELADetective } from '@/components/lessons/ELADetective';
+import { ScienceLab } from '@/components/lessons/ScienceLab';
 import Link from 'next/link';
 
 interface Course {
@@ -352,24 +355,44 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
                     </div>
                   )}
 
-                  {lesson.imageSearchTerms?.length > 0 && (
-                    <div>
-                      <h4 className="font-bold text-[#2F4731] mb-2 text-xs uppercase tracking-wide">🖼️ See It</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {lesson.imageSearchTerms.map((term, i) => (
-                          <a
-                            key={i}
-                            href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(term)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border-2 text-xs font-bold rounded-xl hover:bg-amber-50 transition-colors"
-                            style={{ borderColor: accentColor, color: accentColor }}
-                          >
-                            🔍 {term}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
+                  {/* Interactive Components - NO EXTERNAL LINKS */}
+                  {subject.toLowerCase().includes('math') && lesson.lessonType === 'Problem Solving' && (
+                    <MathWorkspace
+                      problem="Calculate the area using the formula: length × width"
+                      variables={[
+                        { name: 'length', label: 'Length', min: 1, max: 20, defaultValue: 10, unit: ' ft' },
+                        { name: 'width', label: 'Width', min: 1, max: 20, defaultValue: 5, unit: ' ft' },
+                      ]}
+                      formula="length * width"
+                      expectedAnswer={50}
+                      tolerance={1}
+                    />
+                  )}
+
+                  {subject.toLowerCase().includes('ela') && lesson.lessonType === 'Reading Comprehension' && (
+                    <ELADetective
+                      passage={lesson.lessonContent}
+                      task="main-idea"
+                      correctAnswers={['0']}
+                      instructions="Click on the sentence that best expresses the main idea of this passage."
+                    />
+                  )}
+
+                  {subject.toLowerCase().includes('science') && (
+                    <ScienceLab
+                      concept="Soil pH"
+                      description="Experiment with soil pH by adding lime (raises pH) or sulfur (lowers pH). Most plants prefer slightly acidic to neutral soil (pH 6-7)."
+                      variables={[
+                        { name: 'lime', label: 'Add Lime', icon: 'plus', effect: 0.5 },
+                        { name: 'sulfur', label: 'Add Sulfur', icon: 'minus', effect: -0.5 },
+                      ]}
+                      visualType="ph-scale"
+                      initialValue={7}
+                      minValue={0}
+                      maxValue={14}
+                      optimalRange={[6, 7]}
+                      labels={{ 0: 'Very Acidic', 7: 'Neutral', 14: 'Very Basic' }}
+                    />
                   )}
 
                   <div className="border-2 border-[#2F4731] rounded-2xl overflow-hidden">

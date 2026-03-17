@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { BookOpen, ChevronRight, Loader2, X, AlertTriangle, MessageSquare, Send, TrendingUp, MapPin, RefreshCw } from 'lucide-react';
+import { Calculator, TrendingUp, BookOpen, MessageSquare, X, Send, Loader2, ChevronRight, AlertTriangle, MapPin, RefreshCw } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
+import { MathWorkspace } from '@/components/lessons/MathWorkspace';
 import Link from 'next/link';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -435,23 +436,18 @@ export default function MathPage() {
                     </div>
                   )}
 
-                  {lesson.imageSearchTerms?.length > 0 && (
-                    <div>
-                      <h4 className="font-bold text-[#2F4731] mb-2 text-sm uppercase tracking-wide">🖼️ See It</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {lesson.imageSearchTerms.map((term, i) => (
-                          <a
-                            key={i}
-                            href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(term)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#BD6809] text-[#BD6809] text-xs font-bold rounded-xl hover:bg-amber-50 transition-colors"
-                          >
-                            🔍 {term}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
+                  {/* Interactive Math Workspace - NO EXTERNAL LINKS */}
+                  {lesson.lessonType === 'Problem Solving' && (
+                    <MathWorkspace
+                      problem="Calculate the area using the formula: length × width"
+                      variables={[
+                        { name: 'length', label: 'Length', min: 1, max: 20, defaultValue: 10, unit: ' ft' },
+                        { name: 'width', label: 'Width', min: 1, max: 20, defaultValue: 5, unit: ' ft' },
+                      ]}
+                      formula="length * width"
+                      expectedAnswer={50}
+                      tolerance={1}
+                    />
                   )}
 
                   <div className="border-2 border-[#2F4731] rounded-2xl overflow-hidden">
