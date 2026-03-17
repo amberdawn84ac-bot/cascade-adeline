@@ -34,8 +34,22 @@ const COVER_COLORS = [
 const BOOK_IT_GOAL = 5;
 const BRAUMS_GOAL = 400;
 
+interface DailyLesson {
+  anchorText: string;
+  comprehension: string;
+  spellingWords: string[];
+  grammarFocus: string;
+  writingPrompt: string;
+  topic?: string;
+}
+
 export default function ReadingNookPage() {
-  const [activeTab, setActiveTab] = useState<'bookshelf' | 'coach' | 'rewards'>('bookshelf');
+  const [activeTab, setActiveTab] = useState<'daily' | 'bookshelf' | 'coach' | 'rewards'>('daily');
+
+  // Daily Literacy Hub
+  const [dailyLesson, setDailyLesson] = useState<DailyLesson | null>(null);
+  const [isGeneratingDaily, setIsGeneratingDaily] = useState(false);
+  const [dailyTopic, setDailyTopic] = useState('');
 
   // Bookshelf
   const [books, setBooks] = useState<LivingBook[]>([]);
@@ -151,6 +165,25 @@ export default function ReadingNookPage() {
     setLogMinutes('');
   };
 
+  const generateDailyLesson = async () => {
+    setIsGeneratingDaily(true);
+    try {
+      const res = await fetch('/api/reading-nook/daily', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: dailyTopic || 'homesteading' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDailyLesson(data);
+      }
+    } catch (e) {
+      console.error('Failed to generate daily lesson:', e);
+    } finally {
+      setIsGeneratingDaily(false);
+    }
+  };
+
   const currentMonthIndex = new Date().getMonth();
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const monthEntries = readingLog.filter(e => new Date(e.date).getMonth() === currentMonthIndex);
@@ -175,8 +208,8 @@ export default function ReadingNookPage() {
 
       {/* Tab Nav */}
       <div className="flex border-b border-amber-200 bg-amber-50/40">
-        {(['bookshelf', 'coach', 'rewards'] as const).map((tab) => {
-          const labels = { bookshelf: 'My Bookshelf', coach: 'Reading Coach', rewards: 'Reading Rewards' };
+        {(['daily', 'bookshelf', 'coach', 'rewards'] as const).map((tab) => {
+          const labels = { daily: '📚 Daily Literacy', bookshelf: 'My Bookshelf', coach: 'Reading Coach', rewards: 'Reading Rewards' };
           return (
             <button
               key={tab}
@@ -190,6 +223,131 @@ export default function ReadingNookPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
+
+        {/* ── DAILY LITERACY HUB ── */}
+        {activeTab === 'daily' && (
+          <div className="p-6 max-w-4xl mx-auto space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-amber-900 mb-2">Daily Literacy Hub</h2>
+              <p className="text-amber-700 italic">One story. Reading, spelling, grammar, and writing — all connected.</p>
+            </div>
+
+            {!dailyLesson ? (
+              <Card className="border-2 border-amber-200 bg-white shadow-lg">
+                <CardContent className="p-8 text-center space-y-6">
+                  <BookOpen className="w-16 h-16 text-amber-600 mx-auto" />
+                  <div>
+                    <h3 className="text-xl font-bold text-amber-900 mb-2">Generate Today's Lesson</h3>
+                    <p className="text-amber-700 text-sm mb-4">
+                      Adeline will create a unified literacy lesson with reading, spelling, grammar, and writing — all connected to one engaging story.
+                    </p>
+                  </div>
+                  <div className="max-w-md mx-auto">
+                    <Input
+                      placeholder="Topic (e.g., chickens, tractors, baking) or leave blank for surprise"
+                      value={dailyTopic}
+                      onChange={(e) => setDailyTopic(e.target.value)}
+                      className="mb-4"
+                    />
+                    <Button
+                      onClick={generateDailyLesson}
+                      disabled={isGeneratingDaily}
+                      className="w-full bg-amber-700 hover:bg-amber-800 text-white font-bold py-3"
+                    >
+                      {isGeneratingDaily ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Generating Your Lesson...
+                        </>
+                      ) : (
+                        <>
+                          <Book className="w-4 h-4 mr-2" />
+                          Generate Daily Lesson
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {/* Anchor Text */}
+                <Card className="border-2 border-amber-300 bg-amber-50">
+                  <CardContent className="p-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-amber-800 mb-3 flex items-center gap-2">
+                      📖 Today's Story
+                    </h3>
+                    <p className="text-lg leading-relaxed text-amber-900 font-serif">{dailyLesson.anchorText}</p>
+                  </CardContent>
+                </Card>
+
+                {/* Comprehension */}
+                <Card className="border-2 border-blue-200 bg-blue-50">
+                  <CardContent className="p-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-blue-800 mb-3 flex items-center gap-2">
+                      🤔 Comprehension Check
+                    </h3>
+                    <p className="text-blue-900 font-medium">{dailyLesson.comprehension}</p>
+                  </CardContent>
+                </Card>
+
+                {/* Spelling Words */}
+                <Card className="border-2 border-green-200 bg-green-50">
+                  <CardContent className="p-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-green-800 mb-3 flex items-center gap-2">
+                      ✏️ Spelling Words
+                    </h3>
+                    <div className="flex flex-wrap gap-3">
+                      {dailyLesson.spellingWords.map((word, i) => (
+                        <span
+                          key={i}
+                          className="px-4 py-2 bg-white border-2 border-green-300 rounded-lg text-green-900 font-bold text-lg"
+                        >
+                          {word}
+                        </span>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Grammar Focus */}
+                <Card className="border-2 border-purple-200 bg-purple-50">
+                  <CardContent className="p-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-purple-800 mb-3 flex items-center gap-2">
+                      🔍 Grammar Challenge
+                    </h3>
+                    <p className="text-purple-900 font-medium">{dailyLesson.grammarFocus}</p>
+                  </CardContent>
+                </Card>
+
+                {/* Writing Prompt */}
+                <Card className="border-2 border-rose-200 bg-rose-50">
+                  <CardContent className="p-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-rose-800 mb-3 flex items-center gap-2">
+                      ✍️ Writing Prompt
+                    </h3>
+                    <p className="text-rose-900 font-medium mb-4">{dailyLesson.writingPrompt}</p>
+                    <div className="bg-white border-2 border-rose-200 rounded-lg p-4 min-h-[150px]">
+                      <p className="text-rose-400 text-sm italic">Write your 3-5 sentence response here...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Generate New Lesson */}
+                <div className="text-center pt-4">
+                  <Button
+                    onClick={() => setDailyLesson(null)}
+                    variant="outline"
+                    className="border-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Generate New Lesson
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── MY BOOKSHELF ── */}
         {activeTab === 'bookshelf' && (
