@@ -46,7 +46,6 @@ const NAV_ITEMS = [
       { label: 'Homesteading', href: '/dashboard/domestic-arts', icon: ChefHat },
       { label: 'Expeditions', href: '/dashboard/expeditions', icon: MapPin },
       { label: 'Bible Study', href: '/dashboard/bible-study', icon: BookOpen },
-      { label: 'Writing Desk', href: '/dashboard/ela', icon: Feather },
       { label: 'Community Board', href: '/dashboard/community-board', icon: Users },
       { label: 'My Learning Path', href: '/dashboard/journey', icon: Mountain },
     ]

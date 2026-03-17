@@ -50,6 +50,8 @@ export default function ReadingNookPage() {
   const [dailyLesson, setDailyLesson] = useState<DailyLesson | null>(null);
   const [isGeneratingDaily, setIsGeneratingDaily] = useState(false);
   const [dailyTheme, setDailyTheme] = useState('');
+  const [writingResponse, setWritingResponse] = useState('');
+  const [isSavingLesson, setIsSavingLesson] = useState(false);
 
   // Bookshelf
   const [books, setBooks] = useState<LivingBook[]>([]);
@@ -320,28 +322,74 @@ export default function ReadingNookPage() {
                   </CardContent>
                 </Card>
 
-                {/* Writing Prompt */}
-                <Card className="border-2 border-rose-200 bg-rose-50">
+                {/* Writing Response */}
+                <Card className="border-2 border-rose-300 bg-rose-50">
                   <CardContent className="p-6">
                     <h3 className="text-sm font-black uppercase tracking-widest text-rose-800 mb-3 flex items-center gap-2">
-                      ✍️ Writing Prompt
+                      ✍️ Writing Response
                     </h3>
-                    <p className="text-rose-900 font-medium mb-4">{dailyLesson.writingPrompt}</p>
-                    <div className="bg-white border-2 border-rose-200 rounded-lg p-4 min-h-[150px]">
-                      <p className="text-rose-400 text-sm italic">Write your 3-5 sentence response here...</p>
-                    </div>
+                    <p className="text-rose-900 font-bold mb-4 text-lg">{dailyLesson.writingPrompt}</p>
+                    <textarea
+                      value={writingResponse}
+                      onChange={(e) => setWritingResponse(e.target.value)}
+                      placeholder="Write your 3-5 sentence response here..."
+                      className="w-full min-h-[200px] p-4 border-2 border-rose-200 rounded-lg focus:border-rose-400 focus:outline-none resize-y text-rose-900 bg-white"
+                      rows={8}
+                    />
+                    <p className="text-xs text-rose-600 mt-2 italic">
+                      {writingResponse.split(/[.!?]+/).filter(s => s.trim().length > 0).length} sentences written
+                    </p>
                   </CardContent>
                 </Card>
 
-                {/* Generate New Lesson */}
-                <div className="text-center pt-4">
+                {/* Submit and Actions */}
+                <div className="flex gap-4 justify-center pt-4">
                   <Button
-                    onClick={() => setDailyLesson(null)}
+                    onClick={async () => {
+                      setIsSavingLesson(true);
+                      try {
+                        // Save the complete ELA lesson with writing response
+                        await fetch('/api/reading-nook/save-lesson', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            lesson: dailyLesson,
+                            writingResponse,
+                            theme: dailyTheme,
+                          }),
+                        });
+                        alert('✅ ELA lesson saved! Great work!');
+                        setWritingResponse('');
+                        setDailyLesson(null);
+                      } catch (e) {
+                        console.error('Failed to save lesson:', e);
+                        alert('Failed to save lesson. Please try again.');
+                      } finally {
+                        setIsSavingLesson(false);
+                      }
+                    }}
+                    disabled={isSavingLesson || !writingResponse.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 text-lg"
+                  >
+                    {isSavingLesson ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      '📝 Submit ELA Lesson'
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setDailyLesson(null);
+                      setWritingResponse('');
+                    }}
                     variant="outline"
                     className="border-2 border-amber-300 text-amber-700 hover:bg-amber-50"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Generate New Lesson
+                    New Lesson
                   </Button>
                 </div>
               </div>
