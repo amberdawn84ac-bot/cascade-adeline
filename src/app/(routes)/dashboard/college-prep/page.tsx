@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -478,20 +479,25 @@ export default function FuturePrepPage() {
           <div className="space-y-6">
             <div className="grid md:grid-cols-3 gap-4">
               {[
-                { title: 'Electrical', desc: 'IBEW apprenticeship — 4-5 years, ~$60k starting', tag: 'Union Trade' },
-                { title: 'Plumbing', desc: 'UA Local programs — journeyman in 5 years', tag: 'Union Trade' },
-                { title: 'Welding', desc: 'AWS certification + pipeline work — high demand', tag: 'Certification' },
-                { title: 'Carpentry / Millwork', desc: 'Independent shop to union contractor pathway', tag: 'Trade' },
-                { title: 'Farrier', desc: 'American Farrier Assoc — certification + apprenticeship', tag: 'Agricultural' },
-                { title: 'HVAC/R', desc: 'EPA 608 cert + apprenticeship — $50–80k range', tag: 'Certification' },
+                { title: 'Electrical', desc: 'IBEW apprenticeship — 4-5 years, ~$60k starting', tag: 'Union Trade', id: 'electrician' },
+                { title: 'Plumbing', desc: 'UA Local programs — journeyman in 5 years', tag: 'Union Trade', id: 'plumber' },
+                { title: 'Welding', desc: 'AWS certification + pipeline work — high demand', tag: 'Certification', id: 'welder' },
+                { title: 'Carpentry / Millwork', desc: 'Independent shop to union contractor pathway', tag: 'Trade', id: 'carpenter' },
+                { title: 'Farrier', desc: 'American Farrier Assoc — certification + apprenticeship', tag: 'Agricultural', id: 'farrier' },
+                { title: 'HVAC/R', desc: 'EPA 608 cert + apprenticeship — $50–80k range', tag: 'Certification', id: 'hvac' },
               ].map((item, i) => (
-                <Card key={i} className="border-2 border-blue-100 hover:border-blue-400 transition-all cursor-default">
-                  <CardContent className="p-4">
-                    <span className="text-xs font-black uppercase tracking-widest text-blue-500">{item.tag}</span>
-                    <h3 className="font-bold text-blue-900 mt-1">{item.title}</h3>
-                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">{item.desc}</p>
-                  </CardContent>
-                </Card>
+                <Link key={i} href={`/dashboard/college-prep/trades/${item.id}`}>
+                  <Card className="border-2 border-blue-100 hover:border-blue-400 hover:shadow-lg transition-all cursor-pointer h-full">
+                    <CardContent className="p-4">
+                      <span className="text-xs font-black uppercase tracking-widest text-blue-500">{item.tag}</span>
+                      <h3 className="font-bold text-blue-900 mt-1 flex items-center gap-2">
+                        {item.title}
+                        <ChevronRight className="w-4 h-4 text-blue-400" />
+                      </h3>
+                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
             <AdelineChat context="The student is exploring trade and apprenticeship pathways as a primary post-graduation route. Ask them which trade they are considering and what concrete steps they have taken toward it." />
