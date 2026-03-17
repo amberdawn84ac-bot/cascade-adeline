@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChat } from '@ai-sdk/react';
 import { useRouter } from 'next/navigation';
+import { DailyBreadWidget } from '@/components/daily-bread/DailyBreadWidget';
 
 interface Credit {
   id: string;
@@ -300,9 +301,46 @@ export default function JourneyPage() {
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-10">
 
         {/* ═══════════════════════════════════════════════════
-            ZONE 2 — ADELINE'S COMMAND POST
+            ZONE 2 — ADELINE'S COMMAND POST & DAILY BREAD
         ═══════════════════════════════════════════════════ */}
-        <div className="relative">
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Daily Bread Widget */}
+          <div className="md:col-span-1">
+            <DailyBreadWidget onStudy={(prompt) => {
+              // Open lesson chat with Daily Bread study prompt
+              setLessonCredit({
+                id: 'daily-bread',
+                title: 'Daily Bread Study',
+                subject: 'Bible Study',
+                creditsNeeded: 0,
+                description: 'Deep dive into today\'s verse',
+                status: 'active'
+              });
+              setLesson({
+                lessonTitle: 'Daily Bread Study',
+                lessonType: 'Scripture Analysis',
+                timeEstimate: '20-30 minutes',
+                lessonContent: prompt,
+                keyFacts: [],
+                imageSearchTerms: [],
+                activity: {
+                  title: 'Scripture Study',
+                  fullInstructions: prompt,
+                  supplies: []
+                },
+                completionCriteria: 'Complete the deep dive study'
+              });
+              setShowLessonChat(true);
+              setLessonMessages([{
+                id: '1',
+                role: 'user',
+                content: prompt
+              }]);
+            }} />
+          </div>
+
+          {/* Adeline's Command Post */}
+          <div className="md:col-span-2 relative">
           {/* Compass SVG watermark */}
           <svg className="absolute right-4 top-4 w-16 h-16 opacity-5" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="45" stroke="#2F4731" strokeWidth="2" fill="none"/>
@@ -358,6 +396,7 @@ export default function JourneyPage() {
                 )}
               </div>
             </div>
+          </div>
           </div>
         </div>
 
