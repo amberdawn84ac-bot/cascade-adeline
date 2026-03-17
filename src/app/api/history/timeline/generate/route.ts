@@ -8,19 +8,19 @@ import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
-const timelineSchema = z.object({
-  topic: z.string().describe("The historical event or era"),
-  sanitizedMyth: z.string().describe("The mainstream, sanitized textbook narrative"),
-  historicalReality: z.string().describe("The unredacted historical truth based on the primary sources"),
-  primarySourcesCiting: z.array(z.string()).describe("List of actual primary sources or documents proving the reality"),
-  primarySourceCitation: z.string().describe("The exact name of the original primary source document, journal, or raw data used."),
-  directQuote: z.string().describe("A compelling, exact direct quote from that primary source that proves the historical or scientific reality."),
+const evidenceBoardSchema = z.object({
+  topic: z.string().describe("The historical event or era being investigated"),
+  standardNarrative: z.string().describe("The simplified, common textbook version of the event - what most history books say happened. Keep this concise and representative of the mainstream narrative."),
+  primaryEvidence: z.string().describe("A simulated or real excerpt from a primary source (journal entry, law text, letter, newspaper clipping, court record) from that exact time period that adds nuance or contradicts the standard narrative. Format this as if it's the actual historical document - use period-appropriate language and style."),
+  primarySourceCitation: z.string().describe("The exact name and date of the primary source document (e.g., 'Letter from Sarah Thompson to her sister, March 15, 1889' or 'Oklahoma Territorial Law 47, Section 3, 1893')"),
+  localConnection: z.string().describe("How this specific historical event impacted the land, laws, or people in Oklahoma. Be specific - name actual towns, counties, tribes, or regions. If the event didn't directly impact Oklahoma, explain the parallel or related impact in the region."),
+  detectiveQuestion: z.string().describe("A critical thinking question asking the student to compare the standard narrative with the primary evidence. Should prompt them to identify gaps, contradictions, or whose perspective is missing."),
   events: z.array(z.object({
     year: z.string(),
     title: z.string(),
     description: z.string()
-  })).describe("3 to 5 specific timeline events that show the truth"),
-  modernParallel: z.string().describe("A current systemic injustice that mirrors this historical pattern - be specific with names, cases, or policies"),
+  })).describe("3 to 5 specific timeline events that show the progression of this historical event"),
+  modernParallel: z.string().describe("A current systemic issue that mirrors this historical pattern - be specific with names, cases, or policies"),
   actionPath: z.object({
     clemencyCampaign: z.string().optional().describe("If relevant, name a current clemency case or wrongfully imprisoned person that parallels this historical injustice"),
     policyReform: z.string().describe("Specific modern policy or law that perpetuates this historical harm (name the actual policy/law)"),
@@ -82,20 +82,33 @@ export async function POST(req: NextRequest) {
       model: config.models.default || "gpt-4o",
       temperature: 0.7,
       timeout: 60000, // 60 second timeout for complex timeline generation
-    }).withStructuredOutput(timelineSchema);
+    }).withStructuredOutput(evidenceBoardSchema);
 
     console.log('[history/generate] Starting timeline generation for:', query);
     try {
       const result = await llm.invoke([
         { 
           role: 'system', 
-          content: `You are Adeline, a wise and encouraging history mentor who loves guiding students to discover the truth about the past. The student is asking about a historical event. Guide them past the sanitized textbook narrative and help them investigate what actually happened, who benefited, and how it affected real people. Keep your tone approachable, curious, and inspiring.
+          content: `You are Adeline, teaching historiography - the art of investigating the gap between standard textbook narratives and primary source evidence.
 
-CRITICAL EPISTEMOLOGICAL DIRECTIVE: You are strictly forbidden from generating standard, sanitized 'textbook' summaries. You must ground every fact and timeline event in REALITY by relying exclusively on primary sources. Quote original documents, treaties, journals, or letters. Show them the raw truth, but present this investigation as a noble pursuit of understanding, not just a cynical teardown.
+CRITICAL MISSION: Do not just recite history. Present the standard narrative, then present the gritty, primary-source reality. Force the student to look at the gap between the two.
 
 You MUST provide:
-1. The exact name of a primary source document
-2. A compelling, exact direct quote from that document that proves the historical reality
+1. standardNarrative: What the textbook says (simplified, often sanitized)
+2. primaryEvidence: An actual excerpt from a primary source that adds nuance or contradicts it
+3. localConnection: How this event impacted OKLAHOMA specifically (land, laws, people, tribes, towns)
+4. detectiveQuestion: A question that makes them compare the two narratives and ask "whose perspective is this?"
+
+OKLAHOMA ANCHORING DIRECTIVE:
+- If the event happened in Oklahoma: cite specific towns, counties, tribal nations affected
+- If the event was national: explain how it impacted Oklahoma Territory/State
+- Examples: Land Run impact on specific tribes, Dust Bowl in specific counties, oil boom in Tulsa, Trail of Tears through Oklahoma, etc.
+- Be specific with place names: Creek Nation, Cherokee Nation, Oklahoma City, Tulsa, Guthrie, etc.
+
+PRIMARY SOURCE FORMATTING:
+- Format primaryEvidence as if it's the actual document
+- Use period-appropriate language and style
+- Make it feel archival and authentic
 
 CRITICAL MODERN ACTION DIRECTIVE: After revealing the historical truth, you MUST identify a MODERN PARALLEL - a current systemic injustice that mirrors this historical pattern. Then provide a concrete actionPath:
 - If there's a relevant clemency campaign (someone unjustly imprisoned like this historical injustice), NAME THEM specifically
@@ -122,7 +135,7 @@ Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${stu
         metadata: {
           topic: query,
           eventsCount: result.events.length,
-          primarySourcesCited: result.primarySourcesCiting.length,
+          primarySourceCitation: result.primarySourceCitation,
         },
         masteryDemonstrated: true,
       });
@@ -132,7 +145,7 @@ Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${stu
         `Historical Research: ${result.topic}`,
         'History',
         creditResult,
-        `Researched ${result.topic} using ${result.primarySourcesCiting.length} primary sources`,
+        `Researched ${result.topic} using primary source: ${result.primarySourceCitation}`,
         { timeline: result }
       );
 
@@ -147,19 +160,14 @@ Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${stu
     } catch (llmError) {
       console.error("[history/generate] LLM error, using fallback:", llmError);
       
-      // Graceful fallback if AI fails - matches timelineSchema structure
+      // Graceful fallback if AI fails - matches evidenceBoardSchema structure
       return NextResponse.json({
         topic: query,
-        sanitizedMyth: `The standard textbook story about ${query} usually presents a simplified version of events, skipping over the complex realities and the diverse perspectives of all the people involved.`,
-        historicalReality: `The historical reality of ${query} is much more complex. Primary sources from the time reveal that there were many competing interests, and the outcomes affected different groups of people in vastly different ways. To fully understand this event, you should investigate primary source documents, letters, journals, and firsthand accounts from the period.`,
-        primarySourcesCiting: [
-          "Contemporary newspaper archives",
-          "Personal letters and diaries from the period",
-          "Official government documents and records",
-          "Eyewitness testimonies and oral histories"
-        ],
+        standardNarrative: `The standard textbook story about ${query} usually presents a simplified version of events, skipping over the complex realities and the diverse perspectives of all the people involved.`,
+        primaryEvidence: `[Historical Document]\n\nThe historical record shows that events were experienced differently depending on one's social position, economic status, and geographical location. Primary sources from this period reveal competing interests and vastly different outcomes for different groups of people.`,
         primarySourceCitation: "Various primary source documents from the historical period",
-        directQuote: "The historical record shows that events were experienced differently depending on one's social position, economic status, and geographical location.",
+        localConnection: `The events surrounding ${query} had significant impacts on Oklahoma Territory and the people living here, including effects on tribal nations, settlers, and the development of the region's laws and land use patterns.`,
+        detectiveQuestion: `Compare the standard textbook narrative with the primary source evidence. What perspectives or details are missing from the simplified version? Whose voices are centered, and whose are left out?`,
         events: [
           {
             year: "Early Period",

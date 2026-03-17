@@ -7,15 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
+import { HistoryEvidenceBoard } from '@/components/dashboard/HistoryEvidenceBoard';
 
 interface TimelineEntry {
   id?: string;
   topic: string;
-  sanitizedMyth: string;
-  historicalReality: string;
-  primarySourcesCiting: string[];
+  standardNarrative: string;
+  primaryEvidence: string;
   primarySourceCitation: string;
-  directQuote: string;
+  localConnection: string;
+  detectiveQuestion: string;
   events: Array<{
     year: string;
     title: string;
@@ -177,55 +178,24 @@ export default function HistoryPage() {
           </Button>
         </div>
 
-        {/* Generated Timeline Display */}
+        {/* Generated Timeline Display - Evidence Board */}
         {generatedTimeline && (
           <div className="space-y-6 border-t-2 border-indigo-100 pt-6">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-indigo-900 mb-2">{generatedTimeline.topic}</h3>
-            </div>
+            {/* Evidence Board Component */}
+            <HistoryEvidenceBoard
+              topic={generatedTimeline.topic}
+              standardNarrative={generatedTimeline.standardNarrative}
+              primaryEvidence={generatedTimeline.primaryEvidence}
+              primarySourceCitation={generatedTimeline.primarySourceCitation}
+              localConnection={generatedTimeline.localConnection}
+              detectiveQuestion={generatedTimeline.detectiveQuestion}
+              onSubmitAnswer={async (answer) => {
+                console.log('Detective answer submitted:', answer);
+                // Could save this to transcript or process further
+              }}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-red-50 p-6 rounded-xl border border-red-100">
-                <h4 className="font-bold text-red-800 mb-3 text-lg">📚 Sanitized Myth (Textbook Version)</h4>
-                <p className="text-red-700 leading-relaxed">{generatedTimeline.sanitizedMyth}</p>
-              </div>
-              
-              <div className="bg-green-50 p-6 rounded-xl border border-green-100">
-                <h4 className="font-bold text-green-800 mb-3 text-lg">🔍 Historical Reality (Primary Sources)</h4>
-                <p className="text-green-700 leading-relaxed">{generatedTimeline.historicalReality}</p>
-              </div>
-            </div>
-
-            {/* Primary Source Evidence */}
-            <div className="bg-amber-50 p-6 rounded-xl border-2 border-amber-300">
-              <h4 className="font-bold text-amber-900 mb-4 text-lg flex items-center gap-2">
-                <ScrollText className="w-5 h-5" />
-                Primary Source Evidence
-              </h4>
-              <div className="bg-white p-4 rounded-lg border border-amber-200 mb-4">
-                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-2">Document Citation:</p>
-                <p className="text-amber-900 font-medium">{generatedTimeline.primarySourceCitation}</p>
-              </div>
-              <div className="bg-[#FFFEF7] p-5 rounded-lg border-l-4 border-amber-600">
-                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-3">Direct Quote from Original Document:</p>
-                <blockquote className="text-amber-900 leading-relaxed italic" style={{ fontFamily: 'Georgia, serif' }}>
-                  "{generatedTimeline.directQuote}"
-                </blockquote>
-              </div>
-            </div>
-
-            <div className="bg-amber-50 p-6 rounded-xl border border-amber-100">
-              <h4 className="font-bold text-amber-800 mb-3 text-lg">📄 Additional Primary Sources</h4>
-              <ul className="space-y-2">
-                {(generatedTimeline.primarySourcesCiting || []).map((source, i) => (
-                  <li key={i} className="text-amber-700 flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full mt-2 flex-shrink-0"></span>
-                    {source}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
+            {/* Timeline Events */}
             <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
               <h4 className="font-bold text-indigo-800 mb-4 text-lg">⏰ Timeline Events</h4>
               <div className="space-y-4">
@@ -344,13 +314,13 @@ export default function HistoryPage() {
                     </h3>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 mb-4">
-                        <div className="bg-red-50 p-4 rounded-lg border border-red-100">
-                        <h4 className="text-xs font-bold text-red-800 uppercase mb-2">Sanitized Version</h4>
-                        <p className="text-sm text-red-700 line-clamp-3">{entry.sanitizedMyth}</p>
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <h4 className="text-xs font-bold text-blue-800 uppercase mb-2">Standard Narrative</h4>
+                        <p className="text-sm text-blue-700 line-clamp-3">{entry.standardNarrative}</p>
                       </div>
-                      <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                        <h4 className="text-xs font-bold text-green-800 uppercase mb-2">Historical Reality</h4>
-                        <p className="text-sm text-green-700 line-clamp-3">{entry.historicalReality}</p>
+                      <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                        <h4 className="text-xs font-bold text-amber-800 uppercase mb-2">Primary Evidence</h4>
+                        <p className="text-sm text-amber-700 line-clamp-3">{entry.primaryEvidence}</p>
                       </div>
                     </div>
 
@@ -372,7 +342,7 @@ export default function HistoryPage() {
 
                     <div className="mt-4 pt-4 border-t border-indigo-100 flex items-center justify-between">
                       <span className="text-xs text-indigo-500 italic">Community Investigation</span>
-                      <span className="text-xs text-indigo-400">{entry.primarySourcesCiting?.length || 0} sources cited</span>
+                      <span className="text-xs text-indigo-400">{entry.primarySourceCitation}</span>
                     </div>
                   </div>
                 </div>
