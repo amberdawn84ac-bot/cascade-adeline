@@ -818,6 +818,7 @@ model LivingBook {
   gutenbergId   String?  @map("gutenberg_id")
   isDownloaded  Boolean  @default(false) @map("is_downloaded")
   epubFileUrl   String?  @map("epub_file_url")
+  sourceLibrary String?  @map("source_library")
   pdfUrl        String?  @map("pdf_url")
   externalUrl   String?  @map("external_url")
   createdAt     DateTime @default(now()) @map("created_at")

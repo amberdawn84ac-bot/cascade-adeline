@@ -18,6 +18,7 @@ interface Book {
   gutenbergId?: string;
   isDownloaded?: boolean;
   epubFileUrl?: string;
+  sourceLibrary?: string;
   pdfUrl?: string;
   externalUrl?: string;
   chapters?: Array<{
@@ -171,6 +172,16 @@ export default function BookshelfBookPage() {
               {book.genre && (
                 <span className="inline-block bg-amber-800 text-white px-3 py-1 rounded-full text-sm font-bold ml-2">
                   {book.genre}
+                </span>
+              )}
+              {book.sourceLibrary && (
+                <span className={`inline-block text-white px-3 py-1 rounded-full text-sm font-bold ml-2 ${
+                  book.sourceLibrary === 'Standard Ebooks' 
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600' 
+                    : 'bg-blue-600'
+                }`}>
+                  {book.sourceLibrary === 'Standard Ebooks' ? '💎 ' : '📚 '}
+                  {book.sourceLibrary}
                 </span>
               )}
             </div>

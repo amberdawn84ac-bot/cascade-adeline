@@ -133,6 +133,7 @@ export async function GET(
         gutenbergId: dbBook.gutenbergId,
         isDownloaded: dbBook.isDownloaded,
         epubFileUrl: dbBook.epubFileUrl,
+        sourceLibrary: dbBook.sourceLibrary,
         pdfUrl: dbBook.pdfUrl,
         externalUrl: dbBook.externalUrl,
         coverUrl: dbBook.coverUrl,
