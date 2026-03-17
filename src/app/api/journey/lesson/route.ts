@@ -54,9 +54,27 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { subject, title, description } = await req.json();
+    const { subject, title, description, creditId } = await req.json();
     if (!subject || !title) {
       return NextResponse.json({ error: 'subject and title are required' }, { status: 400 });
+    }
+
+    // SERVER-FIRST BOUNCER: Check cache before generating
+    if (creditId) {
+      const cached = await prisma.cachedLesson.findFirst({
+        where: {
+          userId: user.userId,
+          creditId,
+          expiresAt: { gte: new Date() }, // Not expired
+        },
+        orderBy: { generatedAt: 'desc' },
+      });
+
+      if (cached) {
+        console.log('[journey/lesson] Cache HIT for creditId:', creditId);
+        return NextResponse.json(cached.lessonData);
+      }
+      console.log('[journey/lesson] Cache MISS for creditId:', creditId);
     }
 
     const studentContext = await buildStudentContextPrompt(user.userId);
@@ -123,6 +141,40 @@ CRITICAL LESSON DELIVERY RULES - "LIFE OF FRED" STYLE:
         content: `Generate today's lesson for the course: "${title}" (${subject})\nCourse description: ${description || 'Not provided'}`,
       },
     ]);
+
+    // SAVE TO CACHE: Store the generated lesson for 24 hours
+    if (creditId) {
+      try {
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24); // Cache for 24 hours
+
+        await prisma.cachedLesson.upsert({
+          where: {
+            userId_creditId: {
+              userId: user.userId,
+              creditId,
+            },
+          },
+          create: {
+            userId: user.userId,
+            creditId,
+            subject,
+            title,
+            lessonData: result as any,
+            expiresAt,
+          },
+          update: {
+            lessonData: result as any,
+            generatedAt: new Date(),
+            expiresAt,
+          },
+        });
+        console.log('[journey/lesson] Cached lesson for creditId:', creditId);
+      } catch (cacheError) {
+        console.error('[journey/lesson] Cache save failed:', cacheError);
+        // Don't fail the request if caching fails
+      }
+    }
 
     return NextResponse.json(result);
 

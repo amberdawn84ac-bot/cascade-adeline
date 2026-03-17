@@ -155,7 +155,12 @@ export default function JourneyPage() {
       const res = await fetch('/api/journey/lesson', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: credit.subject, title: credit.title, description: credit.description }),
+        body: JSON.stringify({ 
+          subject: credit.subject, 
+          title: credit.title, 
+          description: credit.description,
+          creditId: credit.id, // Pass creditId for caching
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
