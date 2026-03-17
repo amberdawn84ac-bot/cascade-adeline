@@ -479,13 +479,13 @@ export default function ReadingNookPage() {
                             </a>
                           )}
                           <a
-                            href={`https://openlibrary.org/search?q=${encodeURIComponent(book.title + ' ' + book.author)}`}
+                            href={`https://www.google.com/search?q=${encodeURIComponent(book.title + ' ' + book.author + ' Google Books')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-sky-600 hover:bg-sky-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
                           >
                             <BookOpen className="w-4 h-4" />
-                            Find on Open Library
+                            Find on Google Books
                           </a>
                           <a
                             href={`https://www.google.com/search?q=${encodeURIComponent(book.title + ' ' + book.author + ' read online free')}`}
