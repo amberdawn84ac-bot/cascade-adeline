@@ -9,19 +9,20 @@ export const maxDuration = 30;
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser();
   if (!user) return new Response('Unauthorized', { status: 401 });
 
   const { messages, entry: clientEntry } = await req.json();
+  const { id } = await params;
 
   // Load from DB if we have a real saved ID, otherwise use client-provided entry
   let entry = clientEntry;
-  if (!entry && params.id !== 'new') {
+  if (!entry && id !== 'new') {
     try {
       const te = await prisma.transcriptEntry.findUnique({
-        where: { id: params.id },
+        where: { id },
         select: { metadata: true },
       });
       if (te?.metadata) entry = te.metadata as Record<string, unknown>;
