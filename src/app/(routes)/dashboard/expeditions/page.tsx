@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Compass, Calendar, Clock, Users, Camera, BookOpen, Mountain, Building, Loader2, Heart, HandHeart } from 'lucide-react';
 import { z } from 'zod';
+import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 
 // Expedition schema
 type ExpeditionReport = {
@@ -238,10 +239,11 @@ export default function ExpeditionsPage() {
             </Card>
 
             {report && (
-              <Card className="relative">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="text-center flex-1">
+              <ErrorBoundary>
+                <Card className="relative">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="text-center flex-1">
                       {report.coordinates ? (
                         <Badge variant="outline" className="mb-2">{report.coordinates}</Badge>
                       ) : (
@@ -444,6 +446,7 @@ export default function ExpeditionsPage() {
                   </div>
                 </CardContent>
               </Card>
+              </ErrorBoundary>
             )}
           </TabsContent>
 
