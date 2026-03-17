@@ -7,6 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useChat } from '@ai-sdk/react';
 import { useRouter } from 'next/navigation';
 import { DailyBreadWidget } from '@/components/daily-bread/DailyBreadWidget';
+import { MathWorkspace } from '@/components/lessons/MathWorkspace';
+import { ELADetective } from '@/components/lessons/ELADetective';
+import { ScienceLab } from '@/components/lessons/ScienceLab';
 
 interface Credit {
   id: string;
@@ -673,24 +676,44 @@ export default function JourneyPage() {
                     </div>
                   )}
 
-                  {/* Image Search Links */}
-                  {lesson.imageSearchTerms?.length > 0 && (
-                    <div>
-                      <h4 className="font-bold text-[#2F4731] mb-2 text-sm uppercase tracking-wide">�️ See It</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {lesson.imageSearchTerms.map((term, i) => (
-                          <a
-                            key={i}
-                            href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(term)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#BD6809] text-[#BD6809] text-xs font-bold rounded-xl hover:bg-amber-50 transition-colors"
-                          >
-                            🔍 {term}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
+                  {/* Interactive Components - NO EXTERNAL LINKS */}
+                  {lessonCredit?.subject.toLowerCase().includes('math') && lesson.lessonType === 'Problem Solving' && (
+                    <MathWorkspace
+                      problem="Calculate the area using the formula: length × width"
+                      variables={[
+                        { name: 'length', label: 'Length', min: 1, max: 20, defaultValue: 10, unit: ' ft' },
+                        { name: 'width', label: 'Width', min: 1, max: 20, defaultValue: 5, unit: ' ft' },
+                      ]}
+                      formula="length * width"
+                      expectedAnswer={50}
+                      tolerance={1}
+                    />
+                  )}
+
+                  {lessonCredit?.subject.toLowerCase().includes('ela') && lesson.lessonType === 'Reading Comprehension' && (
+                    <ELADetective
+                      passage={lesson.lessonContent}
+                      task="main-idea"
+                      correctAnswers={['0']}
+                      instructions="Click on the sentence that best expresses the main idea of this passage."
+                    />
+                  )}
+
+                  {lessonCredit?.subject.toLowerCase().includes('science') && (
+                    <ScienceLab
+                      concept="Soil pH"
+                      description="Experiment with soil pH by adding lime (raises pH) or sulfur (lowers pH). Most plants prefer slightly acidic to neutral soil (pH 6-7)."
+                      variables={[
+                        { name: 'lime', label: 'Add Lime', icon: 'plus', effect: 0.5 },
+                        { name: 'sulfur', label: 'Add Sulfur', icon: 'minus', effect: -0.5 },
+                      ]}
+                      visualType="ph-scale"
+                      initialValue={7}
+                      minValue={0}
+                      maxValue={14}
+                      optimalRange={[6, 7]}
+                      labels={{ 0: 'Very Acidic', 7: 'Neutral', 14: 'Very Basic' }}
+                    />
                   )}
 
                   {/* Hands-On Activity */}
