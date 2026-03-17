@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -596,11 +597,15 @@ export default function SciencePage() {
                             {/* Entry Image */}
                             {activeEntry.imageUrl && (
                               <div className="mb-8 flex flex-col items-center gap-3">
-                                <img
-                                  src={activeEntry.imageUrl}
-                                  alt={activeEntry.title || activeEntry.topic || 'Encyclopedia illustration'}
-                                  className="w-full max-w-sm rounded-xl border-2 border-emerald-200 shadow-md"
-                                />
+                                <div className="relative w-full max-w-sm h-96">
+                                  <Image
+                                    src={activeEntry.imageUrl}
+                                    alt={activeEntry.title || activeEntry.topic || 'Encyclopedia illustration'}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 512px"
+                                    className="object-contain rounded-xl border-2 border-emerald-200 shadow-md"
+                                  />
+                                </div>
                                 {activeEntry.isColoringPage && (
                                   <button
                                     onClick={() => {
@@ -717,11 +722,15 @@ export default function SciencePage() {
                                 {/* Generated Image */}
                                 {generatedEntry.imageUrl && (
                                   <div className="mb-8 flex flex-col items-center gap-3">
-                                    <img
-                                      src={generatedEntry.imageUrl}
-                                      alt={generatedEntry.title || 'Encyclopedia illustration'}
-                                      className="w-full max-w-md rounded-xl border-2 border-emerald-200 shadow-md"
-                                    />
+                                    <div className="relative w-full max-w-md h-96">
+                                      <Image
+                                        src={generatedEntry.imageUrl}
+                                        alt={generatedEntry.title || 'Encyclopedia illustration'}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 448px"
+                                        className="object-contain rounded-xl border-2 border-emerald-200 shadow-md"
+                                      />
+                                    </div>
                                     {generatedEntry.isColoringPage && (
                                       <button
                                         onClick={() => {

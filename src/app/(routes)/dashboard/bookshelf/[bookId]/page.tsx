@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BookOpen, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Book {
   id: string;
@@ -155,11 +156,16 @@ export default function BookshelfBookPage() {
           </Link>
           <div className="flex items-start gap-6">
             {book.coverUrl && (
-              <img 
-                src={book.coverUrl} 
-                alt={book.title}
-                className="w-32 h-48 object-cover rounded-lg shadow-lg border-2 border-amber-700"
-              />
+              <div className="relative w-32 h-48 flex-shrink-0">
+                <Image 
+                  src={book.coverUrl} 
+                  alt={book.title}
+                  fill
+                  sizes="128px"
+                  className="object-cover rounded-lg shadow-lg border-2 border-amber-700"
+                  priority
+                />
+              </div>
             )}
             <div className="flex-1">
               <h1 className="text-4xl font-bold mb-2">{book.title}</h1>

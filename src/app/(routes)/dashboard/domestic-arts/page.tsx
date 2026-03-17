@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -281,8 +282,8 @@ export default function HomesteadingPage() {
                   </div>
 
                   {photoPreview && (
-                    <div className="mb-4">
-                      <img src={photoPreview} alt="Preview" className="max-w-md mx-auto rounded-lg border-2 border-purple-300" />
+                    <div className="mb-4 relative w-full max-w-md mx-auto h-64">
+                      <Image src={photoPreview} alt="Preview" fill sizes="448px" className="object-contain rounded-lg border-2 border-purple-300" />
                     </div>
                   )}
 

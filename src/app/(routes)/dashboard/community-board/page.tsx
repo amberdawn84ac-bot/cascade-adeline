@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, Heart, MessageCircle, Share2, Loader2, Sparkles, Award } from 'lucide-react';
 
@@ -102,9 +103,9 @@ export default function CommunityBoardPage() {
             <Card key={item.id} className="border-2 border-[#E7DAC3] overflow-hidden hover:border-[#BD6809] transition-colors">
               {/* Author Header */}
               <div className="p-4 flex items-center gap-3 border-b border-[#E7DAC3] bg-white">
-                <div className="w-10 h-10 rounded-full bg-[#2F4731] text-white flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-full bg-[#2F4731] text-white flex items-center justify-center font-bold relative overflow-hidden">
                   {item.author.avatarUrl ? (
-                    <img src={item.author.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                    <Image src={item.author.avatarUrl} alt="" fill sizes="40px" className="object-cover" />
                   ) : (
                     item.author.name.charAt(0).toUpperCase()
                   )}
@@ -130,8 +131,8 @@ export default function CommunityBoardPage() {
                 <p className="text-[#2F4731]/80 mb-4">{item.description}</p>
                 
                 {item.imageUrl && (
-                  <div className="rounded-xl overflow-hidden border-2 border-[#E7DAC3] mb-4">
-                    <img src={item.imageUrl} alt={item.title} className="w-full h-auto object-cover max-h-[400px]" />
+                  <div className="rounded-xl overflow-hidden border-2 border-[#E7DAC3] mb-4 relative w-full h-96">
+                    <Image src={item.imageUrl} alt={item.title} fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover" />
                   </div>
                 )}
 
