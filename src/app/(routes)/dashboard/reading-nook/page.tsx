@@ -49,7 +49,7 @@ export default function ReadingNookPage() {
   // Daily Literacy Hub
   const [dailyLesson, setDailyLesson] = useState<DailyLesson | null>(null);
   const [isGeneratingDaily, setIsGeneratingDaily] = useState(false);
-  const [dailyTopic, setDailyTopic] = useState('');
+  const [dailyTheme, setDailyTheme] = useState('');
 
   // Bookshelf
   const [books, setBooks] = useState<LivingBook[]>([]);
@@ -171,7 +171,7 @@ export default function ReadingNookPage() {
       const res = await fetch('/api/reading-nook/daily', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: dailyTopic || 'homesteading' }),
+        body: JSON.stringify({ dailyTheme: dailyTheme || 'homesteading' }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -229,7 +229,7 @@ export default function ReadingNookPage() {
           <div className="p-6 max-w-4xl mx-auto space-y-6">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-amber-900 mb-2">Daily Literacy Hub</h2>
-              <p className="text-amber-700 italic">One story. Reading, spelling, grammar, and writing — all connected.</p>
+              <p className="text-amber-700 italic">Choose your learning theme. Reading, spelling, grammar, and writing — all connected to what YOU want to explore today.</p>
             </div>
 
             {!dailyLesson ? (
@@ -244,9 +244,9 @@ export default function ReadingNookPage() {
                   </div>
                   <div className="max-w-md mx-auto">
                     <Input
-                      placeholder="Topic (e.g., chickens, tractors, baking) or leave blank for surprise"
-                      value={dailyTopic}
-                      onChange={(e) => setDailyTopic(e.target.value)}
+                      placeholder="What do you want to learn about today? (e.g., chickens, tractors, baking)"
+                      value={dailyTheme}
+                      onChange={(e) => setDailyTheme(e.target.value)}
                       className="mb-4"
                     />
                     <Button

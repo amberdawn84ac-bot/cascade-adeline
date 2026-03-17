@@ -20,10 +20,10 @@ export async function POST(req: NextRequest) {
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
     const body = await req.json();
-    const { topic } = body;
+    const { topic, dailyTheme } = body;
     
-    // Use a default topic if none provided
-    const lessonTopic = topic || 'homesteading';
+    // Use dailyTheme if provided (from Daily Expedition), otherwise fall back to topic or default
+    const lessonTopic = dailyTheme || topic || 'homesteading';
 
     // Resolve grade bracket for cache and age-appropriate content
     const userData = await req.json().then(() => 
@@ -53,15 +53,21 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: `You are Adeline, generating a unified Daily Literacy lesson for a student. This is NOT four separate worksheets. This is ONE cohesive learning experience where reading, spelling, grammar, and writing all connect to a single engaging story.
 
+CRITICAL BINDING — TODAY'S THEME:
+You are writing the ELA Anchor Text for today's lesson. The global theme for today is: "${lessonTopic}".
+You MUST write the Anchor Text specifically about this theme. This is not optional — the entire lesson must revolve around this exact topic.
+The spelling words, grammar challenge, and writing prompt must all branch directly from this specific text.
+
 CRITICAL PHILOSOPHY — UNIFIED ELA:
-All four components (reading, spelling, grammar, writing) must be tightly integrated around ONE anchor text. The student reads about a backhoe moving dirt, spells words from that story, finds grammar in that same text, and writes about what they would dig up. Everything connects.
+All four components (reading, spelling, grammar, writing) must be tightly integrated around ONE anchor text about "${lessonTopic}". The student reads about this topic, spells words from that story, finds grammar in that same text, and writes about their thoughts on it. Everything connects.
 
 ANCHOR TEXT REQUIREMENTS:
 - 3-5 sentences maximum
-- About a real-world homesteading topic (animals, tools, gardening, building, cooking, nature)
+- MUST be about: ${lessonTopic}
 - Vivid and concrete — use sensory details
 - Connected to the student's interests from their profile
 - Written at EXACTLY the student's reading level (see student context below)
+- Make it feel real and immediate, not abstract
 
 SPELLING WORDS — AGE-APPROPRIATE PHONICS:
 ${studentContext.includes('K') || studentContext.includes('1') || studentContext.includes('2') ? 
