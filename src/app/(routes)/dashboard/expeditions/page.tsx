@@ -417,7 +417,7 @@ export default function ExpeditionsPage() {
                         </div>
                         <Button 
                           onClick={() => {
-                            const actionPlan = `STEWARDSHIP MISSION: ${report.location}\n\nTHREAT: ${report.stewardshipAction!.environmentalThreat}\n\nWHO DEPENDS ON THIS: ${report.stewardshipAction!.affectedCommunity}\n\nACTION STEPS:\n${report.stewardshipAction!.actionSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nDELIVERY TARGET: ${report.stewardshipAction!.deliveryTarget}`;
+                            const actionPlan = `STEWARDSHIP MISSION: ${report.location}\n\nTHREAT: ${report.stewardshipAction!.environmentalThreat}\n\nWHO DEPENDS ON THIS: ${report.stewardshipAction!.affectedCommunity}\n\nACTION STEPS:\n${report.stewardshipAction!.actionSteps?.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n') || 'No action steps available'}\n\nDELIVERY TARGET: ${report.stewardshipAction!.deliveryTarget}`;
                             navigator.clipboard.writeText(actionPlan);
                             alert('Stewardship mission copied! Execute it to serve your community.');
                           }}
