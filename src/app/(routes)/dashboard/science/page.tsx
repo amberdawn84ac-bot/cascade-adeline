@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -316,6 +317,35 @@ export default function SciencePage() {
 
   const activeEntry = entries.find(e => e.id === selectedId) || (entries.length > 0 ? entries[entries.length - 1] : null);
 
+  // Custom renderer for vocabulary words - makes bold text clickable
+  const VocabText = ({ children, onVocabClick }: { children: string; onVocabClick: (word: string) => void }) => {
+    return (
+      <ReactMarkdown
+        components={{
+          strong: ({ children }) => {
+            const text = String(children);
+            return (
+              <strong
+                onClick={() => onVocabClick(text)}
+                className="text-xl font-extrabold text-emerald-600 hover:text-emerald-500 hover:underline cursor-pointer transition-colors inline-block mx-0.5"
+              >
+                {children}
+              </strong>
+            );
+          },
+          p: ({ children }) => <span>{children}</span>,
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    );
+  };
+
+  const handleVocabClick = (word: string) => {
+    setDiscoveryQuery(word);
+    handleGenerateEntry();
+  };
+
   // Encyclopedia Functions
   const handleGenerateEntry = async () => {
     if (!discoveryQuery.trim()) return;
@@ -593,14 +623,18 @@ export default function SciencePage() {
                                     <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
                                         🔬 Core Concept
                                     </h3>
-                                    <p className="text-emerald-900 leading-relaxed">{activeEntry.coreConcept}</p>
+                                    <div className="text-emerald-900 leading-relaxed text-lg">
+                                      <VocabText onVocabClick={handleVocabClick}>{activeEntry.coreConcept || ''}</VocabText>
+                                    </div>
                                 </section>
 
                                 <section className="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-r-xl">
                                     <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
                                         🌱 Applied Reality
                                     </h3>
-                                    <p className="text-emerald-800 leading-relaxed">{activeEntry.appliedReality}</p>
+                                    <div className="text-emerald-800 leading-relaxed text-lg">
+                                      <VocabText onVocabClick={handleVocabClick}>{activeEntry.appliedReality || ''}</VocabText>
+                                    </div>
                                 </section>
                             </div>
                         </div>
@@ -710,14 +744,18 @@ export default function SciencePage() {
                                         <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
                                             🔬 Core Concept
                                         </h3>
-                                        <p className="text-emerald-900 leading-relaxed">{generatedEntry.coreConcept}</p>
+                                        <div className="text-emerald-900 leading-relaxed text-lg">
+                                          <VocabText onVocabClick={handleVocabClick}>{generatedEntry.coreConcept || ''}</VocabText>
+                                        </div>
                                     </section>
 
                                     <section className="bg-emerald-50 border-l-4 border-emerald-500 p-5 rounded-r-xl">
                                         <h3 className="font-bold text-emerald-700 uppercase text-sm tracking-wide mb-3 flex items-center gap-2">
                                             🌱 Applied Reality
                                         </h3>
-                                        <p className="text-emerald-800 leading-relaxed">{generatedEntry.appliedReality}</p>
+                                        <div className="text-emerald-800 leading-relaxed text-lg">
+                                          <VocabText onVocabClick={handleVocabClick}>{generatedEntry.appliedReality || ''}</VocabText>
+                                        </div>
                                     </section>
                                 </div>
                                 

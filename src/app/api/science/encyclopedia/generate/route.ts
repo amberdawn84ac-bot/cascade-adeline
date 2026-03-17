@@ -61,8 +61,17 @@ REQUIRED — OUTPUT AN INTERACTIVE LESSON:
 You MUST output exactly 3 fields that create an engaging, hands-on learning experience:
 
 1. coreConcept: A thrilling scientific explanation adapted EXACTLY to the student's grade level. Make them feel like they're discovering a secret about how the world works. No dry definitions.
+   
+   CRITICAL FORMATTING RULE — RABBIT HOLE VOCABULARY:
+   Identify 3 to 5 crucial scientific vocabulary words in your coreConcept text. Format these words as bold text wrapped in double asterisks. These words will become clickable links that let students dive deeper.
+   Example: "The greenhouse needs **thermal mass** to store heat. **Photosynthesis** happens when plants use **sunlight** to make food."
+   Choose words that are:
+   - Essential to understanding the concept
+   - Worth exploring in depth
+   - Appropriate for the student's grade level
+   - Not too basic (avoid "water" or "plant" unless it's a deep dive into that specific topic)
 
-2. appliedReality: Connect this science directly to their physical world — farm, garden, kitchen, backyard, animals. Make it feel urgent and relevant to their actual life.
+2. appliedReality: Connect this science directly to their physical world — farm, garden, kitchen, backyard, animals. Make it feel urgent and relevant to their actual life. Also use **bold formatting** for 1-2 key vocabulary words here.
 
 3. fieldChallenge: A specific physical task they can do RIGHT NOW. End with ONE question they can only answer by actually doing it. Force them off the screen and into the real world.
 
