@@ -166,7 +166,6 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
           <div className="text-center"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Part of Speech</p><p className="italic text-[#2F4731]/70 text-sm">{word.partOfSpeech}</p></div>
           <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Definition</p><p className="text-[#2F4731]">{word.definition}</p></div>
           <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Used in a Sentence</p><p className="text-[#2F4731] italic">"{word.usedInSentence.replace(new RegExp(`\\b${word.word}\\b`, 'gi'), '______')}"</p></div>
-          <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 text-sm text-amber-800">💡 <strong>Origin:</strong> {word.origin}</div>
           <div className="flex gap-2">
             <Button onClick={() => speakWord(word)} variant="outline" className="border-2 border-amber-300 text-amber-700 gap-1"><Volume2 className="w-4 h-4" /> Hear Again</Button>
             <Button onClick={() => { stopSpeaking(); setPhase('type'); setTimeout(() => inputRef.current?.focus(), 100); }} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-lg py-6 rounded-2xl">I&apos;m Ready to Spell It!</Button>
@@ -179,7 +178,7 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
           <p className="text-[#2F4731]/70">Type the spelling of the word you just studied:</p>
           <p className="text-xs text-[#2F4731]/50 italic">{word?.definition}</p>
           <div className="flex gap-2">
-            <Input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} placeholder="Type or speak the word…" className="text-lg text-center font-mono border-2 border-amber-300 focus:border-amber-500" autoComplete="off" autoCapitalize="none" />
+            <Input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} placeholder="Type or speak the word…" className="text-lg text-center font-mono border-2 border-amber-300 focus:border-amber-500" autoComplete="off" autoCapitalize="none" spellCheck="false" autoCorrect="off" />
             <button
               type="button"
               onMouseDown={() => startListening(t => { setInput(t); })}
