@@ -12,6 +12,11 @@ const dailyELASchema = z.object({
   spellingWords: z.array(z.string()).describe("5 to 10 spelling or vocabulary words pulled directly from or closely related to the anchor text. Follow age-appropriate phonics patterns (e.g., CVC words for K-1, digraphs for 2-3, prefixes/roots for 4+). Include the actual words from the text when possible."),
   grammarFocus: z.string().describe("A quick, concrete grammar challenge based on the anchor text. Examples: 'Find the three action verbs in the story', 'Circle all the nouns that name animals', 'Underline the sentence that asks a question'. Make it hands-on and specific to the text."),
   writingPrompt: z.string().describe("A short prompt asking the student to write 3-5 sentences extending or responding to the anchor text. Make it personal and opinion-based. Examples: 'If you had a backhoe, what would you dig up and why?', 'Would you rather raise chickens or goats? Explain your choice.'"),
+  requiredReading: z.object({
+    title: z.string().describe("The full title of the book"),
+    bookId: z.string().describe("URL-safe slug for the book (e.g., 'little-house-on-the-prairie', 'lies-my-teacher-told-me')"),
+    chapterOrPage: z.string().optional().describe("Specific chapter or page reference (e.g., 'Chapter 2', 'Pages 45-67')"),
+  }).optional().describe("If this lesson requires the student to read a specific book from their curriculum, include this object with the book details. Use standardized bookId slugs."),
 });
 
 export async function POST(req: NextRequest) {
@@ -89,6 +94,18 @@ WRITING PROMPT — PERSONAL AND CONNECTED:
 - 3-5 sentences expected (adjust for age)
 - Opinion or narrative style
 - Make them WANT to write about it
+
+LIBRARIAN DIRECTIVE — BOOK LINKING:
+- If your lesson requires the student to read a specific book from their curriculum, you MUST include the requiredReading object
+- Use standardized URL slugs for bookId:
+  * 'little-house-on-the-prairie' for Little House on the Prairie
+  * 'farmer-boy' for Farmer Boy
+  * 'charlotte-web' for Charlotte's Web
+  * 'lies-my-teacher-told-me' for Lies My Teacher Told Me
+  * 'people-history-united-states' for A People's History of the United States
+  * 'narrative-life-frederick-douglass' for Narrative of the Life of Frederick Douglass
+- Include specific chapter or page references when relevant
+- Only include requiredReading if the lesson genuinely requires reading from a specific book
 
 ${studentContext}`,
       },

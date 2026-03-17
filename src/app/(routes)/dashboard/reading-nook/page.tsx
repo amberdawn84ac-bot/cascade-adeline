@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, BookOpen, Send, Book, RefreshCw, Volume2, Mic, MicOff } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
 import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
+import { BookTeleportButton } from '@/components/dashboard/BookTeleportButton';
 
 interface LivingBook {
   title: string;
@@ -41,6 +42,11 @@ interface DailyLesson {
   grammarFocus: string;
   writingPrompt: string;
   topic?: string;
+  requiredReading?: {
+    title: string;
+    bookId: string;
+    chapterOrPage?: string;
+  };
 }
 
 export default function ReadingNookPage() {
@@ -341,6 +347,26 @@ export default function ReadingNookPage() {
                     </p>
                   </CardContent>
                 </Card>
+
+                {/* Required Reading - Book Teleport */}
+                {dailyLesson.requiredReading && (
+                  <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100">
+                    <CardContent className="p-6">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-amber-900 mb-4 flex items-center gap-2">
+                        📚 Required Reading
+                      </h3>
+                      <p className="text-amber-800 mb-4 text-sm">
+                        This lesson requires you to read from your bookshelf. Click below to open the book:
+                      </p>
+                      <BookTeleportButton
+                        title={dailyLesson.requiredReading.title}
+                        bookId={dailyLesson.requiredReading.bookId}
+                        chapterOrPage={dailyLesson.requiredReading.chapterOrPage}
+                        className="w-full py-6"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Submit and Actions */}
                 <div className="flex gap-4 justify-center pt-4">
