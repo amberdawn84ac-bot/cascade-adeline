@@ -4,7 +4,15 @@ import { useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
 
 const GRADE_LEVELS = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const INTEREST_OPTIONS = ['Science', 'Math', 'Reading', 'Writing', 'History', 'Art', 'Music', 'Coding', 'Nature', 'Business', 'Sports', 'Cooking'];
+const INTEREST_OPTIONS = [
+  'Chickens & Poultry', 'Horses', 'Sheep & Wool', 'Goats', 'Rabbits',
+  'Gardening', 'Canning & Preservation', 'Greenhouse', 'Soil & Composting',
+  'Off-Grid Systems', 'Building & Woodworking', 'Welding & Metalwork',
+  'Cooking & Baking', 'Soap & Candle Making', 'Sewing & Textiles',
+  'Animals & Zoology', 'Science', 'History', 'Math', 'Art',
+  'Music', 'Reading', 'Writing', 'Coding', 'Minecraft',
+  'Debate', 'Film Making', 'Nature & Ecology', 'Entrepreneurship',
+];
 
 interface Props {
   user: { name?: string; email?: string; role?: string; gradeLevel?: string; interests?: string[]; learningStyle?: string };
