@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
         userId: user.userId,
         activityName: `Daily Literacy: ${theme || lesson.topic || 'ELA Lesson'}`,
         mappedSubject: 'English Language Arts',
-        creditsEarned: 0.25, // Unified ELA lesson worth 0.25 credits
+        creditsEarned: 0.004, // ~1/250th of a credit = 1 day of ELA work (1 credit per year ÷ 250 school days)
         dateCompleted: new Date(),
         notes: `Completed unified ELA lesson. Writing response: ${writingResponse.substring(0, 200)}${writingResponse.length > 200 ? '...' : ''}`,
         metadata: {
