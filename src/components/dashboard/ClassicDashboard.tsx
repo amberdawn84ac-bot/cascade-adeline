@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Calculator, Beaker, Globe, Printer, Loader2, ChevronRight } from 'lucide-react';
+import { BookOpen, Calculator, Beaker, Globe, Printer, Loader2, ChevronRight, Map } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 interface ClassicLesson {
   subject: string;
@@ -32,10 +33,12 @@ const SUBJECTS = [
 ];
 
 export function ClassicDashboard() {
+  const router = useRouter();
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
   const [lesson, setLesson] = useState<ClassicLesson | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
 
   const generateLesson = async (subjectId: string) => {
     setActiveSubject(subjectId);
@@ -61,6 +64,21 @@ export function ClassicDashboard() {
       setError(err instanceof Error ? err.message : 'Failed to generate lesson');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const switchToExpedition = async () => {
+    setSwitching(true);
+    try {
+      await fetch('/api/users/onboarding', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learningStyle: 'EXPEDITION' }),
+      });
+      router.push('/dashboard/journey');
+    } catch (err) {
+      console.error('Failed to switch mode:', err);
+      setSwitching(false);
     }
   };
 
@@ -150,10 +168,21 @@ export function ClassicDashboard() {
     <div className="min-h-screen bg-[#FFFEF7]">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-            Classic Lessons
-          </h1>
+        <div className="text-center space-y-3">
+          <div className="flex items-center justify-center gap-4">
+            <h1 className="text-4xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+              Classic Lessons
+            </h1>
+            <Button
+              onClick={switchToExpedition}
+              disabled={switching}
+              variant="outline"
+              className="border-2 border-[#BD6809] text-[#BD6809] hover:bg-[#BD6809] hover:text-white gap-2"
+            >
+              {switching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Map className="w-4 h-4" />}
+              Switch to Expedition Mode
+            </Button>
+          </div>
           <p className="text-[#2F4731]/70 text-lg">
             Traditional, structured lessons with printable worksheets
           </p>

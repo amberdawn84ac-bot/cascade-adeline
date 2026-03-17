@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Mountain, TrendingUp, MapPin, MessageSquare, X, Loader2, Calendar, Award, AlertTriangle, BookOpen, ChevronRight, Send } from 'lucide-react';
+import { Mountain, TrendingUp, MapPin, MessageSquare, X, Loader2, Calendar, Award, AlertTriangle, BookOpen, ChevronRight, Send, BookMarked } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChat } from '@ai-sdk/react';
+import { useRouter } from 'next/navigation';
 
 interface Credit {
   id: string;
@@ -47,6 +48,7 @@ interface JourneyPlan {
 }
 
 export default function JourneyPage() {
+  const router = useRouter();
   const [plan, setPlan] = useState<JourneyPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -57,6 +59,7 @@ export default function JourneyPage() {
   const [lessonLoading, setLessonLoading] = useState(false);
   const [lessonError, setLessonError] = useState<string | null>(null);
   const [showLessonChat, setShowLessonChat] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const lessonChatEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading: isChatLoading } = useChat({
@@ -117,6 +120,21 @@ export default function JourneyPage() {
   useEffect(() => {
     loadPlan();
   }, []);
+
+  const switchToClassic = async () => {
+    setSwitching(true);
+    try {
+      await fetch('/api/users/onboarding', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learningStyle: 'CLASSIC' }),
+      });
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Failed to switch mode:', err);
+      setSwitching(false);
+    }
+  };
 
   const handleChangeRoute = (credit: Credit) => {
     setSelectedCredit(credit);
@@ -214,9 +232,21 @@ export default function JourneyPage() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Left: title + progress */}
             <div>
-              <p className="text-[#BD6809] font-bold uppercase tracking-widest text-xs mb-2">
-                Graduation Ascent
-              </p>
+              <div className="flex items-center gap-3 mb-2">
+                <p className="text-[#BD6809] font-bold uppercase tracking-widest text-xs">
+                  Graduation Ascent
+                </p>
+                <Button
+                  onClick={switchToClassic}
+                  disabled={switching}
+                  variant="outline"
+                  size="sm"
+                  className="border border-white/30 text-white hover:bg-white/10 gap-1.5 text-xs"
+                >
+                  {switching ? <Loader2 className="w-3 h-3 animate-spin" /> : <BookMarked className="w-3 h-3" />}
+                  Classic Mode
+                </Button>
+              </div>
               <h1 className="text-5xl font-bold leading-tight mb-4" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                 The Summit
               </h1>
