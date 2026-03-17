@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         mappedSubject: 'Science',
         creditsEarned: 0.1, 
         dateCompleted: new Date(),
-        notes: entry.observation,
+        notes: `Interactive science lesson: ${entry.title}`,
         metadata: entry, 
       }
     });

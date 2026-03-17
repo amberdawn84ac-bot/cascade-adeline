@@ -26,21 +26,19 @@ export async function GET() {
       },
     });
 
-    // Transform to ScienceEntry format
+    // Transform to interactive lesson format
     const herbariumEntries = entries.map((entry) => {
       const metadata = entry.metadata as any;
       return {
         id: entry.id,
         title: metadata?.title || entry.activityName.replace('Encyclopedia: ', ''),
         topic: metadata?.title || entry.activityName.replace('Encyclopedia: ', ''),
-        category: metadata?.category || 'Science',
-        hypothesis: metadata?.hypothesis || '',
-        observation: metadata?.observation || '',
-        conclusion: metadata?.conclusion || '',
-        funFact: metadata?.funFact || '',
-        fieldNotes: metadata?.fieldNotes || [],
-        references: metadata?.references || [],
-        sources: metadata?.sources || [],
+        coreConcept: metadata?.coreConcept || '',
+        appliedReality: metadata?.appliedReality || '',
+        fieldChallenge: metadata?.fieldChallenge || '',
+        imageUrl: metadata?.imageUrl || null,
+        isColoringPage: metadata?.isColoringPage || false,
+        createdAt: entry.dateCompleted,
       };
     });
 
