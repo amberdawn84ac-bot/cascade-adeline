@@ -8,31 +8,33 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Compass, Calendar, Clock, Users, Camera, BookOpen, Mountain, Building, Loader2, Heart, HandHeart } from 'lucide-react';
+import { z } from 'zod';
 
-interface ExpeditionReport {
-  location: string;
-  coordinates: string;
-  geology: {
-    formation: string;
-    rocks: string[];
+// Expedition schema
+type ExpeditionReport = {
+  location?: string;
+  coordinates?: string;
+  geology?: {
+    formation?: string;
+    rocks?: string[];
   };
-  archaeology: {
-    era: string;
-    remnants: string;
+  archaeology?: {
+    era?: string;
+    remnants?: string;
   };
-  sociology: {
-    culture: string;
-    connection: string;
+  sociology?: {
+    culture?: string;
+    connection?: string;
   };
-  characterFocus: string;
-  communityImpact: string;
+  characterFocus?: string;
+  communityImpact?: string;
   stewardshipAction?: {
-    environmentalThreat: string;
-    affectedCommunity: string;
-    actionSteps: string[];
-    deliveryTarget: string;
+    environmentalThreat?: string;
+    affectedCommunity?: string;
+    actionSteps?: string[];
+    deliveryTarget?: string;
   };
-}
+};
 
 interface FieldJournalEntry {
   id: string;
@@ -70,17 +72,53 @@ export default function ExpeditionsPage() {
   const handleGenerateReport = async () => {
     if (!locationInput.trim()) return;
     setIsGenerating(true);
-    setReport(null);
+    setReport({});
     setSaveSuccess(false);
+    
     try {
       const response = await fetch('/api/expeditions/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ location: locationInput }),
       });
+
       if (!response.ok) throw new Error('Failed to generate report');
-      const data = await response.json();
-      setReport(data);
+      
+      // Check if response is JSON (cached) or stream (new generation)
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        // Cached response - instant
+        const data = await response.json();
+        setReport(data);
+      } else {
+        // Streaming response - progressive
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('0:')) {
+                try {
+                  const jsonStr = line.slice(2);
+                  const partialData = JSON.parse(jsonStr);
+                  setReport(prev => ({ ...prev, ...partialData }));
+                } catch (e) {
+                  // Ignore parse errors for partial data
+                }
+              }
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error generating report:', error);
     } finally {
@@ -204,10 +242,18 @@ export default function ExpeditionsPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="text-center flex-1">
-                      <Badge variant="outline" className="mb-2">{report.coordinates}</Badge>
-                      <CardTitle className="text-2xl">{report.location}</CardTitle>
+                      {report.coordinates ? (
+                        <Badge variant="outline" className="mb-2">{report.coordinates}</Badge>
+                      ) : (
+                        <div className="h-6 w-32 bg-slate-200 animate-pulse rounded mx-auto mb-2"></div>
+                      )}
+                      {report.location ? (
+                        <CardTitle className="text-2xl">{report.location}</CardTitle>
+                      ) : (
+                        <div className="h-8 w-64 bg-slate-200 animate-pulse rounded mx-auto"></div>
+                      )}
                     </div>
-                    <Badge className="absolute top-4 right-4">Surveyed</Badge>
+                    <Badge className="absolute top-4 right-4">{isGenerating ? 'Surveying...' : 'Surveyed'}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -221,16 +267,31 @@ export default function ExpeditionsPage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <p className="text-sm text-gray-600">{report.geology.formation}</p>
+                        {report.geology?.formation ? (
+                          <p className="text-sm text-gray-600">{report.geology.formation}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="h-4 bg-slate-200 animate-pulse rounded"></div>
+                            <div className="h-4 bg-slate-200 animate-pulse rounded w-5/6"></div>
+                          </div>
+                        )}
                         <div>
                           <h4 className="text-sm font-semibold mb-2">Rock Samples:</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {report.geology.rocks.map((rock: string, index: number) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {rock}
-                              </Badge>
-                            ))}
-                          </div>
+                          {report.geology?.rocks && report.geology.rocks.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {report.geology.rocks.map((rock: string, index: number) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {rock}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex gap-1">
+                              <div className="h-6 w-16 bg-slate-200 animate-pulse rounded"></div>
+                              <div className="h-6 w-20 bg-slate-200 animate-pulse rounded"></div>
+                              <div className="h-6 w-14 bg-slate-200 animate-pulse rounded"></div>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -244,8 +305,19 @@ export default function ExpeditionsPage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <Badge variant="outline">{report.archaeology.era}</Badge>
-                        <p className="text-sm text-gray-600 italic">"{report.archaeology.remnants}"</p>
+                        {report.archaeology?.era ? (
+                          <Badge variant="outline">{report.archaeology.era}</Badge>
+                        ) : (
+                          <div className="h-6 w-24 bg-slate-200 animate-pulse rounded"></div>
+                        )}
+                        {report.archaeology?.remnants ? (
+                          <p className="text-sm text-gray-600 italic">"{report.archaeology.remnants}"</p>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="h-4 bg-slate-200 animate-pulse rounded"></div>
+                            <div className="h-4 bg-slate-200 animate-pulse rounded w-4/5"></div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 
@@ -258,10 +330,21 @@ export default function ExpeditionsPage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <p className="text-sm text-gray-600">{report.sociology.culture}</p>
+                        {report.sociology?.culture ? (
+                          <p className="text-sm text-gray-600">{report.sociology.culture}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="h-4 bg-slate-200 animate-pulse rounded"></div>
+                            <div className="h-4 bg-slate-200 animate-pulse rounded w-5/6"></div>
+                          </div>
+                        )}
                         <div className="p-3 bg-gray-50 rounded">
                           <h4 className="text-sm font-semibold mb-1">Land's Influence:</h4>
-                          <p className="text-xs text-gray-600">{report.sociology.connection}</p>
+                          {report.sociology?.connection ? (
+                            <p className="text-xs text-gray-600">{report.sociology.connection}</p>
+                          ) : (
+                            <div className="h-3 bg-slate-200 animate-pulse rounded"></div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -274,14 +357,30 @@ export default function ExpeditionsPage() {
                         <Heart className="h-6 w-6 text-purple-600" />
                         <h4 className="font-bold text-purple-900 text-lg">Character Focus</h4>
                       </div>
-                      <p className="text-purple-800 leading-relaxed">{report.characterFocus}</p>
+                      {report.characterFocus ? (
+                        <p className="text-purple-800 leading-relaxed">{report.characterFocus}</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="h-4 bg-purple-200 animate-pulse rounded"></div>
+                          <div className="h-4 bg-purple-200 animate-pulse rounded w-5/6"></div>
+                          <div className="h-4 bg-purple-200 animate-pulse rounded w-4/6"></div>
+                        </div>
+                      )}
                     </div>
                     <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200">
                       <div className="flex items-center gap-3 mb-3">
                         <HandHeart className="h-6 w-6 text-green-600" />
                         <h4 className="font-bold text-green-900 text-lg">Community Impact</h4>
                       </div>
-                      <p className="text-green-800 leading-relaxed">{report.communityImpact}</p>
+                      {report.communityImpact ? (
+                        <p className="text-green-800 leading-relaxed">{report.communityImpact}</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="h-4 bg-green-200 animate-pulse rounded"></div>
+                          <div className="h-4 bg-green-200 animate-pulse rounded w-5/6"></div>
+                          <div className="h-4 bg-green-200 animate-pulse rounded w-4/6"></div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -304,7 +403,7 @@ export default function ExpeditionsPage() {
                         <div>
                           <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Action Steps:</p>
                           <ol className="space-y-2">
-                            {report.stewardshipAction.actionSteps.map((step, i) => (
+                            {report.stewardshipAction.actionSteps?.map((step: string, i: number) => (
                               <li key={i} className="text-sm text-red-900 flex gap-2">
                                 <span className="font-bold text-red-600">{i + 1}.</span>
                                 <span>{step}</span>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ChatOpenAI } from '@langchain/openai';
+import { streamObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
@@ -44,20 +45,18 @@ export async function POST(req: NextRequest) {
     const gradeBracket = getGradeBracket(userData?.gradeLevel ?? '');
     const topicKey = location.toLowerCase().trim();
 
+    // Cache check - return instantly if cached
     const cached = await getCachedContent('expedition', topicKey, gradeBracket);
     if (cached) return NextResponse.json({ ...cached, cached: true });
 
+    // Not cached - stream the generation
     const studentContext = await buildStudentContextPrompt(user.userId);
     const config = loadConfig();
-    const llm = new ChatOpenAI({
-      model: config.models.default || 'gpt-4o',
-      temperature: 0.7,
-    }).withStructuredOutput(expeditionSchema);
 
-    const result = await llm.invoke([
-      {
-        role: 'system',
-        content: `You are Adeline, a classical field naturalist and geographer.${studentContext} The student is planning a virtual expedition to a real-world location. Generate a rich, educational survey covering the geology, archaeology, and human geography of this place. Adapt the language complexity to match the student's grade level.
+    const result = await streamObject({
+      model: openai(config.models.default || 'gpt-4o'),
+      schema: expeditionSchema,
+      prompt: `You are Adeline, a classical field naturalist and geographer.${studentContext} The student is planning a virtual expedition to a real-world location. Generate a rich, educational survey covering the geology, archaeology, and human geography of this place. Adapt the language complexity to match the student's grade level.
 
 You must strictly frame this activity around serving others. Expeditions should involve stewardship or helping neighbors. Frame the expedition as an opportunity to learn about this place so the student can teach others, protect the environment, or serve their community through this knowledge. Never generate selfish or purely consumer-driven examples.
 
@@ -67,13 +66,17 @@ CRITICAL STEWARDSHIP ACTION DIRECTIVE: For EVERY expedition, generate a concrete
 3. Provide 3-5 actionable steps (e.g., "Draft letter to County Planning Commission opposing [specific development]", "Map invasive species locations and share with [local conservation group]", "Test water quality and deliver results to [specific neighbor]")
 4. Name a SPECIFIC neighbor or community member to serve (e.g., "Mrs. Johnson at 123 Oak Street who needs firewood", "The Martinez family who drinks from this creek")
 
-The deliveryTarget must be concrete enough that the student could actually find and serve this person. No generic placeholders.`,
-      },
-      { role: 'user', content: `Survey location: ${location}` },
-    ]);
+The deliveryTarget must be concrete enough that the student could actually find and serve this person. No generic placeholders.
 
-    await saveToCache('expedition', topicKey, gradeBracket, result as unknown as Record<string, unknown>);
-    return NextResponse.json({ ...result, cached: false });
+Survey location: ${location}`,
+      temperature: 0.7,
+      onFinish: async ({ object }) => {
+        // Save to cache when complete
+        await saveToCache('expedition', topicKey, gradeBracket, object as unknown as Record<string, unknown>);
+      },
+    });
+
+    return result.toTextStreamResponse();
   } catch (error) {
     console.error('Expedition generation error:', error);
     return NextResponse.json({ error: 'Failed to generate expedition report' }, { status: 500 });
