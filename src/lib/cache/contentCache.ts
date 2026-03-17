@@ -32,8 +32,8 @@ export async function saveToCache(
   try {
     await prisma.globalContentCache.upsert({
       where: { module_topicKey_gradeLevel: { module, topicKey, gradeLevel } },
-      create: { module, topicKey, gradeLevel, content },
-      update: { content, updatedAt: new Date() },
+      create: { module, topicKey, gradeLevel, content: content as any },
+      update: { content: content as any, updatedAt: new Date() },
     });
   } catch (e) {
     console.error('[ContentCache] Save failed (non-fatal):', e);
