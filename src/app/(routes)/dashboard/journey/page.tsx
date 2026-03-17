@@ -10,6 +10,7 @@ import { DailyBreadWidget } from '@/components/daily-bread/DailyBreadWidget';
 import { MathWorkspace } from '@/components/lessons/MathWorkspace';
 import { ELADetective } from '@/components/lessons/ELADetective';
 import { ScienceLab } from '@/components/lessons/ScienceLab';
+import ReactMarkdown from 'react-markdown';
 
 interface Credit {
   id: string;
@@ -651,13 +652,11 @@ export default function JourneyPage() {
                     </span>
                   </div>
 
-                  {/* THE ACTUAL LESSON */}
+                  {/* THE ACTUAL LESSON - Life of Fred Style */}
                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
                     <h4 className="font-bold text-[#2F4731] mb-3 text-sm uppercase tracking-wide">📖 The Lesson</h4>
-                    <div className="text-[#2F4731] leading-relaxed text-sm space-y-3">
-                      {lesson.lessonContent.split('\n').filter(Boolean).map((para, i) => (
-                        <p key={i}>{para}</p>
-                      ))}
+                    <div className="prose prose-lg prose-headings:font-extrabold prose-strong:text-amber-600 prose-blockquote:bg-slate-50 prose-blockquote:border-amber-500 prose-h2:text-blue-800 prose-h3:text-teal-700 max-w-none">
+                      <ReactMarkdown>{lesson.lessonContent}</ReactMarkdown>
                     </div>
                   </div>
 

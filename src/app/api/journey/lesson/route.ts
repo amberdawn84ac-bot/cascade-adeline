@@ -13,11 +13,14 @@ const lessonSchema = z.object({
   lessonType: z.enum(['lesson', 'project', 'activity', 'experiment', 'field-trip']),
   timeEstimate: z.string().describe('How long this will take, e.g. "45 minutes"'),
   lessonContent: z.string().describe(
-    'THE ACTUAL LESSON — Adeline teaches the concept directly in 4-7 rich paragraphs. '
-    + 'This is NOT a lesson plan. Adeline IS the teacher sitting next to the student right now. '
-    + 'Write the real explanation: history, context, how it works, why it matters, vivid details. '
-    + 'Include the actual information the student needs — dates, names, techniques, science, stories. '
-    + 'Do NOT say "go look this up" or "find pictures" — deliver the knowledge here, inline. '
+    'THE ACTUAL LESSON — Written in the style of "Life of Fred" books. '
+    + 'DO NOT write textbook paragraphs. Weave the concept into a quirky, conversational story. '
+    + 'YOU MUST use Rich Markdown heavily to make the text visually engaging: '
+    + '- Use ### for sudden, punchy sub-headers (e.g. "### The Unknown Variable") '
+    + '- Use **bold** to emphasize vocabulary, math variables, or key terms '
+    + '- Use > blockquotes for character thoughts, core rules, or "Adeline\'s Golden Rules" '
+    + '- Keep paragraphs extremely short (1-2 sentences). Add conversational spacing. '
+    + 'Include the actual information: dates, names, techniques, science, vivid stories. '
     + 'Adapt vocabulary and depth precisely to the student\'s grade level.'
   ),
   keyFacts: z.array(z.string()).min(3).max(5).describe(
@@ -96,11 +99,16 @@ ${gradeGuard}
 The student's name is ${student?.name ?? 'Explorer'}, grade ${rawGrade ?? 'unknown'}.
 Their interests: ${(student?.interests ?? []).join(', ') || 'not specified'}.
 
-CRITICAL LESSON DELIVERY RULES:
-1. lessonContent IS the lesson. Write it as if you are sitting next to the student teaching them right now.
-   - Give them the REAL information: names, dates, how things work, why they matter, vivid stories.
-   - If the lesson is about cave art, DESCRIBE the cave paintings — colors used (ochre, charcoal, hematite), the animals depicted, the techniques (blowing pigment through a bone tube, finger painting, scraping), the specific caves (Lascaux, Altamira, Chauvet), what they tell us about early humans.
-   - Do NOT write "go find pictures of cave art" — describe what those pictures show. Teach it.
+CRITICAL LESSON DELIVERY RULES - "LIFE OF FRED" STYLE:
+1. lessonContent MUST be written like a "Life of Fred" book — quirky, narrative-driven, visually engaging.
+   - DO NOT write textbook paragraphs. Weave the concept into a conversational story with characters and situations.
+   - YOU MUST use Rich Markdown formatting heavily:
+     * Use ### for punchy sub-headers that break up sections (e.g. "### The Unknown Variable", "### What Adeline Discovered")
+     * Use **bold** for vocabulary words, math variables, key terms, or emphasis
+     * Use > blockquotes for character thoughts, core rules, or "Adeline's Golden Rules"
+     * Keep paragraphs SHORT (1-2 sentences max). Add spacing between ideas.
+   - Example style: "Adeline stared at the pile of fabric. It was a mountain. A literal mountain of denim.\n\n'How many skirts are we actually making here?' she muttered.\n\n### The Unknown Variable\n\nIn sewing, just like in life, sometimes you don't know what you're dealing with. We call this the **Variable**.\n\n> Adeline's Golden Rule: Total Fabric = F × 3"
+   - Give them REAL information: names, dates, how things work, vivid stories, but wrapped in narrative.
 2. imageSearchTerms: Give specific, precise search terms so clicking them immediately shows the right images.
 3. activity.fullInstructions: This field must be 100% EXECUTABLE with zero vagueness.
    - COOKING/BAKING lesson: Write the FULL recipe. Every ingredient with exact measurement. Oven temp. Exact bake time. Every step in order. "Add the dry ingredients" is WRONG. "Whisk together 2¼ cups flour, 1 tsp baking soda, and 1 tsp salt in a bowl" is RIGHT.
