@@ -15,6 +15,9 @@ interface Book {
   coverUrl?: string;
   readingLevel?: string;
   genre?: string;
+  gutenbergId?: string;
+  isDownloaded?: boolean;
+  epubFileUrl?: string;
   pdfUrl?: string;
   externalUrl?: string;
   chapters?: Array<{
@@ -32,6 +35,8 @@ export default function BookshelfBookPage() {
   const [book, setBook] = useState<Book | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<string>('');
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -61,6 +66,51 @@ export default function BookshelfBookPage() {
       fetchBook();
     }
   }, [bookId]);
+
+  const handleJITDownload = async () => {
+    if (!book || !book.gutenbergId) return;
+    
+    setIsDownloading(true);
+    setDownloadProgress('Connecting to Project Gutenberg archives...');
+    
+    try {
+      const res = await fetch('/api/bookshelf/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: book.id }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Download failed');
+      }
+      
+      setDownloadProgress('Retrieving volume from archives...');
+      const data = await res.json();
+      
+      setDownloadProgress('Saving to your bookshelf...');
+      
+      // Update book state with new epub URL
+      setBook({
+        ...book,
+        isDownloaded: true,
+        epubFileUrl: data.epubFileUrl,
+      });
+      
+      setDownloadProgress('Complete! Opening book...');
+      
+      // Open the epub in a new tab
+      if (data.epubFileUrl) {
+        window.open(data.epubFileUrl, '_blank');
+      }
+    } catch (e) {
+      console.error('JIT download error:', e);
+      setError(e instanceof Error ? e.message : 'Failed to download book');
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress('');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -144,11 +194,59 @@ export default function BookshelfBookPage() {
           </Card>
         )}
 
-        {/* Reading Options */}
+        {/* Reading Options - JIT Download */}
         <Card className="border-2 border-emerald-200 bg-emerald-50">
           <CardContent className="p-6">
             <h2 className="text-xl font-bold text-emerald-900 mb-4">Start Reading</h2>
-            <div className="space-y-3">
+            
+            {/* JIT Download UI */}
+            {book.gutenbergId && !book.isDownloaded && !isDownloading && (
+              <div className="space-y-4">
+                <div className="bg-blue-100 border-2 border-blue-300 rounded-lg p-4">
+                  <p className="text-blue-900 font-medium mb-2">
+                    📚 This book is available from Project Gutenberg
+                  </p>
+                  <p className="text-blue-700 text-sm">
+                    Click below and Adeline will retrieve this volume from the archives and add it to your personal library.
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleJITDownload}
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-6 text-lg shadow-lg"
+                >
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  Retrieve from Archives
+                </Button>
+              </div>
+            )}
+
+            {/* JIT Download Loading State */}
+            {isDownloading && (
+              <div className="space-y-4">
+                <div className="bg-purple-100 border-2 border-purple-300 rounded-lg p-6 text-center">
+                  <Loader2 className="w-12 h-12 animate-spin text-purple-600 mx-auto mb-4" />
+                  <p className="text-purple-900 font-bold text-lg mb-2">
+                    Adeline is retrieving this volume from the archives...
+                  </p>
+                  <p className="text-purple-700 text-sm italic">
+                    {downloadProgress}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Already Downloaded - Show Epub Link */}
+            {book.epubFileUrl && book.isDownloaded && (
+              <a href={book.epubFileUrl} target="_blank" rel="noopener noreferrer">
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 text-lg">
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  Open EPUB Reader
+                </Button>
+              </a>
+            )}
+
+            {/* Fallback Options */}
+            <div className="space-y-3 mt-3">
               {book.pdfUrl && (
                 <a href={book.pdfUrl} target="_blank" rel="noopener noreferrer">
                   <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 text-lg">
@@ -165,7 +263,7 @@ export default function BookshelfBookPage() {
                   </Button>
                 </a>
               )}
-              {!book.pdfUrl && !book.externalUrl && (
+              {!book.gutenbergId && !book.pdfUrl && !book.externalUrl && !book.epubFileUrl && (
                 <div className="bg-amber-100 border-2 border-amber-300 rounded-lg p-4 text-center">
                   <p className="text-amber-900 font-medium">
                     This book is available in your physical library. Check your bookshelf!

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { getGutendexBook, extractCoverUrl } from '@/lib/gutendex';
 
-// Hardcoded book catalog for common curriculum books
+// Hardcoded book catalog for common curriculum books (metadata only)
 const BOOK_CATALOG: Record<string, {
   id: string;
   title: string;
@@ -10,6 +11,7 @@ const BOOK_CATALOG: Record<string, {
   description: string;
   readingLevel: string;
   genre: string;
+  gutenbergId?: string;
   pdfUrl?: string;
   externalUrl?: string;
   coverUrl?: string;
@@ -108,11 +110,13 @@ export async function GET(
       return NextResponse.json(catalogBook);
     }
 
-    // Check database for custom books
+    // Check database for user's books
     const dbBook = await prisma.livingBook.findFirst({
       where: {
+        userId: user.userId,
         OR: [
           { id: bookId },
+          { gutenbergId: bookId },
           { title: { contains: bookId.replace(/-/g, ' '), mode: 'insensitive' } },
         ],
       },
@@ -126,6 +130,9 @@ export async function GET(
         description: dbBook.description,
         readingLevel: dbBook.readingLevel,
         genre: dbBook.genre,
+        gutenbergId: dbBook.gutenbergId,
+        isDownloaded: dbBook.isDownloaded,
+        epubFileUrl: dbBook.epubFileUrl,
         pdfUrl: dbBook.pdfUrl,
         externalUrl: dbBook.externalUrl,
         coverUrl: dbBook.coverUrl,

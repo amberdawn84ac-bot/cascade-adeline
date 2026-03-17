@@ -806,6 +806,29 @@ model GlobalContentCache {
   @@map("global_content_cache")
 }
 
+model LivingBook {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  title         String
+  author        String
+  description   String?
+  coverUrl      String?  @map("cover_url")
+  readingLevel  String?  @map("reading_level")
+  genre         String?
+  gutenbergId   String?  @map("gutenberg_id")
+  isDownloaded  Boolean  @default(false) @map("is_downloaded")
+  epubFileUrl   String?  @map("epub_file_url")
+  pdfUrl        String?  @map("pdf_url")
+  externalUrl   String?  @map("external_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([gutenbergId])
+  @@index([isDownloaded])
+  @@map("living_books")
+}
+
 enum UserRole {
   STUDENT
   PARENT
