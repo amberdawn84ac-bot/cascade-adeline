@@ -2,12 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email/email-service';
+import { Prisma } from '@prisma/client';
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { gradeLevel, interests, learningStyle } = await req.json();
+
+  // Fetch existing metadata to preserve other fields
+  const existing = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: { metadata: true },
+  });
+
+  const existingMetadata = (existing?.metadata as Record<string, unknown>) ?? {};
+  
+  // Clear learning plan cache when grade/interests change
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { journeyPlanSnapshot, journeyPlanCachedAt, ...preservedMetadata } = existingMetadata;
 
   await prisma.user.update({
     where: { id: user.userId },
@@ -16,8 +29,11 @@ export async function PATCH(req: NextRequest) {
       interests: Array.isArray(interests) ? interests : [],
       ...(learningStyle ? { learningStyle } : {}),
       onboardingComplete: true,
+      metadata: preservedMetadata as Prisma.JsonObject, // Clear cache by removing snapshot fields
     },
   });
+
+  console.log('[onboarding/PATCH] Settings updated, learning plan cache cleared for user:', user.userId);
 
   return NextResponse.json({ ok: true });
 }
