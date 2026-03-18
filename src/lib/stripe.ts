@@ -7,20 +7,20 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 // Price IDs (set these after creating products in Stripe Dashboard)
 export const STRIPE_PRICES = {
   STUDENT_MONTHLY: process.env.STRIPE_PRICE_STUDENT_MONTHLY || '',
-  STUDENT_YEARLY: process.env.STRIPE_PRICE_STUDENT_YEARLY || '',
   PARENT_MONTHLY: process.env.STRIPE_PRICE_PARENT_MONTHLY || '',
-  PARENT_YEARLY: process.env.STRIPE_PRICE_PARENT_YEARLY || '',
-  FAMILY_MONTHLY: process.env.STRIPE_PRICE_FAMILY_MONTHLY || '',
-  FAMILY_YEARLY: process.env.STRIPE_PRICE_FAMILY_YEARLY || '',
+  TEACHER_MONTHLY: process.env.STRIPE_PRICE_TEACHER_MONTHLY || '',
+  EXTRA_STUDENT: process.env.STRIPE_PRICE_EXTRA_STUDENT || '',
 };
 
 export const TIER_LIMITS = {
   FREE: {
-    messages: 10,
+    messages: Infinity,
     students: 1,
-    canCreateClubs: false,
+    canCreateClubs: true,
     hasParentDashboard: false,
     hasTranscripts: false,
+    hasLearningPath: false,
+    hasJournal: false,
   },
   STUDENT: {
     messages: Infinity,
@@ -28,20 +28,26 @@ export const TIER_LIMITS = {
     canCreateClubs: true,
     hasParentDashboard: false,
     hasTranscripts: false,
+    hasLearningPath: true,
+    hasJournal: true,
   },
   PARENT: {
     messages: Infinity,
-    students: 1,
-    canCreateClubs: true,
-    hasParentDashboard: true,
-    hasTranscripts: false,
-  },
-  FAMILY: {
-    messages: Infinity,
-    students: 6,
+    students: 5,
     canCreateClubs: true,
     hasParentDashboard: true,
     hasTranscripts: true,
+    hasLearningPath: true,
+    hasJournal: true,
+  },
+  TEACHER: {
+    messages: Infinity,
+    students: 40,
+    canCreateClubs: true,
+    hasParentDashboard: true,
+    hasTranscripts: true,
+    hasLearningPath: true,
+    hasJournal: true,
   },
 } as const;
 

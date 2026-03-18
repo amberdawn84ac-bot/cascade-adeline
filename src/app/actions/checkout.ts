@@ -15,45 +15,31 @@ interface Product {
 const PRODUCT_CATALOG: Record<string, Product> = {
   STUDENT_MONTHLY: {
     name: 'Dear Adeline — Student',
-    description: 'Unlimited AI tutoring, personalized learning paths, and living books library.',
+    description: 'Full access: Learning Path, Daily Journal, unlimited chat, and all subjects.',
+    priceInCents: 299,
+    mode: 'subscription',
+    interval: 'month',
+  },
+  PARENT_MONTHLY: {
+    name: 'Dear Adeline — Parent',
+    description: 'Everything in Student plus parent dashboard, transcripts, and up to 5 connected students.',
     priceInCents: 999,
     mode: 'subscription',
     interval: 'month',
   },
-  STUDENT_YEARLY: {
-    name: 'Dear Adeline — Student (Annual)',
-    description: 'Unlimited AI tutoring, personalized learning paths, and living books library.',
-    priceInCents: 9900,
-    mode: 'subscription',
-    interval: 'year',
-  },
-  PARENT_MONTHLY: {
-    name: 'Dear Adeline — Parent',
-    description: 'Everything in Student plus parent dashboard, progress tracking, and transcript generation.',
-    priceInCents: 1499,
+  TEACHER_MONTHLY: {
+    name: 'Dear Adeline — Teacher',
+    description: 'Everything in Parent plus classroom management and up to 40 connected students.',
+    priceInCents: 2999,
     mode: 'subscription',
     interval: 'month',
   },
-  PARENT_YEARLY: {
-    name: 'Dear Adeline — Parent (Annual)',
-    description: 'Everything in Student plus parent dashboard, progress tracking, and transcript generation.',
-    priceInCents: 14900,
-    mode: 'subscription',
-    interval: 'year',
-  },
-  FAMILY_MONTHLY: {
-    name: 'Dear Adeline — Family',
-    description: 'Up to 6 students, parent dashboard, transcript generation, and family co-ops.',
-    priceInCents: 1999,
+  EXTRA_STUDENT: {
+    name: 'Additional Student',
+    description: 'Add one more student to your Parent or Teacher account.',
+    priceInCents: 299,
     mode: 'subscription',
     interval: 'month',
-  },
-  FAMILY_YEARLY: {
-    name: 'Dear Adeline — Family (Annual)',
-    description: 'Up to 6 students, parent dashboard, transcript generation, and family co-ops.',
-    priceInCents: 19900,
-    mode: 'subscription',
-    interval: 'year',
   },
 }
 
