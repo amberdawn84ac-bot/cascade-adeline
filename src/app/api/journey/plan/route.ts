@@ -117,9 +117,9 @@ export async function GET(req: NextRequest) {
       graduationDate.setMonth(4); // End of school year (May)
       
       // Credits = number of core subjects for one school year
-      // Elementary: Reading, Math, Science, Social Studies, Bible = 5 credits
-      // Middle: ELA, Math, Science, History, Bible, Elective = 6 credits
-      TOTAL_CREDITS_NEEDED = schoolLevel === 'middle' ? 6 : 5;
+      // Elementary: Reading, Math, Science, Social Studies, Bible, Homesteading = 6 credits
+      // Middle: ELA, Math, Science, History, Bible, Homesteading, Elective = 7 credits
+      TOTAL_CREDITS_NEEDED = schoolLevel === 'middle' ? 7 : 6;
     }
 
     // Pull the student's state from their learning plan (set during onboarding)
@@ -171,6 +171,7 @@ LEARNING MILESTONES FOR THIS SCHOOL YEAR (${TOTAL_CREDITS_NEEDED} total, each = 
 - Science & Nature: 1 milestone
 - Social Studies / World Around Us: 1 milestone
 - Bible / Scripture Study: 1 milestone
+- Homesteading / Domestic Arts: 1 milestone (cooking, gardening, basic life skills)
 
 These are the CORE subjects for this grade level this year. Keep it simple and age-appropriate.
 ` : schoolLevel === 'middle' ? `
@@ -191,6 +192,7 @@ LEARNING MILESTONES FOR THIS SCHOOL YEAR (${TOTAL_CREDITS_NEEDED} total, each = 
 - Science: 1 milestone
 - History/Social Studies: 1 milestone
 - Bible / Scripture Study: 1 milestone
+- Homesteading / Domestic Arts: 1 milestone (cooking, sewing, gardening, household management)
 - Elective (tied to interests): 1 milestone
 
 These are the CORE subjects for this grade level this year.
@@ -203,8 +205,9 @@ GRADUATION REQUIREMENTS (${TOTAL_CREDITS_NEEDED} individual 1-credit courses):
 - Science: 3 courses
 - History/Social Studies: 3 courses
 - Bible / Scripture Study: 4 courses (one per year)
-- Electives: 4 courses (map directly to student interests)
-- Trade/Business/CLEP/Dual Enrollment: 2 courses
+- Homesteading / Domestic Arts: 2 courses (cooking, sewing, budgeting, household management)
+- Electives: 3 courses (map directly to student interests)
+- Trade/Business/CLEP/Dual Enrollment: 1 course
 - Character/Service: 1 course
 `;
 
