@@ -94,16 +94,33 @@ export async function GET(req: NextRequest) {
       ? Math.floor((Date.now() - new Date(lastActivity.dateCompleted).getTime()) / (1000 * 60 * 60 * 24))
       : 999;
 
-    // Calculate graduation date
+    // Calculate graduation/target date based on grade level
     const gradeLevel = parseGradeLevel(student.gradeLevel);
     const schoolLevel = getSchoolLevel(gradeLevel);
-    const yearsToGraduation = Math.max(1, 13 - gradeLevel);
-    const graduationDate = new Date();
-    graduationDate.setFullYear(graduationDate.getFullYear() + yearsToGraduation);
-    graduationDate.setMonth(4); // May
-
-    // Credits scale by school level
-    const TOTAL_CREDITS_NEEDED = schoolLevel === 'high' ? 24 : schoolLevel === 'middle' ? 16 : 8;
+    
+    let graduationDate = new Date();
+    let TOTAL_CREDITS_NEEDED: number;
+    
+    if (schoolLevel === 'high') {
+      // High school (9-12): Map to actual graduation
+      const yearsToGraduation = Math.max(1, 13 - gradeLevel);
+      graduationDate.setFullYear(graduationDate.getFullYear() + yearsToGraduation);
+      graduationDate.setMonth(4); // May graduation
+      TOTAL_CREDITS_NEEDED = 24;
+    } else {
+      // Elementary (K-5) and Middle (6-8): Map to end of current school year
+      const currentMonth = graduationDate.getMonth();
+      // If we're past May (month 4), target next May; otherwise target this May
+      if (currentMonth >= 5) {
+        graduationDate.setFullYear(graduationDate.getFullYear() + 1);
+      }
+      graduationDate.setMonth(4); // End of school year (May)
+      
+      // Credits = number of core subjects for one school year
+      // Elementary: Reading, Math, Science, Social Studies = 4 credits
+      // Middle: ELA, Math, Science, History, Elective = 5 credits
+      TOTAL_CREDITS_NEEDED = schoolLevel === 'middle' ? 5 : 4;
+    }
 
     // Pull the student's state from their learning plan (set during onboarding)
     const studentState = student.learningPlans?.state ?? null;
@@ -138,6 +155,8 @@ export async function GET(req: NextRequest) {
 SCHOOL LEVEL: ELEMENTARY (${gradeLabel})
 This is a young child in elementary school. ALL course suggestions MUST match their developmental stage.
 
+TIMELINE: This plan maps to the END OF THIS SCHOOL YEAR (May ${graduationDate.getFullYear()}), not to high school graduation.
+
 AGE-APPROPRIATE CONTENT RULES — ABSOLUTE:
 - NO welding, metalwork, woodshop, or any trade/shop coursework
 - NO AP, CLEP, dual enrollment, or college-level content
@@ -146,16 +165,18 @@ AGE-APPROPRIATE CONTENT RULES — ABSOLUTE:
 - YES to: reading, writing stories, number sense, basic arithmetic, nature science, social studies (community/family/maps), art, music, physical activity, hands-on projects
 - Lesson titles should sound FUN and age-appropriate: "Backyard Nature Lab", "Story World Writing", "Math Through Cooking"
 
-LEARNING MILESTONES (${TOTAL_CREDITS_NEEDED} total, each = 1 milestone):
-- Reading & Language Arts: 2 milestones
-- Math: 2 milestones  
+LEARNING MILESTONES FOR THIS SCHOOL YEAR (${TOTAL_CREDITS_NEEDED} total, each = 1 core subject):
+- Reading & Language Arts: 1 milestone
+- Math: 1 milestone  
 - Science & Nature: 1 milestone
 - Social Studies / World Around Us: 1 milestone
-- Art, Music, or Movement: 1 milestone
-- Interest-Based Project: 1 milestone (connect directly to their passions)
+
+These are the CORE subjects for this grade level this year. Keep it simple and age-appropriate.
 ` : schoolLevel === 'middle' ? `
 SCHOOL LEVEL: MIDDLE SCHOOL (${gradeLabel})
 This student is in middle school — transitioning from elementary foundations to high school readiness.
+
+TIMELINE: This plan maps to the END OF THIS SCHOOL YEAR (May ${graduationDate.getFullYear()}), not to high school graduation.
 
 AGE-APPROPRIATE CONTENT RULES:
 - NO AP, CLEP, or dual enrollment
@@ -163,14 +184,14 @@ AGE-APPROPRIATE CONTENT RULES:
 - Courses should be exploratory and interest-driven, not overly academic
 - Titles should be engaging: "Detective Science", "The Story of Civilizations", "Algebra Through Architecture"
 
-LEARNING MILESTONES (${TOTAL_CREDITS_NEEDED} total, each = 1 milestone):
-- Language Arts: 3 milestones
-- Math: 3 milestones
-- Science: 2 milestones
-- History/Social Studies: 2 milestones
-- Electives tied to interests: 4 milestones
-- PE/Health: 1 milestone
-- Character/Service: 1 milestone
+LEARNING MILESTONES FOR THIS SCHOOL YEAR (${TOTAL_CREDITS_NEEDED} total, each = 1 core subject):
+- Language Arts: 1 milestone
+- Math: 1 milestone
+- Science: 1 milestone
+- History/Social Studies: 1 milestone
+- Elective (tied to interests): 1 milestone
+
+These are the CORE subjects for this grade level this year.
 ` : `
 SCHOOL LEVEL: HIGH SCHOOL (${gradeLabel})
 
