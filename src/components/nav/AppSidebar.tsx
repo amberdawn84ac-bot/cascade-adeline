@@ -19,7 +19,8 @@ import {
   Settings,
   LogOut,
   BookOpen,
-  Mountain
+  Mountain,
+  FlaskConical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createServerClient } from '@supabase/ssr';
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   // Core Subjects (grouped)
   { label: 'Math', href: '/dashboard/math', icon: Calculator },
   { label: 'Reading Nook', href: '/dashboard/reading-nook', icon: Feather },
+  { label: 'Science Lab', href: '/dashboard/science', icon: FlaskConical },
   { label: 'History Timeline', href: '/dashboard/history', icon: Clock },
   { label: 'Homesteading', href: '/dashboard/domestic-arts', icon: ChefHat },
   { label: 'Bible Study', href: '/dashboard/bible-study', icon: BookOpen },
@@ -157,7 +159,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               
               // Add section dividers
               const showCoreSubjectsHeader = index === 1;
-              const showSecondaryHeader = index === 6;
+              const showSecondaryHeader = index === 7;
 
               return (
                 <React.Fragment key={item.href}>
