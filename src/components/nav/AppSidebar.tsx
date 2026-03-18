@@ -20,7 +20,8 @@ import {
   LogOut,
   BookOpen,
   Mountain,
-  FlaskConical
+  FlaskConical,
+  ScrollText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createServerClient } from '@supabase/ssr';
@@ -33,6 +34,11 @@ const NAV_ITEMS = [
     label: 'My Learning Path', 
     href: '/dashboard/journey', 
     icon: Mountain,
+  },
+  { 
+    label: 'Daily Journal', 
+    href: '/dashboard/journal', 
+    icon: ScrollText,
   },
   
   // Core Subjects (grouped)
@@ -158,8 +164,8 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               const Icon = item.icon;
               
               // Add section dividers
-              const showCoreSubjectsHeader = index === 1;
-              const showSecondaryHeader = index === 7;
+              const showCoreSubjectsHeader = index === 2;
+              const showSecondaryHeader = index === 8;
 
               return (
                 <React.Fragment key={item.href}>
