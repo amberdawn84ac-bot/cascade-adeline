@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
 import { HistoryEvidenceBoard } from '@/components/dashboard/HistoryEvidenceBoard';
+import { evidenceBoardSchema, type EvidenceBoard } from '@/lib/schemas/history';
 
 interface TimelineEntry {
   id?: string;
@@ -33,13 +34,14 @@ interface TimelineEntry {
 
 export default function HistoryPage() {
   const [query, setQuery] = useState('');
-  const [generatedTimeline, setGeneratedTimeline] = useState<TimelineEntry | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [currentTopic, setCurrentTopic] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [livingTimeline, setLivingTimeline] = useState<TimelineEntry[]>([]);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(true);
+  const [object, setObject] = useState<Partial<EvidenceBoard> | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   // Load Living Timeline from database on mount
   useEffect(() => {
@@ -63,45 +65,79 @@ export default function HistoryPage() {
 
   const handleGenerateTimeline = async () => {
     if (!query.trim()) return;
-    
-    setGeneratedTimeline(null);
-    setGenerateError(null);
-    setIsGenerating(true);
-    
+    setCurrentTopic(query);
+    setSaveSuccess(false);
+    setObject(null);
+    setError(null);
+    setIsLoading(true);
+
     try {
-      const response = await fetch('/api/history/timeline/generate', {
+      const response = await fetch('/api/history/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
       });
-      
-      if (response.ok) {
-        const timeline = await response.json();
-        setGeneratedTimeline(timeline);
-      } else {
-        const err = await response.json().catch(() => ({}));
-        setGenerateError(err.error || `Server error (${response.status}) — check that your API keys are configured.`);
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
       }
-    } catch (e) {
-      setGenerateError('Network error — could not reach the server.');
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('0:')) {
+              try {
+                const jsonStr = line.slice(2);
+                const parsed = JSON.parse(jsonStr);
+                setObject(parsed);
+              } catch (e) {
+                console.error('Parse error:', e);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to generate timeline'));
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
     }
   };
 
   const handleSaveTimeline = async () => {
-    if (!generatedTimeline) return;
+    if (!object) return;
     setIsSaving(true);
     try {
+      const timelineEntry = {
+        topic: object.topic || currentTopic || '',
+        standardNarrative: object.standardNarrative || '',
+        primaryEvidence: object.primaryEvidence || '',
+        primarySourceCitation: object.primarySourceCitation || '',
+        localConnection: object.localConnection || '',
+        detectiveQuestion: object.detectiveQuestion || '',
+        events: object.events || [],
+        modernParallel: object.modernParallel,
+        actionPath: object.actionPath,
+      };
       const res = await fetch('/api/history/timeline/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entry: generatedTimeline })
+        body: JSON.stringify({ entry: timelineEntry })
       });
       if (res.ok) {
         setSaveSuccess(true);
-        // Add to Living Timeline immediately
-        setLivingTimeline(prev => [generatedTimeline, ...prev]);
+        setLivingTimeline(prev => [timelineEntry, ...prev]);
       }
     } catch (e) {
       console.error(e);
@@ -146,10 +182,10 @@ export default function HistoryPage() {
           <h2 className="text-2xl font-bold text-indigo-900">Investigate Historical Events</h2>
         </div>
         
-        {generateError && (
+        {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{generateError}</span>
+            <span>{error.message || 'Failed to generate timeline'}</span>
           </div>
         )}
 
@@ -159,15 +195,15 @@ export default function HistoryPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Enter a historical event or era (e.g., 'Civil War', 'Federal Reserve', 'World War II')"
-            disabled={isGenerating}
+            disabled={isLoading}
             className="flex-1"
           />
           <Button 
             onClick={handleGenerateTimeline}
-            disabled={isGenerating || !query.trim()}
+            disabled={isLoading || !query.trim()}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
-            {isGenerating ? (
+            {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Investigating...
@@ -179,27 +215,42 @@ export default function HistoryPage() {
         </div>
 
         {/* Generated Timeline Display - Evidence Board */}
-        {generatedTimeline && (
+        {(object || isLoading) && (
           <div className="space-y-6 border-t-2 border-indigo-100 pt-6">
-            {/* Evidence Board Component */}
-            <HistoryEvidenceBoard
-              topic={generatedTimeline.topic}
-              standardNarrative={generatedTimeline.standardNarrative}
-              primaryEvidence={generatedTimeline.primaryEvidence}
-              primarySourceCitation={generatedTimeline.primarySourceCitation}
-              localConnection={generatedTimeline.localConnection}
-              detectiveQuestion={generatedTimeline.detectiveQuestion}
-              onSubmitAnswer={async (answer) => {
-                console.log('Detective answer submitted:', answer);
-                // Could save this to transcript or process further
-              }}
-            />
+            {/* Evidence Board Component with Streaming Data */}
+            {isLoading && !object ? (
+              <div className="space-y-6">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-8 bg-amber-200 rounded w-3/4 mx-auto"></div>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="h-64 bg-blue-100 rounded-xl"></div>
+                    <div className="h-64 bg-amber-100 rounded-xl"></div>
+                  </div>
+                  <div className="h-48 bg-emerald-100 rounded-xl"></div>
+                  <div className="h-64 bg-purple-100 rounded-xl"></div>
+                </div>
+                <p className="text-center text-indigo-600 italic animate-pulse">Adeline is researching {currentTopic}...</p>
+              </div>
+            ) : object ? (
+              <HistoryEvidenceBoard
+                topic={object.topic || currentTopic || ''}
+                standardNarrative={object.standardNarrative || ''}
+                primaryEvidence={object.primaryEvidence || ''}
+                primarySourceCitation={object.primarySourceCitation || ''}
+                localConnection={object.localConnection || ''}
+                detectiveQuestion={object.detectiveQuestion || ''}
+                onSubmitAnswer={async (answer) => {
+                  console.log('Detective answer submitted:', answer);
+                }}
+              />
+            ) : null}
 
             {/* Timeline Events */}
-            <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
-              <h4 className="font-bold text-indigo-800 mb-4 text-lg">⏰ Timeline Events</h4>
-              <div className="space-y-4">
-                {(generatedTimeline.events || []).map((event, i) => (
+            {object?.events && object.events.length > 0 && (
+              <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                <h4 className="font-bold text-indigo-800 mb-4 text-lg">⏰ Timeline Events</h4>
+                <div className="space-y-4">
+                  {object.events.map((event: { year: string; title: string; description: string }, i: number) => (
                   <div key={i} className="flex gap-4">
                     <div className="bg-indigo-600 text-white px-3 py-1 rounded-lg font-bold text-sm min-w-fit">
                       {event.year}
@@ -209,12 +260,13 @@ export default function HistoryPage() {
                       <p className="text-indigo-700 text-sm">{event.description}</p>
                     </div>
                   </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Modern Action Section */}
-            {generatedTimeline.modernParallel && generatedTimeline.actionPath && (
+            {object?.modernParallel && object?.actionPath && (
               <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6">
                 <h4 className="font-bold text-red-900 mb-4 text-lg flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5" />
@@ -223,29 +275,29 @@ export default function HistoryPage() {
                 <div className="space-y-4">
                   <div className="bg-white border border-red-200 rounded-lg p-4">
                     <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Current Injustice:</p>
-                    <p className="text-sm text-red-900 leading-relaxed">{generatedTimeline.modernParallel}</p>
+                    <p className="text-sm text-red-900 leading-relaxed">{object.modernParallel}</p>
                   </div>
-                  {generatedTimeline.actionPath.clemencyCampaign && (
+                  {object.actionPath.clemencyCampaign && (
                     <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
                       <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">🕊️ Clemency Campaign:</p>
-                      <p className="text-sm text-amber-900">{generatedTimeline.actionPath.clemencyCampaign}</p>
+                      <p className="text-sm text-amber-900">{object.actionPath.clemencyCampaign}</p>
                     </div>
                   )}
                   <div>
                     <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Policy That Perpetuates This Harm:</p>
-                    <p className="text-sm text-red-900 font-semibold">{generatedTimeline.actionPath.policyReform}</p>
+                    <p className="text-sm text-red-900 font-semibold">{object.actionPath.policyReform}</p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Who To Petition:</p>
-                    <p className="text-sm text-red-900">{generatedTimeline.actionPath.advocacyTarget}</p>
+                    <p className="text-sm text-red-900">{object.actionPath.advocacyTarget}</p>
                   </div>
                   <div className="bg-white border border-red-200 rounded-lg p-4">
                     <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2">Draft Advocacy Letter:</p>
-                    <pre className="text-xs text-red-900 whitespace-pre-wrap">{generatedTimeline.actionPath.draftLetter}</pre>
+                    <pre className="text-xs text-red-900 whitespace-pre-wrap">{object.actionPath.draftLetter}</pre>
                   </div>
                   <Button 
                     onClick={() => {
-                      navigator.clipboard.writeText(generatedTimeline.actionPath!.draftLetter);
+                      navigator.clipboard.writeText(object.actionPath!.draftLetter);
                       alert('Advocacy letter copied! Send it to fight injustice.');
                     }}
                     className="w-full bg-red-600 hover:bg-red-700 text-white font-bold"
