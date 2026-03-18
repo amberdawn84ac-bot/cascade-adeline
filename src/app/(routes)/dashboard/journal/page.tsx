@@ -2,6 +2,7 @@ import { getSessionUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/db';
 import { JournalTimeline } from '@/components/journal/JournalTimeline';
+import { ReflectionPrompt } from '@/components/journal/ReflectionPrompt';
 
 interface ActivityEntry {
   id: string;
@@ -13,8 +14,22 @@ interface ActivityEntry {
   metadata?: any;
 }
 
-function groupByDate(activities: ActivityEntry[]) {
-  const groups: Record<string, ActivityEntry[]> = {};
+interface DailyReflection {
+  id: string;
+  prompt: string;
+  content: string;
+  date: Date;
+  createdAt: Date;
+}
+
+function groupByDate(activities: ActivityEntry[], reflections: DailyReflection[]) {
+  const reflectionsByDate = new Map<string, DailyReflection>();
+  for (const reflection of reflections) {
+    const refDate = new Date(reflection.date);
+    refDate.setHours(0, 0, 0, 0);
+    reflectionsByDate.set(refDate.getTime().toString(), reflection);
+  }
+  const groups: Record<string, { activities: ActivityEntry[]; reflection?: DailyReflection; dateKey: number }> = {};
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today);
@@ -39,9 +54,14 @@ function groupByDate(activities: ActivityEntry[]) {
     }
 
     if (!groups[label]) {
-      groups[label] = [];
+      const dateKey = activityDate.getTime();
+      groups[label] = {
+        activities: [],
+        reflection: reflectionsByDate.get(dateKey.toString()),
+        dateKey,
+      };
     }
-    groups[label].push(activity);
+    groups[label].activities.push(activity);
   }
 
   return groups;
@@ -77,7 +97,31 @@ export default async function JournalPage() {
     metadata: entry.metadata,
   }));
 
-  const groupedActivities = groupByDate(activities);
+  // Fetch daily reflections
+  const dailyReflections = await prisma.dailyReflection.findMany({
+    where: { studentId: user.userId },
+    orderBy: { date: 'desc' },
+    take: 30, // Last 30 days
+  });
+
+  const reflections: DailyReflection[] = dailyReflections.map(r => ({
+    id: r.id,
+    prompt: r.prompt,
+    content: r.content,
+    date: r.date,
+    createdAt: r.createdAt,
+  }));
+
+  // Check if today's reflection exists
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayReflection = reflections.find(r => {
+    const refDate = new Date(r.date);
+    refDate.setHours(0, 0, 0, 0);
+    return refDate.getTime() === today.getTime();
+  });
+
+  const groupedActivities = groupByDate(activities, reflections);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFFEF7] to-[#FFF3E7] p-8">
@@ -91,6 +135,13 @@ export default async function JournalPage() {
             A chronological timeline of everything you've accomplished
           </p>
         </div>
+
+        {/* Daily Reflection Prompt */}
+        <ReflectionPrompt existingReflection={todayReflection ? {
+          prompt: todayReflection.prompt,
+          content: todayReflection.content,
+          createdAt: todayReflection.createdAt,
+        } : null} />
 
         {/* Timeline */}
         <JournalTimeline groupedActivities={groupedActivities} />

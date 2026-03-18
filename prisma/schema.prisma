@@ -112,6 +112,7 @@ model User {
   investigations          Investigation[]
   createdShareLinks       ShareLink[]               @relation("ShareLinkCreator")
   cachedLessons           CachedLesson[]            @relation("CachedLessons")
+  dailyReflections        DailyReflection[]         @relation("StudentReflections")
 
   @@index([email])
   @@index([role])
@@ -982,4 +983,19 @@ model CachedLesson {
   @@index([userId])
   @@index([expiresAt])
   @@map("cached_lessons")
+}
+
+model DailyReflection {
+  id        String   @id @default(uuid()) @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  date      DateTime
+  prompt    String
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  student   User     @relation("StudentReflections", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, date])
+  @@index([studentId])
+  @@index([date])
+  @@map("daily_reflections")
 }

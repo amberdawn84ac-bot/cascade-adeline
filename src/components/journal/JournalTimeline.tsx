@@ -14,8 +14,16 @@ interface ActivityEntry {
   metadata?: any;
 }
 
+interface DailyReflection {
+  id: string;
+  prompt: string;
+  content: string;
+  date: Date;
+  createdAt: Date;
+}
+
 interface JournalTimelineProps {
-  groupedActivities: Record<string, ActivityEntry[]>;
+  groupedActivities: Record<string, { activities: ActivityEntry[]; reflection?: DailyReflection; dateKey: number }>;
 }
 
 const SUBJECT_COLORS: Record<string, { bg: string; border: string; text: string; icon: any }> = {
@@ -56,7 +64,9 @@ export function JournalTimeline({ groupedActivities }: JournalTimelineProps) {
   return (
     <div className="space-y-8">
       {dateLabels.map((dateLabel) => {
-        const activities = groupedActivities[dateLabel];
+        const dayData = groupedActivities[dateLabel];
+        const activities = dayData.activities;
+        const reflection = dayData.reflection;
         
         return (
           <div key={dateLabel} className="relative">
@@ -69,6 +79,40 @@ export function JournalTimeline({ groupedActivities }: JournalTimelineProps) {
 
             {/* Timeline Activities */}
             <div className="space-y-4 pl-8 border-l-4 border-[#E7DAC3]">
+              {/* Daily Reflection (if exists for this day) */}
+              {reflection && (
+                <div className="relative -ml-10 mb-6">
+                  <div className="absolute left-0 top-6 w-6 h-6 rounded-full bg-[#BD6809] border-4 border-[#FFFEF7] shadow-md" />
+                  <Card className="ml-8 border-2 border-[#BD6809] bg-gradient-to-br from-[#FFF3E7] to-[#FFFEF7] shadow-lg">
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="text-2xl">📝</div>
+                        <div className="flex-1">
+                          <p className="text-xs font-bold text-[#BD6809] uppercase tracking-wider mb-2">
+                            Daily Reflection
+                          </p>
+                          <blockquote className="text-sm text-[#2F4731] italic mb-3 border-l-2 border-[#BD6809] pl-3">
+                            "{reflection.prompt}"
+                          </blockquote>
+                          <div className="bg-white/70 rounded-lg p-3 border border-[#E7DAC3]">
+                            <p className="text-sm text-[#2F4731] leading-relaxed whitespace-pre-wrap">
+                              {reflection.content}
+                            </p>
+                          </div>
+                          <p className="text-xs text-[#2F4731]/50 mt-2">
+                            Written {new Date(reflection.createdAt).toLocaleTimeString('en-US', { 
+                              hour: 'numeric', 
+                              minute: '2-digit',
+                              hour12: true 
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {activities.map((activity) => {
                 const style = getSubjectStyle(activity.mappedSubject);
                 const Icon = style.icon;
