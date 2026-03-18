@@ -6,11 +6,13 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { CheckoutForm } from '@/components/checkout/CheckoutForm';
 
+type BillingInterval = 'monthly' | 'yearly';
+
 const TIERS = [
   {
     id: 'FREE',
     name: 'Free Student',
-    price: { monthly: 0 },
+    price: { monthly: 0, yearly: 0 },
     description: 'Try Adeline with limited features',
     features: [
       '✨ Unlimited chat messages',
@@ -22,20 +24,20 @@ const TIERS = [
       '❌ No Transcripts',
     ],
     cta: 'Start Free',
-    productId: null,
+    productId: { monthly: null, yearly: null },
     trial: false,
   },
   {
     id: 'STUDENT',
-    productId: 'STUDENT_MONTHLY',
+    productId: { monthly: 'STUDENT_MONTHLY', yearly: 'STUDENT_YEARLY' },
     name: 'Student',
-    price: { monthly: 2.99 },
+    price: { monthly: 2.99, yearly: 32.29 },
     description: 'Full access for one learner',
     features: [
       'Everything in Free, plus:',
       '✅ Learning Path',
       '✅ Daily Journal',
-      '� Full conversation history',
+      '📚 Full conversation history',
       '🎯 Personalized curriculum',
       '📈 Progress tracking',
     ],
@@ -45,9 +47,9 @@ const TIERS = [
   },
   {
     id: 'PARENT',
-    productId: 'PARENT_MONTHLY',
+    productId: { monthly: 'PARENT_MONTHLY', yearly: 'PARENT_YEARLY' },
     name: 'Parent',
-    price: { monthly: 9.99 },
+    price: { monthly: 9.99, yearly: 107.89 },
     description: 'For homeschool families',
     features: [
       'Everything in Student, plus:',
@@ -63,9 +65,9 @@ const TIERS = [
   },
   {
     id: 'TEACHER',
-    productId: 'TEACHER_MONTHLY',
+    productId: { monthly: 'TEACHER_MONTHLY', yearly: 'TEACHER_YEARLY' },
     name: 'Teacher',
-    price: { monthly: 29.99 },
+    price: { monthly: 29.99, yearly: 323.89 },
     description: 'For classrooms & co-ops',
     features: [
       'Everything in Parent, plus:',
@@ -84,18 +86,18 @@ const TIERS = [
 export default function PricingPage() {
   const router = useRouter();
   const [checkoutProductId, setCheckoutProductId] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
 
   const handleUpgrade = (tier: typeof TIERS[0]) => {
     if (tier.id === 'FREE') {
       router.push('/chat');
       return;
     }
-    if (tier.id === 'COOP') {
-      router.push('mailto:hello@dearadeline.com');
-      return;
-    }
-    if (tier.productId) {
-      setCheckoutProductId(tier.productId);
+    const productId = typeof tier.productId === 'object' 
+      ? tier.productId[billingInterval]
+      : tier.productId;
+    if (productId) {
+      setCheckoutProductId(productId);
     }
   };
 
@@ -140,6 +142,60 @@ export default function PricingPage() {
           }}>
             Start with a free account or try any paid plan with a 7-day free trial.
           </p>
+
+          {/* Billing Toggle */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 16,
+            marginBottom: 32,
+          }}>
+            <button
+              onClick={() => setBillingInterval('monthly')}
+              style={{
+                padding: '12px 24px',
+                borderRadius: 12,
+                border: billingInterval === 'monthly' ? '2px solid #BD6809' : '2px solid #E7DAC3',
+                background: billingInterval === 'monthly' ? '#BD6809' : '#FFF',
+                color: billingInterval === 'monthly' ? '#FFF' : '#2F4731',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingInterval('yearly')}
+              style={{
+                padding: '12px 24px',
+                borderRadius: 12,
+                border: billingInterval === 'yearly' ? '2px solid #BD6809' : '2px solid #E7DAC3',
+                background: billingInterval === 'yearly' ? '#BD6809' : '#FFF',
+                color: billingInterval === 'yearly' ? '#FFF' : '#2F4731',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                position: 'relative',
+              }}
+            >
+              Yearly
+              <span style={{
+                position: 'absolute',
+                top: -8,
+                right: -8,
+                background: '#2F4731',
+                color: '#FFF',
+                fontSize: 10,
+                padding: '2px 6px',
+                borderRadius: 999,
+                fontWeight: 700,
+              }}>
+                Save 10%
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Pricing Cards */}
@@ -192,12 +248,17 @@ export default function PricingPage() {
                   fontWeight: 700,
                   color: '#2F4731',
                 }}>
-                  ${tier.price.monthly}
+                  ${billingInterval === 'monthly' ? tier.price.monthly : tier.price.yearly}
                 </span>
                 {tier.price.monthly > 0 && (
                   <span style={{ color: '#4B3424', fontSize: '1rem' }}>
-                    /mo
+                    {billingInterval === 'monthly' ? '/mo' : '/yr'}
                   </span>
+                )}
+                {billingInterval === 'yearly' && tier.price.yearly > 0 && (
+                  <div style={{ fontSize: '0.875rem', color: '#BD6809', fontWeight: 600, marginTop: 4 }}>
+                    ${(tier.price.yearly / 12).toFixed(2)}/mo billed annually
+                  </div>
                 )}
               </div>
 

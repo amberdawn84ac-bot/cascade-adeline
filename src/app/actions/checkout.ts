@@ -20,6 +20,13 @@ const PRODUCT_CATALOG: Record<string, Product> = {
     mode: 'subscription',
     interval: 'month',
   },
+  STUDENT_YEARLY: {
+    name: 'Dear Adeline — Student (Annual)',
+    description: 'Full access: Learning Path, Daily Journal, unlimited chat, and all subjects.',
+    priceInCents: 3229, // $2.99 * 12 * 0.9 = $32.29/year
+    mode: 'subscription',
+    interval: 'year',
+  },
   PARENT_MONTHLY: {
     name: 'Dear Adeline — Parent',
     description: 'Everything in Student plus parent dashboard, transcripts, and up to 5 connected students.',
@@ -27,12 +34,26 @@ const PRODUCT_CATALOG: Record<string, Product> = {
     mode: 'subscription',
     interval: 'month',
   },
+  PARENT_YEARLY: {
+    name: 'Dear Adeline — Parent (Annual)',
+    description: 'Everything in Student plus parent dashboard, transcripts, and up to 5 connected students.',
+    priceInCents: 10789, // $9.99 * 12 * 0.9 = $107.89/year
+    mode: 'subscription',
+    interval: 'year',
+  },
   TEACHER_MONTHLY: {
     name: 'Dear Adeline — Teacher',
     description: 'Everything in Parent plus classroom management and up to 40 connected students.',
     priceInCents: 2999,
     mode: 'subscription',
     interval: 'month',
+  },
+  TEACHER_YEARLY: {
+    name: 'Dear Adeline — Teacher (Annual)',
+    description: 'Everything in Parent plus classroom management and up to 40 connected students.',
+    priceInCents: 32389, // $29.99 * 12 * 0.9 = $323.89/year
+    mode: 'subscription',
+    interval: 'year',
   },
   EXTRA_STUDENT: {
     name: 'Additional Student',

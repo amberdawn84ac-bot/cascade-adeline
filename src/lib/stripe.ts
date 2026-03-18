@@ -7,8 +7,11 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 // Price IDs (set these after creating products in Stripe Dashboard)
 export const STRIPE_PRICES = {
   STUDENT_MONTHLY: process.env.STRIPE_PRICE_STUDENT_MONTHLY || '',
+  STUDENT_YEARLY: process.env.STRIPE_PRICE_STUDENT_YEARLY || '',
   PARENT_MONTHLY: process.env.STRIPE_PRICE_PARENT_MONTHLY || '',
+  PARENT_YEARLY: process.env.STRIPE_PRICE_PARENT_YEARLY || '',
   TEACHER_MONTHLY: process.env.STRIPE_PRICE_TEACHER_MONTHLY || '',
+  TEACHER_YEARLY: process.env.STRIPE_PRICE_TEACHER_YEARLY || '',
   EXTRA_STUDENT: process.env.STRIPE_PRICE_EXTRA_STUDENT || '',
 };
 
