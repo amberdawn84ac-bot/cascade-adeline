@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, CreditCard, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 const GRADE_LEVELS = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 const INTEREST_OPTIONS = [
@@ -16,9 +17,15 @@ const INTEREST_OPTIONS = [
 
 interface Props {
   user: { name?: string; email?: string; role?: string; gradeLevel?: string; interests?: string[]; learningStyle?: string };
+  subscription?: {
+    tier: string;
+    status: string;
+    currentPeriodEnd: Date;
+    cancelAtPeriodEnd: boolean;
+  } | null;
 }
 
-export function SettingsForm({ user }: Props) {
+export function SettingsForm({ user, subscription }: Props) {
   const [gradeLevel, setGradeLevel] = useState(user.gradeLevel || '');
   const [interests, setInterests] = useState<string[]>(user.interests || []);
   const [learningStyle, setLearningStyle] = useState(user.learningStyle || 'EXPEDITION');
@@ -51,8 +58,62 @@ export function SettingsForm({ user }: Props) {
 
   const inputClass = "w-full p-3 rounded-xl border-2 border-[#E7DAC3] focus:border-[#BD6809] outline-none bg-[#FFFDF5]";
 
+  const currentTier = subscription?.tier || 'FREE';
+  const isActive = subscription?.status === 'ACTIVE';
+
   return (
     <div className="space-y-8">
+      {/* Subscription & Billing */}
+      <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 space-y-4 shadow-sm">
+        <h2 className="text-xl font-bold text-[#2F4731]">Subscription & Billing</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-[#F5EFE0] rounded-xl">
+            <div>
+              <div className="font-bold text-[#2F4731] text-lg">
+                {currentTier === 'FREE' ? 'Free Student' : 
+                 currentTier === 'STUDENT' ? 'Student Plan' :
+                 currentTier === 'PARENT' ? 'Parent Plan' :
+                 currentTier === 'TEACHER' ? 'Teacher Plan' : 'Unknown'}
+              </div>
+              <div className="text-sm text-[#2F4731]/60 mt-1">
+                {currentTier === 'FREE' ? 'Chat only • No Learning Path or Journal' :
+                 currentTier === 'STUDENT' ? '$2.99/mo • Full access for 1 student' :
+                 currentTier === 'PARENT' ? '$9.99/mo • Up to 5 students + parent dashboard' :
+                 currentTier === 'TEACHER' ? '$29.99/mo • Up to 40 students + classroom tools' : ''}
+              </div>
+              {subscription && isActive && (
+                <div className="text-xs text-[#2F4731]/50 mt-2">
+                  {subscription.cancelAtPeriodEnd 
+                    ? `Cancels on ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                    : `Renews on ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                  }
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              {currentTier === 'FREE' && (
+                <Link
+                  href="/pricing"
+                  className="flex items-center gap-2 px-6 py-3 bg-[#BD6809] text-white rounded-xl font-bold hover:bg-[#A05808] transition-colors"
+                >
+                  <CreditCard size={16} />
+                  Upgrade
+                </Link>
+              )}
+              {currentTier !== 'FREE' && (
+                <Link
+                  href="/pricing"
+                  className="flex items-center gap-2 px-4 py-2 border-2 border-[#BD6809] text-[#BD6809] rounded-xl font-bold hover:bg-[#FFF3E7] transition-colors text-sm"
+                >
+                  Change Plan
+                  <ExternalLink size={14} />
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Read-only info */}
       <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 space-y-4 shadow-sm">
         <h2 className="text-xl font-bold text-[#2F4731]">Account Info</h2>

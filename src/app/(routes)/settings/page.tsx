@@ -20,6 +20,17 @@ export default async function SettingsPage() {
     },
   });
 
+  // Fetch subscription data
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId: sessionUser.userId },
+    select: {
+      tier: true,
+      status: true,
+      currentPeriodEnd: true,
+      cancelAtPeriodEnd: true,
+    },
+  });
+
   if (!user) redirect('/login');
 
   // Transform user to match SettingsForm props
@@ -32,6 +43,13 @@ export default async function SettingsPage() {
     learningStyle: user.learningStyle || 'EXPEDITION',
   };
 
+  const subscriptionProps = subscription ? {
+    tier: subscription.tier,
+    status: subscription.status,
+    currentPeriodEnd: subscription.currentPeriodEnd,
+    cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+  } : null;
+
   return (
     <div className="space-y-8 max-w-2xl">
       <header>
@@ -40,7 +58,7 @@ export default async function SettingsPage() {
         </h1>
         <p className="text-[#2F4731]/60 mt-2">Manage your profile and preferences.</p>
       </header>
-      <SettingsForm user={userProps} />
+      <SettingsForm user={userProps} subscription={subscriptionProps} />
     </div>
   );
 }
