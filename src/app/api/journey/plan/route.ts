@@ -117,9 +117,9 @@ export async function GET(req: NextRequest) {
       graduationDate.setMonth(4); // End of school year (May)
       
       // Credits = number of core subjects for one school year
-      // Elementary: Reading, Math, Science, Social Studies = 4 credits
-      // Middle: ELA, Math, Science, History, Elective = 5 credits
-      TOTAL_CREDITS_NEEDED = schoolLevel === 'middle' ? 5 : 4;
+      // Elementary: Reading, Math, Science, Social Studies, Bible = 5 credits
+      // Middle: ELA, Math, Science, History, Bible, Elective = 6 credits
+      TOTAL_CREDITS_NEEDED = schoolLevel === 'middle' ? 6 : 5;
     }
 
     // Pull the student's state from their learning plan (set during onboarding)
@@ -170,6 +170,7 @@ LEARNING MILESTONES FOR THIS SCHOOL YEAR (${TOTAL_CREDITS_NEEDED} total, each = 
 - Math: 1 milestone  
 - Science & Nature: 1 milestone
 - Social Studies / World Around Us: 1 milestone
+- Bible / Scripture Study: 1 milestone
 
 These are the CORE subjects for this grade level this year. Keep it simple and age-appropriate.
 ` : schoolLevel === 'middle' ? `
@@ -189,6 +190,7 @@ LEARNING MILESTONES FOR THIS SCHOOL YEAR (${TOTAL_CREDITS_NEEDED} total, each = 
 - Math: 1 milestone
 - Science: 1 milestone
 - History/Social Studies: 1 milestone
+- Bible / Scripture Study: 1 milestone
 - Elective (tied to interests): 1 milestone
 
 These are the CORE subjects for this grade level this year.
@@ -200,9 +202,10 @@ GRADUATION REQUIREMENTS (${TOTAL_CREDITS_NEEDED} individual 1-credit courses):
 - Math: 3 courses
 - Science: 3 courses
 - History/Social Studies: 3 courses
-- Electives: 6 courses (map directly to student interests)
-- Trade/Business/CLEP/Dual Enrollment: 3 courses
-- Character/Service: 2 courses
+- Bible / Scripture Study: 4 courses (one per year)
+- Electives: 4 courses (map directly to student interests)
+- Trade/Business/CLEP/Dual Enrollment: 2 courses
+- Character/Service: 1 course
 `;
 
     const result = await llm.invoke([
