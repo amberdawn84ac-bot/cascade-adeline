@@ -5,11 +5,8 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { 
-  Home, 
   MessageCircle, 
-  Library, 
   Users, 
-  FlaskConical, 
   Calculator, 
   Feather, 
   Gamepad2, 
@@ -19,8 +16,6 @@ import {
   Clock,
   X,
   Menu,
-  ChevronDown,
-  ChevronRight,
   Settings,
   LogOut,
   BookOpen,
@@ -32,26 +27,27 @@ import { createServerClient } from '@supabase/ssr';
 const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
 
 const NAV_ITEMS = [
+  // Top-level: My Learning Path
   { 
-    label: 'Dashboard', 
-    href: '/dashboard', 
-    icon: Home,
-    children: [
-      { label: 'Science Lab', href: '/dashboard/science', icon: FlaskConical },
-      { label: 'Math', href: '/dashboard/math', icon: Calculator },
-      { label: 'Reading Nook', href: '/dashboard/reading-nook', icon: Feather },
-      { label: 'History Timeline', href: '/dashboard/history', icon: Clock },
-      { label: 'Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
-      { label: 'Future Prep', href: '/dashboard/college-prep', icon: GraduationCap },
-      { label: 'Homesteading', href: '/dashboard/domestic-arts', icon: ChefHat },
-      { label: 'Expeditions', href: '/dashboard/expeditions', icon: MapPin },
-      { label: 'Bible Study', href: '/dashboard/bible-study', icon: BookOpen },
-      { label: 'Community Board', href: '/dashboard/community-board', icon: Users },
-      { label: 'My Learning Path', href: '/dashboard/journey', icon: Mountain },
-    ]
+    label: 'My Learning Path', 
+    href: '/dashboard/journey', 
+    icon: Mountain,
   },
-  { label: 'Chat with Adeline', href: '/chat', icon: MessageCircle },
-  { label: 'Library', href: '/library', icon: Library },
+  
+  // Core Subjects (grouped)
+  { label: 'Math', href: '/dashboard/math', icon: Calculator },
+  { label: 'Reading Nook', href: '/dashboard/reading-nook', icon: Feather },
+  { label: 'History Timeline', href: '/dashboard/history', icon: Clock },
+  { label: 'Homesteading', href: '/dashboard/domestic-arts', icon: ChefHat },
+  { label: 'Bible Study', href: '/dashboard/bible-study', icon: BookOpen },
+  
+  // Secondary Activities (grouped)
+  { label: 'Community Board', href: '/dashboard/community-board', icon: Users },
+  { label: 'Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
+  { label: 'Future Prep', href: '/dashboard/college-prep', icon: GraduationCap },
+  { label: 'Expeditions', href: '/dashboard/expeditions', icon: MapPin },
+  
+  // Family Portal (role-based)
   { label: 'Family Portal', href: '/dashboard/teacher', icon: Users },
 ];
 
@@ -65,7 +61,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard']);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   // Check user role on mount
   useEffect(() => {
@@ -154,71 +150,61 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Nav Links */}
-          <nav className="flex-1 space-y-2">
-            {filteredNavItems.map((item) => {
+          <nav className="flex-1 space-y-1">
+            {filteredNavItems.map((item, index) => {
               const isActive = pathname === item.href;
-              const isExpanded = expandedItems.includes(item.label);
-              const hasChildren = item.children && item.children.length > 0;
               const Icon = item.icon;
+              
+              // Add section dividers
+              const showCoreSubjectsHeader = index === 1;
+              const showSecondaryHeader = index === 6;
 
               return (
-                <div key={item.href}>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={item.href}
-                      onClick={() => !hasChildren && setIsOpen(false)}
-                      className={cn(
-                        "flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
-                        isActive && !hasChildren
-                          ? "bg-[#2F4731] text-white shadow-lg shadow-[#2F4731]/20 font-bold" 
-                          : "text-[#2F4731]/70 hover:bg-[#2F4731]/5 hover:text-[#2F4731] font-medium"
-                      )}
-                    >
-                      <Icon size={20} className={cn("transition-transform group-hover:scale-110", isActive && !hasChildren && "text-[#BD6809]")} />
-                      <span>{item.label}</span>
-                    </Link>
-                    {hasChildren && (
-                      <button 
-                        onClick={() => toggleExpand(item.label)}
-                        className="p-2 text-[#2F4731]/50 hover:text-[#2F4731] hover:bg-[#2F4731]/5 rounded-lg transition-colors"
-                      >
-                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Sub-items */}
-                  {hasChildren && isExpanded && (
-                    <div className="ml-9 mt-1 space-y-1 border-l-2 border-[#E7DAC3]/50 pl-2">
-                      {item.children!.map((child) => {
-                        const isChildActive = pathname === child.href;
-                        const ChildIcon = child.icon;
-                        return (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            onClick={() => setIsOpen(false)}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm",
-                              isChildActive
-                                ? "bg-[#BD6809]/10 text-[#BD6809] font-bold" 
-                                : "text-[#2F4731]/60 hover:text-[#2F4731] hover:bg-[#2F4731]/5"
-                            )}
-                          >
-                            <ChildIcon size={16} />
-                            <span>{child.label}</span>
-                          </Link>
-                        );
-                      })}
+                <React.Fragment key={item.href}>
+                  {/* Section Headers */}
+                  {showCoreSubjectsHeader && (
+                    <div className="pt-4 pb-2 px-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#2F4731]/40">Core Subjects</p>
                     </div>
                   )}
-                </div>
+                  {showSecondaryHeader && (
+                    <div className="pt-4 pb-2 px-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#2F4731]/40">Activities</p>
+                    </div>
+                  )}
+                  
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                      isActive
+                        ? "bg-[#2F4731] text-white shadow-lg shadow-[#2F4731]/20 font-bold" 
+                        : "text-[#2F4731]/70 hover:bg-[#2F4731]/5 hover:text-[#2F4731] font-medium"
+                    )}
+                  >
+                    <Icon size={20} className={cn("transition-transform group-hover:scale-110", isActive && "text-[#BD6809]")} />
+                    <span>{item.label}</span>
+                  </Link>
+                </React.Fragment>
               );
             })}
           </nav>
 
-          {/* Bottom Actions */}
+          {/* Bottom Actions - Pinned */}
           <div className="mt-auto pt-6 border-t border-[#E7DAC3] space-y-2">
+            <Link
+              href="/chat"
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                pathname === '/chat'
+                  ? "bg-[#2F4731] text-white shadow-lg shadow-[#2F4731]/20 font-bold"
+                  : "text-[#2F4731]/70 hover:bg-[#2F4731]/5 hover:text-[#2F4731] font-medium"
+              )}
+            >
+              <MessageCircle size={20} />
+              Chat with Adeline
+            </Link>
             <Link
               href="/settings"
               className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-[#2F4731]/60 hover:text-[#2F4731] transition-colors"
