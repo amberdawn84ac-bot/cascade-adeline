@@ -124,14 +124,28 @@ export function ConversationalLogin() {
           router.push('/onboarding');
         } else {
           // Paid tier - redirect to checkout
-          const productId = `${tier}_${billingInterval.toUpperCase()}`;
           const checkoutRes = await fetch('/api/stripe/create-checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tier, billing: billingInterval }),
           });
-          const { url } = await checkoutRes.json();
-          if (url) window.location.href = url;
+          
+          if (!checkoutRes.ok) {
+            const errorData = await checkoutRes.json();
+            throw new Error(errorData.error || 'Failed to create checkout session');
+          }
+          
+          const { url, error } = await checkoutRes.json();
+          
+          if (error) {
+            throw new Error(error);
+          }
+          
+          if (url) {
+            window.location.href = url;
+          } else {
+            throw new Error('No checkout URL returned');
+          }
         }
       } else {
         // Email confirmation required
