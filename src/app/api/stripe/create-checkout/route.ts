@@ -57,6 +57,13 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
+      subscription_data: {
+        trial_period_days: 7,
+        metadata: {
+          userId: user.userId,
+          tier,
+        },
+      },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
       metadata: {
