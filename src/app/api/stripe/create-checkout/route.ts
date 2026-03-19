@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const { tier, billing } = await req.json();
 
   // Validate tier
-  const validTiers = ['STUDENT', 'PARENT', 'FAMILY'];
+  const validTiers = ['STUDENT', 'PARENT', 'TEACHER'];
   if (!validTiers.includes(tier)) {
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
   }
