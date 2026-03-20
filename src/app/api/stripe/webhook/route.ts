@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { stripe, STRIPE_PRICES } from '@/lib/stripe';
 import prisma from '@/lib/db';
 import Stripe from 'stripe';
 
@@ -106,18 +106,31 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`[Checkout] Subscription created for user ${userId}, tier ${tier}`);
 }
 
+function getTierFromPriceId(priceId: string | undefined): 'STUDENT' | 'PARENT' | 'TEACHER' | null {
+  if (!priceId) return null;
+  if (priceId === STRIPE_PRICES.STUDENT_MONTHLY || priceId === STRIPE_PRICES.STUDENT_YEARLY) return 'STUDENT';
+  if (priceId === STRIPE_PRICES.PARENT_MONTHLY || priceId === STRIPE_PRICES.PARENT_YEARLY) return 'PARENT';
+  if (priceId === STRIPE_PRICES.TEACHER_MONTHLY || priceId === STRIPE_PRICES.TEACHER_YEARLY) return 'TEACHER';
+  return null;
+}
+
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const sub = subscription as unknown as Stripe.Subscription & { current_period_end: number };
+  const priceId = subscription.items.data[0]?.price.id;
+  const tier = getTierFromPriceId(priceId);
+
   await prisma.subscription.update({
     where: { stripeSubscriptionId: subscription.id },
     data: {
       status: subscription.status === 'active' ? 'ACTIVE' : 'PAST_DUE',
       currentPeriodEnd: new Date(sub.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      stripePriceId: priceId,
+      ...(tier && { tier }),
     },
   });
 
-  console.log(`[Subscription] Updated ${subscription.id}`);
+  console.log(`[Subscription] Updated ${subscription.id}${tier ? `, tier → ${tier}` : ''}`);
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
