@@ -139,7 +139,7 @@ export function SettingsForm({ user, subscription }: Props) {
             type="text"
             value={promoCode}
             onChange={e => setPromoCode(e.target.value.toUpperCase())}
-            placeholder="e.g. FAMILY2026"
+            placeholder="Enter promo code"
             className={inputClass + ' flex-1 uppercase tracking-widest font-bold'}
           />
           <button
