@@ -453,9 +453,9 @@ model OnboardingProgress {
 model Subscription {
   id                   String             @id @default(uuid()) @db.Uuid
   userId               String             @unique @db.Uuid
-  stripeCustomerId     String             @unique @map("stripe_customer_id")
-  stripeSubscriptionId String             @unique @map("stripe_subscription_id")
-  stripePriceId        String             @map("stripe_price_id")
+  stripeCustomerId     String?            @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?            @unique @map("stripe_subscription_id")
+  stripePriceId        String?            @map("stripe_price_id")
   tier                 SubscriptionTier   @default(FREE)
   status               SubscriptionStatus @default(ACTIVE)
   currentPeriodEnd     DateTime           @map("current_period_end")

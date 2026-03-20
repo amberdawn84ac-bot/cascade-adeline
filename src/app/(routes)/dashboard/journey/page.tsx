@@ -485,14 +485,19 @@ export default function JourneyPage() {
           </p>
 
           {plan.activeExpeditions.length === 0 ? (
-            <div className="rounded-3xl border-2 border-dashed border-amber-300 bg-amber-50 p-10 text-center">
-              <span className="text-5xl block mb-3">⛺</span>
+            <div className="rounded-3xl border-2 border-dashed border-amber-300 bg-amber-50 p-8 text-center space-y-3">
+              <span className="text-5xl block">⛺</span>
               <p className="text-amber-900 font-bold text-lg">
-                Base camp is empty. The summit doesn't wait.
+                Your trail is ready — pick your first course!
               </p>
-              <p className="text-amber-700 text-sm mt-1">
-                Click a course on the trail below to start your first expedition.
+              <p className="text-amber-700 text-sm leading-relaxed max-w-sm mx-auto">
+                Scroll down to <strong>Trail Ahead</strong> and click any course card to start today's lesson right now. No setup needed.
               </p>
+              <div className="flex justify-center pt-1">
+                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-200 text-amber-900 text-xs font-bold rounded-full">
+                  👇 See Trail Ahead below
+                </span>
+              </div>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-5">

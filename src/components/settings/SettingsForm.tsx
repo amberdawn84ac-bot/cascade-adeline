@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Loader2, Save, CreditCard, ExternalLink } from 'lucide-react';
+import { Loader2, Save, CreditCard, ExternalLink, Tag, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 const GRADE_LEVELS = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
@@ -31,6 +31,31 @@ export function SettingsForm({ user, subscription }: Props) {
   const [learningStyle, setLearningStyle] = useState(user.learningStyle || 'EXPEDITION');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoMessage, setPromoMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const handlePromoRedeem = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoMessage(null);
+    try {
+      const res = await fetch('/api/promo/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid code');
+      setPromoMessage({ text: `✅ Promo code applied! You now have ${data.tier === 'STUDENT' ? 'Student' : 'Parent'} plan access.`, ok: true });
+      setPromoCode('');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err: unknown) {
+      setPromoMessage({ text: err instanceof Error ? err.message : 'Invalid code', ok: false });
+    } finally {
+      setPromoLoading(false);
+    }
+  };
 
   const toggleInterest = (interest: string) => {
     setInterests(prev =>
@@ -70,13 +95,13 @@ export function SettingsForm({ user, subscription }: Props) {
           <div className="flex items-center justify-between p-4 bg-[#F5EFE0] rounded-xl">
             <div>
               <div className="font-bold text-[#2F4731] text-lg">
-                {currentTier === 'FREE' ? 'Free Student' : 
+                {currentTier === 'FREE' ? 'Free Account' : 
                  currentTier === 'STUDENT' ? 'Student Plan' :
                  currentTier === 'PARENT' ? 'Parent Plan' :
                  currentTier === 'TEACHER' ? 'Teacher Plan' : 'Unknown'}
               </div>
               <div className="text-sm text-[#2F4731]/60 mt-1">
-                {currentTier === 'FREE' ? 'Chat only • No Learning Path or Journal' :
+                {currentTier === 'FREE' ? 'Full app access • Enter promo code below for extended plan' :
                  currentTier === 'STUDENT' ? '$2.99/mo • Full access for 1 student' :
                  currentTier === 'PARENT' ? '$9.99/mo • Up to 5 students + parent dashboard' :
                  currentTier === 'TEACHER' ? '$29.99/mo • Up to 40 students + classroom tools' : ''}
@@ -91,15 +116,6 @@ export function SettingsForm({ user, subscription }: Props) {
               )}
             </div>
             <div className="flex flex-col gap-2">
-              {currentTier === 'FREE' && (
-                <Link
-                  href="/pricing"
-                  className="flex items-center gap-2 px-6 py-3 bg-[#BD6809] text-white rounded-xl font-bold hover:bg-[#A05808] transition-colors"
-                >
-                  <CreditCard size={16} />
-                  Upgrade
-                </Link>
-              )}
               {currentTier !== 'FREE' && (
                 <Link
                   href="/pricing"
@@ -112,6 +128,34 @@ export function SettingsForm({ user, subscription }: Props) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Promo Code */}
+      <div className="bg-white rounded-[2rem] border border-[#E7DAC3] p-8 space-y-4 shadow-sm">
+        <h2 className="text-xl font-bold text-[#2F4731]">Promo Code</h2>
+        <p className="text-sm text-[#2F4731]/60">Have a promo code? Enter it here to unlock your plan.</p>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={promoCode}
+            onChange={e => setPromoCode(e.target.value.toUpperCase())}
+            placeholder="e.g. FAMILY2026"
+            className={inputClass + ' flex-1 uppercase tracking-widest font-bold'}
+          />
+          <button
+            onClick={handlePromoRedeem}
+            disabled={promoLoading || !promoCode.trim()}
+            className="flex items-center gap-2 px-6 py-3 bg-[#2F4731] text-white rounded-xl font-bold hover:bg-[#BD6809] transition-colors disabled:opacity-50"
+          >
+            {promoLoading ? <Loader2 size={16} className="animate-spin" /> : <Tag size={16} />}
+            Apply
+          </button>
+        </div>
+        {promoMessage && (
+          <p className={`text-sm font-semibold ${promoMessage.ok ? 'text-green-700' : 'text-red-600'}`}>
+            {promoMessage.text}
+          </p>
+        )}
       </div>
 
       {/* Read-only info */}

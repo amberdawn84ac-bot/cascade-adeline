@@ -291,13 +291,13 @@ export function ConversationalLogin() {
 
               {/* Tier Selection */}
               <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                {/* Free Student */}
+                {/* Promo Code Entry */}
                 <button
                   onClick={() => { setTier('FREE'); setSignupStep('name-email'); }}
                   className="w-full p-4 rounded-xl border-2 border-[#E7DAC3] hover:border-[#2F4731] hover:bg-[#F5EFE0] transition-all text-left"
                 >
-                  <div className="font-bold text-[#2F4731] mb-1">Free Student - $0</div>
-                  <div className="text-xs text-[#2F4731]/60">Chat only • No Learning Path or Journal</div>
+                  <div className="font-bold text-[#2F4731] mb-1">🎟️ Have a Promo Code? - $0</div>
+                  <div className="text-xs text-[#2F4731]/60">Sign up free • Enter your code in Settings to unlock full access</div>
                 </button>
 
                 {/* Student */}
