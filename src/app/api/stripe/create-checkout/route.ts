@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingSubscription) {
-      customerId = existingSubscription.stripeCustomerId;
+      customerId = existingSubscription.stripeCustomerId ?? undefined;
     } else {
       // Create new Stripe customer
       const customer = await stripe.customers.create({
