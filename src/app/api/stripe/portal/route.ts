@@ -17,6 +17,10 @@ export async function POST() {
     return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
   }
 
+  if (!subscription.stripeCustomerId) {
+    return NextResponse.json({ error: 'No Stripe customer on this subscription' }, { status: 400 });
+  }
+
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
