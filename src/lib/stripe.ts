@@ -21,9 +21,9 @@ export const TIER_LIMITS = {
     students: 1,
     canCreateClubs: true,
     hasParentDashboard: false,
-    hasTranscripts: true,
-    hasLearningPath: true,
-    hasJournal: true,
+    hasTranscripts: false,
+    hasLearningPath: false,
+    hasJournal: false,
   },
   STUDENT: {
     messages: Infinity,
