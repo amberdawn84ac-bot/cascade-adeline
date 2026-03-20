@@ -3,6 +3,7 @@ import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email/email-service';
 import { Prisma } from '@prisma/client';
+import { invalidateStudentContext } from '@/lib/learning/student-context';
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
@@ -33,7 +34,8 @@ export async function PATCH(req: NextRequest) {
     },
   });
 
-  console.log('[onboarding/PATCH] Settings updated, learning plan cache cleared for user:', user.userId);
+  invalidateStudentContext(user.userId);
+  console.log('[onboarding/PATCH] Settings updated, student context cache busted for user:', user.userId);
 
   return NextResponse.json({ ok: true });
 }
@@ -68,6 +70,8 @@ export async function POST(req: NextRequest) {
     },
     select: { email: true, name: true, onboardingComplete: true },
   });
+
+  invalidateStudentContext(user.userId);
 
   if (updated.email && !updated.email.endsWith('@placeholder.local')) {
     sendWelcomeEmail(updated.email, updated.name ?? 'Explorer').catch(err =>

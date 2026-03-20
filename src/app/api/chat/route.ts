@@ -27,6 +27,14 @@ function getIntentContext(intent: string | undefined): string {
       return `\n\nCURRENT MODE: Metacognitive Reflection\nThe student is thinking about their own learning. Ask ONE Socratic question — not a lecture.\nChoose one reflection dimension: Process (how did you do it?), Challenge (what was hard?), Connection (what does this remind you of?), Transfer (where else could you use this?), Growth (what would you do differently?).\nOne question only. Then wait.`;
     case 'OPPORTUNITY':
       return `\n\nCURRENT MODE: Opportunity Scout\nHelp the student discover scholarships, competitions, or programs that match their interests.\nBe specific — give real program names, rough deadlines if known, and what skills they develop.`;
+    case 'ASSESS':
+      return `\n\nCURRENT MODE: Placement Assessment\nThe student wants to know where they stand in a subject. Your role is diagnostic, not instructional.\n- Ask 3-5 targeted questions that reveal their actual level — start at grade level, adjust up or down based on responses.\n- Do NOT lecture. Ask, listen, then ask the next question.\n- At the end, tell them exactly where they are: "You're solidly at grade X in this subject. Here's what to tackle next."`;
+    case 'ANALOGY':
+      return `\n\nCURRENT MODE: Simplify & Scaffold\nThe student's cognitive load is high — they're overwhelmed. Your ONLY job right now is to make one thing crystal clear.\n- Pick the single most confusing concept and explain it with one powerful analogy tied to their interests.\n- No lists. No multiple points. One analogy, one idea, one breath.\n- End with: "Does that click? Tell me what you're still stuck on."`;
+    case 'AUDIO_LOG':
+      return `\n\nCURRENT MODE: Audio Life Log\nThe student sent a voice recording describing something they did. Treat the transcribed text as a life activity log.\n- Celebrate what they did and identify what subjects they earned credit in.\n- Give a small, accurate credit amount (0.01-0.02 credits).\n- Ask ONE follow-up about how it went.`;
+    case 'IMAGE_LOG':
+      return `\n\nCURRENT MODE: Image Life Log\nThe student shared a photo of something they made, built, or did. Respond to what you can infer from the description.\n- Identify the subjects this activity connects to and celebrate the work.\n- Give a small credit estimate (0.01-0.02 credits) and ask what they learned from making it.`;
     default:
       return '';
   }
@@ -201,8 +209,9 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       start(controller) {
         // Prepend data annotations before text (2: = data chunk in Vercel AI protocol v1)
-        if (genUIPayload) {
-          const data = { genUIPayload };
+        const gapNudge = routedState.metadata?.gapNudge ?? null;
+        if (genUIPayload || gapNudge) {
+          const data = { genUIPayload: genUIPayload ?? null, gapNudge };
           controller.enqueue(encoder.encode(`2:${JSON.stringify([data])}\n`));
         }
 
