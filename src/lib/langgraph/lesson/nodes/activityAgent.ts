@@ -1,6 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
-import { loadConfig } from '@/lib/config';
 import { LessonBlock, LessonStateType } from '../lessonState';
 
 const activitySchema = z.object({
@@ -11,9 +10,8 @@ const activitySchema = z.object({
 });
 
 export async function activityAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
-  const config = loadConfig();
   const model = new ChatOpenAI({
-    model: config.models.default || 'gpt-4o',
+    model: 'gpt-4o-mini',
     temperature: 0.6,
   }).withStructuredOutput(activitySchema);
 

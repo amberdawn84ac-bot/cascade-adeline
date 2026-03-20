@@ -1,15 +1,14 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
-import { loadConfig } from '@/lib/config';
 import { LessonBlock, LessonStateType } from '../lessonState';
 
 const assessmentSchema = z.object({
   quizQuestions: z.array(z.object({
     question: z.string(),
-    options: z.array(z.string()).length(4),
+    options: z.array(z.string()).min(3).max(4),
     correctIndex: z.number().min(0).max(3),
     explanation: z.string(),
-  })).length(3),
+  })).min(2).max(4),
   flashcards: z.array(z.object({
     term: z.string(),
     definition: z.string(),
@@ -19,9 +18,8 @@ const assessmentSchema = z.object({
 });
 
 export async function assessmentAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
-  const config = loadConfig();
   const model = new ChatOpenAI({
-    model: config.models.default || 'gpt-4o',
+    model: 'gpt-4o-mini',
     temperature: 0.4,
   }).withStructuredOutput(assessmentSchema);
 

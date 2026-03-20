@@ -5,7 +5,7 @@ import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/cont
 import { lessonBrain } from '@/lib/langgraph/lesson/lessonGraph';
 import { LessonBlock } from '@/lib/langgraph/lesson/lessonState';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
