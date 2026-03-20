@@ -30,14 +30,16 @@ export async function assessmentAgent(state: LessonStateType): Promise<Partial<L
     {
       role: 'system',
       content: `You are creating assessment materials for a homeschool student (grade ${state.gradeLevel}).
+${state.interests?.length ? `Student interests: ${state.interests.join(', ')} — use these as real-world context in answer options where natural.` : ''}
 
 Rules:
 - Questions must test UNDERSTANDING, not just memorization
 - All 4 answer options must be plausible — no trick answers
 - Explanations must explain WHY the answer is correct and what the wrong answers miss
 - Flashcards cover the key vocabulary and concepts from the lesson
-- Language must match grade ${state.gradeLevel} level exactly
-- NEVER ask trick questions or penalize creative thinking`,
+- Language and complexity MUST match grade ${state.gradeLevel} level exactly — align to Oklahoma Academic Standards (and Common Core where applicable) for this grade
+- NEVER ask trick questions or penalize creative thinking
+- Difficulty must be appropriate for the student's ZPD: ${state.bktSummary || 'grade level'}`,
     },
     {
       role: 'user',
