@@ -1,13 +1,66 @@
 import { NextRequest } from 'next/server';
-import { HumanMessage } from '@langchain/core/messages';
-import { adelineBrainRunnable } from '@/lib/langgraph';
+import { streamText } from 'ai';
 import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
-import prisma from '@/lib/db';
-import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
 import { shouldRefuse } from '@/lib/learning/scaffolding-guardian';
 import { recordInteraction, calculateCognitiveLoad } from '@/lib/cognitive-load';
+import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
+import { loadConfig, buildSystemPrompt } from '@/lib/config';
+import { getModel } from '@/lib/ai-models';
+import { router as adelineRouter } from '@/lib/langgraph/router';
+import { lifeCreditLogger } from '@/lib/langgraph/lifeCreditLogger';
+import { AdelineGraphState } from '@/lib/langgraph/types';
+import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
+import prisma from '@/lib/db';
+
+// Intent-specific addendum appended to Adeline's base system prompt
+function getIntentContext(intent: string | undefined): string {
+  switch (intent) {
+    case 'INVESTIGATE':
+      return `\n\nCURRENT MODE: Investigation / Discernment\nThe student is asking an investigative question. Your role right now is researcher and guide.\n- Lead with: Who profits? Who funded this? Trace the money.\n- Prioritize primary sources: congressional records, SEC filings, patents, court docs, first-person accounts.\n- Center human suffering — not abstract talking points. Who were the real people harmed?\n- Do NOT hedge with "some people say." Present the evidence and let them draw their own conclusions.\n- End with 1-2 questions that push them deeper into the evidence.`;
+    case 'LIFE_LOG':
+      return `\n\nCURRENT MODE: Life Credit Logging\nThe student is describing something they did. Your role is to celebrate and record.\n- Tell them specifically what subjects they just earned credit in (use your life-to-credit knowledge).\n- Give a small, accurate credit amount (0.01-0.02 credits for a single activity).\n- Ask ONE follow-up: "Tell me more about how it turned out."\n- Keep it brief. They are logging an activity, not writing an essay.`;
+    case 'BRAINSTORM':
+      return `\n\nCURRENT MODE: Project Brainstorming\nThe student wants to build or create something. Help them find a project with PURPOSE.\n- Ask first: Who does this help? What problem does it solve or what beauty does it add to the world?\n- Give a concrete project plan: what to build, 3-4 steps, what subjects it covers.\n- Invite service as an option at the end — never as a gate or requirement.\n- If it sounds like busywork, redirect: "I love this idea. But who does it help? Let's make it matter."`;
+    case 'REFLECT':
+      return `\n\nCURRENT MODE: Metacognitive Reflection\nThe student is thinking about their own learning. Ask ONE Socratic question — not a lecture.\nChoose one reflection dimension: Process (how did you do it?), Challenge (what was hard?), Connection (what does this remind you of?), Transfer (where else could you use this?), Growth (what would you do differently?).\nOne question only. Then wait.`;
+    case 'OPPORTUNITY':
+      return `\n\nCURRENT MODE: Opportunity Scout\nHelp the student discover scholarships, competitions, or programs that match their interests.\nBe specific — give real program names, rough deadlines if known, and what skills they develop.`;
+    default:
+      return '';
+  }
+}
+
+// Which GenUI component to surface based on intent
+function getGenUIPayload(intent: string | undefined, prompt: string): object | null {
+  switch (intent) {
+    case 'INVESTIGATE':
+      return { component: 'InvestigationBoard', props: { query: prompt } };
+    case 'LIFE_LOG':
+      return { component: 'TranscriptCard', props: { activityDescription: prompt } };
+    case 'BRAINSTORM':
+      return { component: 'ProjectImpactCard', props: { suggestion: prompt } };
+    default:
+      return null;
+  }
+}
+
+// Returns a static text message in the Vercel AI data stream v1 format
+function staticStreamResponse(text: string, status = 200): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`0:${JSON.stringify(text)}\n`));
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    status,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' },
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,50 +68,38 @@ export async function POST(req: NextRequest) {
     if (!user) return new Response('Unauthorized', { status: 401 });
 
     const body = await req.json();
-    const { messages } = body;
+    const { messages, imageUrl, audioBase64 } = body;
+
+    if (!messages || messages.length === 0) {
+      return new Response('No messages provided', { status: 400 });
+    }
+
     const lastMessage = messages[messages.length - 1];
     const maskedContent = maskPII(lastMessage.content);
-    const moderationResult = await moderateContent(lastMessage.content);
 
+    // Safety: content moderation
+    const moderationResult = await moderateContent(lastMessage.content);
     if (moderationResult.severity === 'blocked') {
       return new Response('Content violates safety guidelines', { status: 400 });
     }
 
+    // Safety: scaffolding guardian (Socratic redirect instead of answer)
     const refusalDecision = shouldRefuse(maskedContent.masked, { userId: user.userId });
     if (refusalDecision.refuse) {
-      const refusalText = refusalDecision.socraticPrompt;
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        start(controller) {
-          let index = 0;
-          const interval = setInterval(() => {
-            if (index < refusalText.length) {
-              controller.enqueue(encoder.encode(`0:${JSON.stringify(refusalText[index])}\n`));
-              index++;
-            } else {
-              clearInterval(interval);
-              controller.close();
-            }
-          }, 10);
-        },
-      });
-      return new Response(stream, {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' },
-      });
+      return staticStreamResponse(refusalDecision.socraticPrompt);
     }
 
+    // Fetch student data for rate limiting and grade-level context
     const student = await prisma.user.findUnique({
       where: { id: user.userId },
-      select: { gradeLevel: true, messageCount: true, messageResetAt: true }
+      select: { gradeLevel: true, messageCount: true, messageResetAt: true },
     });
 
-    const gradeLevel = student?.gradeLevel || '3';
-
-    // ── Rate limiting ──────────────────────────────────────────────────────────
-    const DAILY_LIMIT = 50; // free tier; paid plans can raise this via metadata
+    // Rate limiting — 50 messages/day on free tier
+    const DAILY_LIMIT = 50;
     const now = new Date();
     const resetAt = student?.messageResetAt;
-    const needsReset = !resetAt || (now.getTime() - resetAt.getTime()) > 24 * 60 * 60 * 1000;
+    const needsReset = !resetAt || now.getTime() - resetAt.getTime() > 24 * 60 * 60 * 1000;
     const currentCount = needsReset ? 0 : (student?.messageCount ?? 0);
 
     if (needsReset) {
@@ -69,59 +110,83 @@ export async function POST(req: NextRequest) {
     }
 
     if (currentCount >= DAILY_LIMIT) {
-      const limitMsg = "You've reached your 50 message daily limit! Your count resets every 24 hours. Upgrade to a paid plan for unlimited conversations with Adeline. 🌿";
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(`0:${JSON.stringify(limitMsg)}\n`));
-          controller.close();
-        },
-      });
-      return new Response(stream, {
-        status: 429,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' },
-      });
+      return staticStreamResponse(
+        "You've reached your 50 message daily limit! Your count resets every 24 hours. Upgrade to a paid plan for unlimited conversations with Adeline. 🌿",
+        429,
+      );
     }
 
-    const initialState = {
-      messages: [new HumanMessage(maskedContent.masked)],
+    const aiStartTime = Date.now();
+    const config = loadConfig();
+
+    // Build router state (includes gradeLevel so lifeCreditLogger maps correctly)
+    const routerState: AdelineGraphState = {
       userId: user.userId,
-      gradeLevel: gradeLevel,
-      intent: 'CHAT' as const,
-      missing_info: [],
-      investigation_sources: [],
-      credit_entry: null,
-      learning_gaps: [],
-      response_content: '',
-      genUIPayload: null,
-      metadata: { timestamp: new Date().toISOString(), user_role: user.role, gradeLevel: gradeLevel },
+      gradeLevel: student?.gradeLevel ?? '3',
+      prompt: maskedContent.masked,
+      conversationHistory: messages.map((m: { role: string; content: string }) => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+      })),
+      metadata: { imageUrl, audioBase64 },
     };
 
-    const aiStartTime = Date.now();
-    const result = await adelineBrainRunnable.invoke(initialState);
-    const responseTimeMs = Date.now() - aiStartTime;
+    // 1. Classify intent and select model
+    const routedState = await adelineRouter(routerState);
+    const intent = routedState.intent;
+    const selectedModel = routedState.selectedModel || config.models.default;
 
-    // Increment message count (non-blocking)
+    // 2. LIFE_LOG: background transcript save — does not block the stream
+    if (intent === 'LIFE_LOG') {
+      lifeCreditLogger(routedState).catch(err =>
+        console.warn('[Chat] lifeCreditLogger background save failed:', err),
+      );
+    }
+
+    // 3. Build full system prompt: Adeline's soul + student adaptation + ZPD + intent mode
+    const [studentContext, zpdSummary] = await Promise.all([
+      buildStudentContextPrompt(user.userId),
+      getZPDSummaryForPrompt(user.userId, { limit: 5 }).catch(() => ''),
+    ]);
+
+    const zpdBlock = zpdSummary
+      ? `\n\nSTUDENT MASTERY & ZPD:\n${zpdSummary}\nAddress concepts in the student's Zone of Proximal Development. Challenge them appropriately — do not teach below their level.`
+      : '';
+
+    const fullSystemPrompt =
+      buildSystemPrompt(config) + studentContext + zpdBlock + getIntentContext(intent);
+
+    // 4. GenUI payload (pure intent mapping — no LLM call needed)
+    const genUIPayload = getGenUIPayload(intent, maskedContent.masked);
+
+    // 5. Prepare message history for the LLM
+    const streamMessages = messages.map((m: { role: string; content: unknown }) => ({
+      role: m.role as 'user' | 'assistant' | 'system',
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+    }));
+
+    // Non-blocking: increment message count
     prisma.user.update({
       where: { id: user.userId },
       data: { messageCount: { increment: 1 } },
     }).catch(err => console.error('[RateLimit] Failed to increment count:', err));
-    
-    // Log user activity so analytics has real session duration data (non-blocking)
+
+    // Non-blocking: log activity for analytics
+    const responseTimeMs = Date.now() - aiStartTime;
     prisma.userActivity.create({
       data: {
         userId: user.userId,
         activityType: 'chat',
-        duration: Math.round(responseTimeMs / 1000 / 60) || 1, // minutes, min 1
-        metadata: { intent: result.intent ?? 'CHAT', gradeLevel },
+        duration: Math.round(responseTimeMs / 1000 / 60) || 1,
+        metadata: { intent: intent ?? 'CHAT', gradeLevel: student?.gradeLevel },
       },
     }).catch(() => {});
 
-    // Cognitive load tracking (non-blocking)
-    const sessionId = `chat-${Math.floor(aiStartTime / 60000)}`; // bucket per minute
+    // Non-blocking: cognitive load tracking
+    const sessionId = `chat-${Math.floor(aiStartTime / 60000)}`;
     const messageId = `msg-${aiStartTime}`;
-    const editDistance = maskedContent.masked.length; // proxy: message length
-    const sentimentScore = moderationResult.severity !== 'safe' ? -0.5 : 0; // rough signal
+    const editDistance = maskedContent.masked.length;
+    const sentimentScore = moderationResult.severity !== 'safe' ? -0.5 : 0;
     recordInteraction({ userId: user.userId, sessionId, messageId, responseTimeMs, editDistance, sentimentScore })
       .catch(err => console.error('[CognitiveLoad] record failed:', err));
     calculateCognitiveLoad({ userId: user.userId, responseTimeMs, editDistance, sentimentScore })
@@ -131,88 +196,63 @@ export async function POST(req: NextRequest) {
         }
       }).catch(() => {});
 
-    // MEMEX: Non-blocking memory indexing - extract and store important facts from this conversation
-    // Build conversation history for memory extraction
-    const conversationForMemory = [
-      { role: 'user' as const, content: maskedContent.masked },
-      { role: 'assistant' as const, content: result.response_content || '' },
-    ];
-    
-    // Index memories in background (non-blocking) if conversation is substantial
-    if (shouldIndexConversation(conversationForMemory)) {
-      // Generate a session ID from timestamp for grouping related conversations
-      const sessionId = `chat-${Date.now()}`;
-      
-      // Fire and forget - don't await, let it run in background
-      indexConversationMemory(user.userId, sessionId, conversationForMemory).catch(err => {
-        console.error('[Memex] Background indexing failed:', err);
-      });
-    }
-    
-    // 1. Extract and Strip the [GENUI] string if the LLM leaked it into the text
-    let responseText = result.response_content || "I'm here to help you learn and grow!";
-    let payload = result.genUIPayload;
+    // Capture userId before closures — TypeScript narrowing doesn't flow into nested callbacks
+    const userId = user.userId;
 
-    const genUIMatch = responseText.match(/\[GENUI:(.*?)\]/);
-    if (genUIMatch) {
-      try {
-        payload = JSON.parse(genUIMatch[1]);
-        // Remove the ugly JSON artifact from the text the user sees
-        responseText = responseText.replace(/\[GENUI:.*?\]/, '').trim();
-      } catch (e) {
-        console.error("Failed to parse inline GenUI", e);
-      }
-    }
-    
-    // 2. Stream using strict Vercel AI Protocol
+    // 6. Stream Adeline's response — real LLM streaming via AI SDK v6
+    const aiResult = streamText({
+      model: getModel(selectedModel),
+      system: fullSystemPrompt,
+      messages: streamMessages,
+    });
+
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        // Send the UI Payload + gap nudge (Vercel data chunk prefix '2:')
-        const gapNudge = result.metadata?.gapNudge ?? null;
-        if (payload || gapNudge) {
-           const wrappedData = { genUIPayload: payload ?? null, gapNudge };
-           controller.enqueue(encoder.encode(`2:${JSON.stringify([wrappedData])}\n`));
+        // Prepend data annotations before text (2: = data chunk in Vercel AI protocol v1)
+        if (genUIPayload) {
+          const data = { genUIPayload };
+          controller.enqueue(encoder.encode(`2:${JSON.stringify([data])}\n`));
         }
-        // Stream text character by character for the typing effect (Vercel text chunk '0:')
-        let index = 0;
-        const interval = setInterval(() => {
-          if (index < responseText.length) {
-            const charChunk = `0:${JSON.stringify(responseText[index])}\n`;
-            controller.enqueue(encoder.encode(charChunk));
-            index++;
-          } else {
-            clearInterval(interval);
-            controller.close();
-            // Memory indexing happens in background, stream closes immediately
-          }
-        }, 10);
-      }
-    });
-    
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1'
+
+        let fullText = '';
+        const reader = aiResult.textStream.getReader();
+
+        function pump() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              controller.close();
+              // Memory indexing after stream completes (fire-and-forget)
+              const conv = [
+                { role: 'user' as const, content: maskedContent.masked },
+                { role: 'assistant' as const, content: fullText },
+              ];
+              if (shouldIndexConversation(conv)) {
+                indexConversationMemory(userId, `chat-${Date.now()}`, conv).catch(err =>
+                  console.error('[Memex] Background indexing failed:', err),
+                );
+              }
+              return;
+            }
+            fullText += value;
+            controller.enqueue(encoder.encode(`0:${JSON.stringify(value)}\n`));
+            pump();
+          }).catch(err => {
+            console.error('[Chat] Stream pump error:', err);
+            controller.error(err);
+          });
+        }
+
+        pump();
       },
     });
 
-  } catch (error: any) {
-    console.error('Chat API error:', error);
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(encoder.encode(`0:${JSON.stringify("SYSTEM CRASH: " + (error.message || "Unknown"))}\n`));
-        controller.close();
-      }
-    });
-    
     return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1'
-      }
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' },
     });
+
+  } catch (error) {
+    console.error('[Chat] API error:', error);
+    return staticStreamResponse('Something went wrong on my end. Please try again in a moment.');
   }
 }
-

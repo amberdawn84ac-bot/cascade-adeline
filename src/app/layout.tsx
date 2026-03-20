@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { 
   Geist, 
   Geist_Mono, 
-  Inter
+  Inter,
+  Kalam,
+  Kranky,
+  Permanent_Marker,
+  Swanky_and_Moo_Moo,
 } from "next/font/google";
 import localFont from 'next/font/local';
 import "./globals.css";
@@ -19,6 +23,34 @@ const geistMono = Geist_Mono({
 
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+// Handwritten body — warm, personal, like a note from a friend
+const kalam = Kalam({
+  variable: "--font-kalam",
+  weight: ["400", "700"],
+  subsets: ["latin"],
+});
+
+// Playful headers — fun facts, asides, unexpected delights
+const kranky = Kranky({
+  variable: "--font-kranky",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+// Emphasis — key terms, warnings, things that must be remembered
+const permanentMarker = Permanent_Marker({
+  variable: "--font-permanent-marker",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+// Body alt — casual, conversational tone
+const swankyAndMooMoo = Swanky_and_Moo_Moo({
+  variable: "--font-swanky",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -52,7 +84,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${emilysCandy.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${emilysCandy.variable} ${kalam.variable} ${kranky.variable} ${permanentMarker.variable} ${swankyAndMooMoo.variable} antialiased`}
       >
         {children}
       </body>
