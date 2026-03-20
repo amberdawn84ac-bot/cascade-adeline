@@ -98,44 +98,21 @@ export async function POST(req: NextRequest) {
       learningStyle: student?.learningStyle ?? 'EXPEDITION',
     };
 
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        const allBlocks: LessonBlock[] = [];
+    // Run graph to completion — if it throws the outer catch returns 500
+    // which makes res.ok=false in the frontend, triggering fallback to /api/journey/lesson
+    console.log('[lesson-stream] Running lessonBrain.invoke()');
+    const finalState = await lessonBrain.invoke(initialState);
+    const allBlocks: LessonBlock[] = finalState.blocks ?? [];
+    console.log(`[lesson-stream] Graph complete — ${allBlocks.length} blocks`);
 
-        try {
-          for await (const chunk of await lessonBrain.stream(initialState, { streamMode: 'values' })) {
-            const newBlocks: LessonBlock[] = chunk.blocks ?? [];
-            const freshBlocks = newBlocks.slice(allBlocks.length);
-            if (freshBlocks.length > 0) {
-              allBlocks.push(...freshBlocks);
-              controller.enqueue(encoder.encode(JSON.stringify(freshBlocks) + '\n'));
-            }
-          }
+    if (allBlocks.length === 0) {
+      return NextResponse.json({ error: 'Graph produced no blocks' }, { status: 500 });
+    }
 
-          // Save complete lesson to all cache layers
-          void persistLesson(user.userId, creditId, gradeLevel, gradeBracket, topicKey, redisKey, subject, title, allBlocks);
+    // Persist to all cache layers (non-blocking)
+    void persistLesson(user.userId, creditId, gradeLevel, gradeBracket, topicKey, redisKey, subject, title, allBlocks);
 
-        } catch (err) {
-          console.error('[lesson-stream] Graph error:', err);
-          controller.enqueue(encoder.encode(JSON.stringify([{
-            type: 'text',
-            content: "I'm having trouble generating this lesson right now. Please try again in a moment.",
-            metadata: { skills: [subject], zpd_level: gradeLevel },
-          }]) + '\n'));
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'application/x-ndjson',
-        'Cache-Control': 'no-cache',
-        'X-Content-Type-Options': 'nosniff',
-      },
-    });
+    return streamBlocks(allBlocks);
 
   } catch (error) {
     console.error('[lesson-stream] Error:', error);

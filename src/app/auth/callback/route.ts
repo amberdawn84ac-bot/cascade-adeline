@@ -31,8 +31,17 @@ export async function GET(request: Request) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // If the user signed up with a paid tier, redirect them to Stripe checkout
+      // (email confirmation interrupts the checkout flow)
+      const meta = sessionData?.user?.user_metadata ?? {};
+      const tier = meta.tier as string | undefined;
+      const billing = (meta.billingInterval as string | undefined) || 'monthly';
+      const paidTiers = ['STUDENT', 'PARENT', 'TEACHER'];
+      if (tier && paidTiers.includes(tier) && next === '/onboarding') {
+        return NextResponse.redirect(`${origin}/checkout/initiate?tier=${tier}&billing=${billing}`);
+      }
       return response;
     }
     console.error('[auth/callback] exchangeCodeForSession error:', error.message);
