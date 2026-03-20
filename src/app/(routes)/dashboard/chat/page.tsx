@@ -41,19 +41,25 @@ export default function DashboardChatPage() {
 
   const [detectedIntent, setDetectedIntent] = useState<string | null>(null);
   const [genUIPayload, setGenUIPayload] = useState<any>(null);
+  const [gapNudge, setGapNudge] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
 
-  // Extract GenUI payload from data array
+  // Extract GenUI payload + gapNudge from data stream
   useEffect(() => {
     if (data && data.length > 0) {
       for (let i = data.length - 1; i >= 0; i--) {
         const item = data[i];
-        if (item && typeof item === 'object' && 'genUIPayload' in item) {
-          setGenUIPayload(item.genUIPayload);
+        if (item && typeof item === 'object') {
+          if ('genUIPayload' in item && (item as any).genUIPayload) {
+            setGenUIPayload((item as any).genUIPayload);
+          }
+          if ('gapNudge' in item && (item as any).gapNudge) {
+            setGapNudge((item as any).gapNudge);
+          }
           break;
         }
       }
@@ -191,6 +197,22 @@ export default function DashboardChatPage() {
           )}
           {renderedMessages}
           {genUIPayload && <GenUIRenderer payload={genUIPayload} />}
+          {gapNudge && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              background: '#FFF8E7', border: '1px solid #BD6809',
+              borderRadius: 12, padding: '10px 14px', fontSize: 13, color: PALM,
+            }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>🌱</span>
+              <span style={{ flex: 1, lineHeight: 1.5 }}>{gapNudge}</span>
+              <button
+                onClick={() => setGapNudge(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: PALM, opacity: 0.5, padding: 0, flexShrink: 0 }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           {isLoading && <AdelineTyping intent={detectedIntent ?? undefined} />}
           <div ref={messagesEndRef} />
         </div>

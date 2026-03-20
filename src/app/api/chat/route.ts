@@ -168,9 +168,10 @@ export async function POST(req: NextRequest) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        // Send the UI Payload first (Vercel data chunk prefix '2:')
-        if (payload) {
-           const wrappedData = { genUIPayload: payload };
+        // Send the UI Payload + gap nudge (Vercel data chunk prefix '2:')
+        const gapNudge = result.metadata?.gapNudge ?? null;
+        if (payload || gapNudge) {
+           const wrappedData = { genUIPayload: payload ?? null, gapNudge };
            controller.enqueue(encoder.encode(`2:${JSON.stringify([wrappedData])}\n`));
         }
         // Stream text character by character for the typing effect (Vercel text chunk '0:')

@@ -8,6 +8,7 @@ import { opportunityScout } from "./nodes/opportunityScout";
 import { projectBrainstormer } from "./nodes/projectBrainstormer";
 import { visionAnalyzer } from "./visionAnalyzer";
 import { AdelineGraphState } from "./types";
+import { gapDetector } from "./gapDetector";
 
 // Wrapper function to bridge state types
 async function visionAnalyzerWrapper(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
@@ -26,6 +27,33 @@ async function visionAnalyzerWrapper(state: AdelineStateType): Promise<Partial<A
   return {
     response_content: result.responseContent,
     metadata: result.metadata,
+  };
+}
+
+// Wrapper to bridge AdelineStateType → gapDetector (takes AdelineGraphState)
+async function gapDetectorWrapper(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
+  const graphState: AdelineGraphState = {
+    userId: state.userId,
+    gradeLevel: state.gradeLevel,
+    prompt: state.messages[state.messages.length - 1]?.content as string || '',
+    metadata: state.metadata,
+    studentContext: {
+      interests: [],
+      recentTranscripts: [],
+      activeProjects: [],
+      detectedGaps: [],
+    },
+  };
+
+  const result = await gapDetector(graphState);
+
+  return {
+    learning_gaps: (result.metadata?.gapDetector as any)?.gaps?.map((g: string) => ({ subject: g })) || [],
+    metadata: {
+      ...state.metadata,
+      gapDetector: result.metadata?.gapDetector,
+      gapNudge: result.metadata?.gapNudge,
+    },
   };
 }
 
@@ -74,6 +102,7 @@ export const adelineBrain = new StateGraph(AdelineState)
   .addNode("opportunityScout", opportunityScout)
   .addNode("projectBrainstormer", projectBrainstormer)
   .addNode("visionAnalyzer", visionAnalyzerWrapper)
+  .addNode("gapDetector", gapDetectorWrapper)
   
   // Add edges
   .addEdge(START, "router")
@@ -89,12 +118,14 @@ export const adelineBrain = new StateGraph(AdelineState)
       visionAnalyzer: "visionAnalyzer",
     }
   )
-  .addEdge("investigator", END)
-  .addEdge("registrar", END)
-  .addEdge("mentor", END)
-  .addEdge("opportunityScout", END)
-  .addEdge("projectBrainstormer", END)
-  .addEdge("visionAnalyzer", END)
+  // All agents flow through gapDetector before ending
+  .addEdge("investigator", "gapDetector")
+  .addEdge("registrar", "gapDetector")
+  .addEdge("mentor", "gapDetector")
+  .addEdge("opportunityScout", "gapDetector")
+  .addEdge("projectBrainstormer", "gapDetector")
+  .addEdge("visionAnalyzer", "gapDetector")
+  .addEdge("gapDetector", END)
   .compile();
 
 // Export the runnable

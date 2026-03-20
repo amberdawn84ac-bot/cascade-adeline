@@ -1,5 +1,6 @@
 import { AppSidebar } from '@/components/nav/AppSidebar';
 import Image from 'next/image';
+import { AdelineOrb } from '@/components/chat/AdelineOrb';
 
 export default function RoutesLayout({
   children,
@@ -25,6 +26,9 @@ export default function RoutesLayout({
         <div className="relative z-10 p-6 md:p-8 max-w-7xl mx-auto">
           {children}
         </div>
+
+        {/* Floating Adeline Chat Orb — available on every dashboard page */}
+        <AdelineOrb />
       </div>
     </AppSidebar>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Mountain, TrendingUp, MapPin, MessageSquare, X, Loader2, Calendar, Award, AlertTriangle, BookOpen, ChevronRight, Send, BookMarked } from 'lucide-react';
+import { Mountain, TrendingUp, MapPin, MessageSquare, X, Loader2, Calendar, Award, AlertTriangle, BookOpen, ChevronRight, Send, BookMarked, RefreshCw, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChat } from '@ai-sdk/react';
@@ -11,6 +11,8 @@ import { MathWorkspace } from '@/components/lessons/MathWorkspace';
 import { ELADetective } from '@/components/lessons/ELADetective';
 import { ScienceLab } from '@/components/lessons/ScienceLab';
 import ReactMarkdown from 'react-markdown';
+import { LessonBlockList } from '@/components/lessons/LessonBlockRenderer';
+import type { LessonBlock } from '@/lib/langgraph/lesson/lessonState';
 
 interface Credit {
   id: string;
@@ -65,6 +67,8 @@ export default function JourneyPage() {
   const [lessonError, setLessonError] = useState<string | null>(null);
   const [showLessonChat, setShowLessonChat] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [lessonBlocks, setLessonBlocks] = useState<LessonBlock[]>([]);
+  const [selectedGradeLevel, setSelectedGradeLevel] = useState<string>('');
   const lessonChatEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading: isChatLoading } = useChat({
@@ -146,27 +150,54 @@ export default function JourneyPage() {
     setShowChangeRoute(true);
   };
 
-  const openLesson = async (credit: Credit) => {
+  const openLesson = async (credit: Credit, regenerate = false) => {
     setLessonCredit(credit);
     setLesson(null);
+    setLessonBlocks([]);
     setLessonError(null);
     setLessonLoading(true);
     try {
-      const res = await fetch('/api/journey/lesson', {
+      const url = regenerate ? '/api/lesson-stream?regenerate=true' : '/api/lesson-stream';
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          subject: credit.subject, 
-          title: credit.title, 
+        body: JSON.stringify({
+          subject: credit.subject,
+          title: credit.title,
           description: credit.description,
-          creditId: credit.id, // Pass creditId for caching
+          creditId: credit.id,
+          gradeLevel: selectedGradeLevel,
         }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as any).details || (body as any).error || 'Failed to generate lesson');
+      if (!res.ok || !res.body) {
+        // Fallback to legacy endpoint
+        const fallback = await fetch('/api/journey/lesson', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject: credit.subject, title: credit.title, description: credit.description, creditId: credit.id }),
+        });
+        if (!fallback.ok) throw new Error('Failed to generate lesson');
+        setLesson(await fallback.json());
+        return;
       }
-      setLesson(await res.json());
+      setLessonLoading(false);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const newBlocks: LessonBlock[] = JSON.parse(line);
+            setLessonBlocks(prev => [...prev, ...newBlocks]);
+          } catch { /* skip malformed line */ }
+        }
+      }
     } catch (err: unknown) {
       setLessonError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -413,6 +444,31 @@ export default function JourneyPage() {
             ZONE 3 — ACTIVE EXPEDITIONS
         ═══════════════════════════════════════════════════ */}
         <div>
+          {/* Streak counter + grade selector */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            {plan.lastActivity && (() => {
+              const streak = Math.max(0, 7 - (plan.lastActivity?.daysSince ?? 7));
+              return streak > 0 ? (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: '#BD680915', border: '1px solid #BD6809' }}>
+                  <Flame className="w-4 h-4" style={{ color: '#BD6809' }} />
+                  <span className="font-bold text-sm" style={{ color: '#BD6809' }}>{streak} day streak</span>
+                </div>
+              ) : null;
+            })()}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-[#2F4731]/60 uppercase tracking-wider">Grade Override:</label>
+              <select
+                value={selectedGradeLevel}
+                onChange={e => setSelectedGradeLevel(e.target.value)}
+                className="text-sm border border-[#E7DAC3] rounded-lg px-2 py-1 bg-white text-[#2F4731] focus:outline-none focus:border-[#2F4731]"
+              >
+                <option value="">Auto</option>
+                {['K','1','2','3','4','5','6','7','8','9','10','11','12'].map(g => (
+                  <option key={g} value={g}>{g === 'K' ? 'Kindergarten' : `Grade ${g}`}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <TrendingUp className="w-7 h-7 text-[#BD6809]" />
@@ -614,7 +670,7 @@ export default function JourneyPage() {
           <div className="bg-[#FFFEF7] rounded-3xl border-2 border-[#2F4731] max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
             {/* Header */}
             <div className="bg-[#2F4731] p-6 flex items-start justify-between flex-shrink-0">
-              <div>
+              <div className="flex-1">
                 <p className="text-[#BD6809] text-xs font-bold uppercase tracking-widest mb-1">
                   Today's Lesson
                 </p>
@@ -623,9 +679,20 @@ export default function JourneyPage() {
                 </h3>
                 <p className="text-white/60 text-sm mt-1">{lessonCredit.subject}</p>
               </div>
-              <button onClick={() => { setLessonCredit(null); setLesson(null); setShowLessonChat(false); setLessonMessages([]); }} className="text-white/60 hover:text-white ml-4 flex-shrink-0">
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                {(lesson || lessonBlocks.length > 0) && (
+                  <button
+                    onClick={() => openLesson(lessonCredit, true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-white/30 text-white text-xs font-bold rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Refresh
+                  </button>
+                )}
+                <button onClick={() => { setLessonCredit(null); setLesson(null); setLessonBlocks([]); setShowLessonChat(false); setLessonMessages([]); }} className="text-white/60 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
 
             {/* Body */}
@@ -645,7 +712,14 @@ export default function JourneyPage() {
                 </div>
               )}
 
-              {lesson && (
+              {/* Dynamic lesson blocks (new swarm system) */}
+              {lessonBlocks.length > 0 && (
+                <>
+                  <LessonBlockList blocks={lessonBlocks} />
+                </>
+              )}
+
+              {lesson && lessonBlocks.length === 0 && (
                 <>
                   {/* Meta row */}
                   <div className="flex flex-wrap gap-3">

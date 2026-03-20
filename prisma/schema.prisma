@@ -971,6 +971,7 @@ model CachedLesson {
   id               String   @id @default(uuid()) @db.Uuid
   userId           String   @map("user_id") @db.Uuid
   creditId         String   @map("credit_id")
+  gradeLevel       String   @default("") @map("grade_level")
   subject          String
   title            String
   lessonData       Json     @map("lesson_data")
@@ -979,7 +980,7 @@ model CachedLesson {
   createdAt        DateTime @default(now()) @map("created_at")
   user             User     @relation("CachedLessons", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, creditId])
+  @@unique([userId, creditId, gradeLevel])
   @@index([userId])
   @@index([expiresAt])
   @@map("cached_lessons")

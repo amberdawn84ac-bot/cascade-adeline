@@ -5,6 +5,8 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { buildStudentContextPrompt } from '@/lib/learning/student-context';
 import { loadConfig } from '@/lib/config';
+import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
+import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
 
 export const maxDuration = 30;
 
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { subject, title, description, creditId } = await req.json();
+    const { subject, title, description, creditId, gradeLevel: gradeLevelParam } = await req.json();
     if (!subject || !title) {
       return NextResponse.json({ error: 'subject and title are required' }, { status: 400 });
     }
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
         where: {
           userId: user.userId,
           creditId,
-          expiresAt: { gte: new Date() }, // Not expired
+          expiresAt: { gte: new Date() },
         },
         orderBy: { generatedAt: 'desc' },
       });
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
     }
 
     const studentContext = await buildStudentContextPrompt(user.userId);
+    const zpdSummary = await getZPDSummaryForPrompt(user.userId, { limit: 5 }).catch(() => '');
     const student = await prisma.user.findUnique({
       where: { id: user.userId },
       select: { name: true, gradeLevel: true, interests: true },
@@ -117,6 +120,7 @@ ${gradeGuard}
 The student's name is ${student?.name ?? 'Explorer'}, grade ${rawGrade ?? 'unknown'}.
 Their interests: ${(student?.interests ?? []).join(', ') || 'not specified'}.
 
+${zpdSummary ? `\nSTUDENT ZPD & MASTERY STATUS:\n${zpdSummary}\nBUILD THIS LESSON to directly address concepts in the student's Zone of Proximal Development above.\n` : ''}
 CRITICAL LESSON DELIVERY RULES - "LIFE OF FRED" STYLE:
 1. lessonContent MUST be written like a "Life of Fred" book — quirky, narrative-driven, visually engaging.
    - DO NOT write textbook paragraphs. Weave the concept into a conversational story with characters and situations.
@@ -146,18 +150,21 @@ CRITICAL LESSON DELIVERY RULES - "LIFE OF FRED" STYLE:
     if (creditId) {
       try {
         const expiresAt = new Date();
-        expiresAt.setHours(expiresAt.getHours() + 24); // Cache for 24 hours
+        expiresAt.setHours(expiresAt.getHours() + 24);
+        const gl = student?.gradeLevel || gradeLevelParam || '';
 
         await prisma.cachedLesson.upsert({
           where: {
-            userId_creditId: {
+            userId_creditId_gradeLevel: {
               userId: user.userId,
               creditId,
+              gradeLevel: gl,
             },
           },
           create: {
             userId: user.userId,
             creditId,
+            gradeLevel: gl,
             subject,
             title,
             lessonData: result as any,
@@ -172,8 +179,15 @@ CRITICAL LESSON DELIVERY RULES - "LIFE OF FRED" STYLE:
         console.log('[journey/lesson] Cached lesson for creditId:', creditId);
       } catch (cacheError) {
         console.error('[journey/lesson] Cache save failed:', cacheError);
-        // Don't fail the request if caching fails
       }
+    }
+
+    // MEMORY WRITE-BACK: Index what was taught so Adeline remembers it
+    const lessonMemory = [
+      { role: 'assistant' as const, content: `Taught lesson: "${result.lessonTitle}" (${subject}). Key facts: ${(result.keyFacts || []).join('; ')}` },
+    ];
+    if (shouldIndexConversation(lessonMemory)) {
+      indexConversationMemory(user.userId, `lesson-${creditId || Date.now()}`, lessonMemory).catch(() => {});
     }
 
     return NextResponse.json(result);
