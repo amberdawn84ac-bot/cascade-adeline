@@ -11,8 +11,7 @@ import { getModel } from '@/lib/ai-models';
 import { router as adelineRouter } from '@/lib/langgraph/router';
 import { lifeCreditLogger } from '@/lib/langgraph/lifeCreditLogger';
 import { AdelineGraphState } from '@/lib/langgraph/types';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
-import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
+import { getStudentContext } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 
 // Intent-specific addendum appended to Adeline's base system prompt
@@ -66,6 +65,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser();
     if (!user) return new Response('Unauthorized', { status: 401 });
+    const userId = user.userId;
 
     const body = await req.json();
     const { messages, imageUrl, audioBase64 } = body;
@@ -144,17 +144,11 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Build full system prompt: Adeline's soul + student adaptation + ZPD + intent mode
-    const [studentContext, zpdSummary] = await Promise.all([
-      buildStudentContextPrompt(user.userId),
-      getZPDSummaryForPrompt(user.userId, { limit: 5 }).catch(() => ''),
-    ]);
-
-    const zpdBlock = zpdSummary
-      ? `\n\nSTUDENT MASTERY & ZPD:\n${zpdSummary}\nAddress concepts in the student's Zone of Proximal Development. Challenge them appropriately — do not teach below their level.`
-      : '';
+    // Single cached call — no duplicate DB hits
+    const studentCtx = await getStudentContext(userId);
 
     const fullSystemPrompt =
-      buildSystemPrompt(config) + studentContext + zpdBlock + getIntentContext(intent);
+      buildSystemPrompt(config) + studentCtx.systemPromptAddendum + getIntentContext(intent);
 
     // 4. GenUI payload (pure intent mapping — no LLM call needed)
     const genUIPayload = getGenUIPayload(intent, maskedContent.masked);
@@ -195,9 +189,6 @@ export async function POST(req: NextRequest) {
           console.warn(`[CognitiveLoad] User ${user.userId} load=${load.level} score=${load.score.toFixed(2)}`);
         }
       }).catch(() => {});
-
-    // Capture userId before closures — TypeScript narrowing doesn't flow into nested callbacks
-    const userId = user.userId;
 
     // 6. Stream Adeline's response — real LLM streaming via AI SDK v6
     const aiResult = streamText({

@@ -1,19 +1,13 @@
-import prisma from '@/lib/db';
-import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { LessonStateType } from '../lessonState';
 
 export async function orchestrator(state: LessonStateType): Promise<Partial<LessonStateType>> {
-  const [user, bktSummary] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: state.userId },
-      select: { interests: true, learningStyle: true, gradeLevel: true },
-    }),
-    getZPDSummaryForPrompt(state.userId, { subjectArea: state.subject, limit: 5 }).catch(() => ''),
-  ]);
+  const studentCtx = await getStudentContext(state.userId, { subjectArea: state.subject });
 
-  const interests = user?.interests ?? [];
-  const learningStyle = user?.learningStyle ?? 'EXPEDITION';
-  const effectiveGrade = state.gradeLevel || user?.gradeLevel || '';
+  const interests = studentCtx.interests;
+  const learningStyle = studentCtx.learningStyle;
+  const effectiveGrade = state.gradeLevel || studentCtx.gradeLevel;
+  const bktSummary = studentCtx.bktSummary;
 
   // Determine phase based on re-entry signals
   let phase = 'intro';
