@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 const storyAnalysisSchema = z.object({
   overallScore: z.number().min(0).max(100).describe("Overall quality score (0-100)"),
@@ -30,12 +31,8 @@ export async function POST(req: NextRequest) {
 
     const wordCount = studentStory.trim().split(/\s+/).length;
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : '';
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
 
     // Calculate credits based on word count and quality
     // Base: 0.1 for any submission, +0.1 per 100 words (max 0.5 total)

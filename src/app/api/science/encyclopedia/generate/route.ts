@@ -24,21 +24,14 @@ export async function POST(req: NextRequest) {
     if (!query) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
     // --- Resolve grade bracket early (needed for cache lookup AND image style) ---
-    const userData = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true },
-    });
-    const gradeStr = (userData?.gradeLevel ?? '').toLowerCase().trim();
-    const gradeBracket = getGradeBracket(gradeStr);
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeBracket = getGradeBracket(studentCtx.gradeLevel);
     const isEarlyElementary = gradeBracket === 'K-2';
     const normalizedTopic = query.toLowerCase().trim();
 
     // --- Cache-first: return saved entry if it exists ---
     const cached = await getCachedContent('science-encyclopedia', normalizedTopic, gradeBracket);
     if (cached) return NextResponse.json({ ...cached, cached: true });
-
-    // --- Not cached: generate via AI ---
-    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || "gpt-4o",

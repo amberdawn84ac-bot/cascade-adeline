@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
     const { query } = await req.json();
     if (!query) return NextResponse.json({ error: 'Missing query' }, { status: 400 });
 
-    const userData = await prisma.user.findUnique({ where: { id: user.userId }, select: { gradeLevel: true } });
-    const gradeBracket = getGradeBracket(userData?.gradeLevel ?? '');
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeBracket = getGradeBracket(studentCtx.gradeLevel);
     const topicKey = query.toLowerCase().trim();
 
     const cached = await getCachedContent('history-timeline', topicKey, gradeBracket);
@@ -51,8 +51,6 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
     }
-
-    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
 
     // 1. Vector Search the Hippocampus Database (graceful fallback if unavailable)

@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 const quizSchema = z.object({
   concept: z.string().describe("The coding concept being tested (e.g. 'loops', 'variables')"),
@@ -23,18 +23,14 @@ export async function POST(req: Request) {
 
     const { language = 'Python' } = await req.json().catch(() => ({}));
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true },
-    });
-
-    const grade = parseInt((dbUser?.gradeLevel || '6').replace(/\D/g, '')) || 6;
+    const studentCtx = await getStudentContext(user.userId);
+    const grade = parseInt((studentCtx.gradeLevel || '6').replace(/\D/g, '')) || 6;
     let difficulty: 'beginner' | 'intermediate' | 'advanced' = 'beginner';
     if (grade <= 4) difficulty = 'beginner';
     else if (grade <= 8) difficulty = 'intermediate';
     else difficulty = 'advanced';
 
-    const gradeContext = `The student is in grade ${dbUser?.gradeLevel || '6'}.`;
+    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
 
     const concepts = {
       beginner: ['variables', 'print statements', 'basic arithmetic', 'if/else', 'simple loops'],

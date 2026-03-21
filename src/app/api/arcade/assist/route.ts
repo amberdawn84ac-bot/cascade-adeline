@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 const assistSchema = z.object({
   code: z.string().describe("The complete, updated HTML/JS game code"),
@@ -18,13 +18,9 @@ export async function POST(req: NextRequest) {
     const { instruction, currentCode } = await req.json();
     if (!instruction) return NextResponse.json({ error: 'Missing instruction' }, { status: 400 });
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : '';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
+    const styleContext = studentCtx.learningStyle ? `Their learning style is ${studentCtx.learningStyle}.` : '';
 
     const config = loadConfig();
     const llm = new ChatOpenAI({

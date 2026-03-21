@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { getModel } from '@/lib/ai-models';
 import { loadConfig } from '@/lib/config';
 import { generateObject } from 'ai';
@@ -34,14 +35,10 @@ export async function POST(req: NextRequest) {
 
   const { studentAge, studentGrade, interests } = await req.json();
 
-  const student = await prisma.user.findUnique({
-    where: { id: user.userId },
-    select: { gradeLevel: true, age: true, interests: true },
-  });
-
-  const age = studentAge || student?.age || 15;
-  const grade = studentGrade || student?.gradeLevel || '9';
-  const studentInterests = interests || student?.interests || [];
+  const studentCtx = await getStudentContext(user.userId);
+  const age = studentAge || studentCtx.age || 15;
+  const grade = studentGrade || studentCtx.gradeLevel || '9';
+  const studentInterests = interests || studentCtx.interests || [];
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -134,13 +131,9 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const student = await prisma.user.findUnique({
-    where: { id: user.userId },
-    select: { gradeLevel: true, age: true },
-  });
-
-  const age = student?.age || 15;
-  const grade = student?.gradeLevel || '9';
+  const studentCtx = await getStudentContext(user.userId);
+  const age = studentCtx.age || 15;
+  const grade = studentCtx.gradeLevel || '9';
 
   const recentCompetitions = await prisma.competition.findMany({
     where: {

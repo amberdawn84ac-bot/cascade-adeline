@@ -94,9 +94,3 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
   return data;
 }
 
-// Backwards-compatible shim — callers not yet migrated can still import this
-export async function buildStudentContextPrompt(userId: string): Promise<string> {
-  const ctx = await getStudentContext(userId);
-  return ctx.systemPromptAddendum;
-}
-

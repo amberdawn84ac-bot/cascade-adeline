@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
     const { category, focus } = requestSchema.parse(body);
 
     // Derive skill level from student's grade profile — never ask the student
-    const userData = await prisma.user.findUnique({ where: { id: user.userId }, select: { gradeLevel: true } });
-    const skillLevel = gradeToSkill(userData?.gradeLevel ?? '');
+    const studentCtx = await getStudentContext(user.userId);
+    const skillLevel = gradeToSkill(studentCtx.gradeLevel);
     const focusLabel = focus?.trim() || 'auto';
     const topicKey = `${category}:${focusLabel.toLowerCase()}`;
 
@@ -58,8 +58,6 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
     }
-
-    const studentCtx = await getStudentContext(user.userId);
 
     const CATEGORY_CONTEXT: Record<string, string> = {
       'preservation': 'water bath canning, pressure canning, lacto-fermentation, dehydrating, freeze-drying, root cellaring, and cold storage',
