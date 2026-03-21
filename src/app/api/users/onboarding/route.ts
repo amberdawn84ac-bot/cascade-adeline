@@ -10,7 +10,11 @@ export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { gradeLevel, interests, learningStyle } = await req.json();
+  const {
+    gradeLevel, interests, learningStyle,
+    mathLevel, elaLevel, scienceLevel, historyLevel,
+    pacingMultiplier, targetGraduationYear,
+  } = await req.json();
 
   // Fetch existing metadata to preserve other fields
   const existing = await prisma.user.findUnique({
@@ -28,10 +32,16 @@ export async function PATCH(req: NextRequest) {
     where: { id: user.userId },
     data: {
       gradeLevel: gradeLevel || null,
+      ...(mathLevel    != null ? { mathLevel: Number(mathLevel) }    : {}),
+      ...(elaLevel     != null ? { elaLevel: Number(elaLevel) }      : {}),
+      ...(scienceLevel != null ? { scienceLevel: Number(scienceLevel) } : {}),
+      ...(historyLevel != null ? { historyLevel: Number(historyLevel) } : {}),
+      ...(pacingMultiplier     != null ? { pacingMultiplier: Number(pacingMultiplier) } : {}),
+      ...(targetGraduationYear != null ? { targetGraduationYear: Number(targetGraduationYear) } : {}),
       interests: Array.isArray(interests) ? interests : [],
       ...(learningStyle ? { learningStyle } : {}),
       onboardingComplete: true,
-      metadata: preservedMetadata as Prisma.JsonObject, // Clear cache by removing snapshot fields
+      metadata: preservedMetadata as Prisma.JsonObject,
     },
   });
 
@@ -51,7 +61,10 @@ export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { childName, gradeLevel, interests, cognitiveProfile, learningStyle, state, graduationYear } = await req.json();
+  const {
+    childName, gradeLevel, interests, cognitiveProfile, learningStyle, state, graduationYear,
+    mathLevel, elaLevel, scienceLevel, historyLevel, pacingMultiplier, targetGraduationYear,
+  } = await req.json();
 
   const existing = await prisma.user.findUnique({
     where: { id: user.userId },
@@ -70,6 +83,12 @@ export async function POST(req: NextRequest) {
     data: {
       ...(childName ? { name: childName.trim() } : {}),
       gradeLevel: gradeLevel || null,
+      ...(mathLevel    != null ? { mathLevel: Number(mathLevel) }    : {}),
+      ...(elaLevel     != null ? { elaLevel: Number(elaLevel) }      : {}),
+      ...(scienceLevel != null ? { scienceLevel: Number(scienceLevel) } : {}),
+      ...(historyLevel != null ? { historyLevel: Number(historyLevel) } : {}),
+      ...(pacingMultiplier     != null ? { pacingMultiplier: Number(pacingMultiplier) } : {}),
+      ...(targetGraduationYear != null ? { targetGraduationYear: Number(targetGraduationYear) } : {}),
       interests: Array.isArray(interests) ? interests : [],
       ...(learningStyle ? { learningStyle } : {}),
       onboardingComplete: true,

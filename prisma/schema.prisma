@@ -62,6 +62,12 @@ model User {
   avatarUrl               String?
   age                     Int?
   gradeLevel              String?                   @map("grade_level")
+  mathLevel               Int?                      @map("math_level")
+  elaLevel                Int?                      @map("ela_level")
+  scienceLevel            Int?                      @map("science_level")
+  historyLevel            Int?                      @map("history_level")
+  pacingMultiplier        Float                     @default(1.0) @map("pacing_multiplier")
+  targetGraduationYear    Int?                      @map("target_graduation_year")
   interests               String[]
   learningStyle           String                    @default("EXPEDITION") // "EXPEDITION" (unified cross-curricular) or "CLASSIC" (siloed subjects with worksheets)
   onboardingComplete      Boolean                   @default(false)
