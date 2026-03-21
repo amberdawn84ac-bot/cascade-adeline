@@ -1,4 +1,4 @@
-import prisma from './db';
+import { getStudentContext } from './learning/student-context';
 
 export interface AdaptiveContent {
   title: string;
@@ -342,18 +342,15 @@ function getDifficultyForGrade(gradeBand: keyof GradeLevelConfig): 'beginner' | 
 }
 
 export async function getUserAdaptiveContent(userId: string, contentType: string, topic: string) {
-  // Get user's grade level
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { gradeLevel: true }
-  });
+  const studentCtx = await getStudentContext(userId);
+  const gradeLevel = studentCtx.gradeLevel;
   
-  if (!user?.gradeLevel) {
+  if (!gradeLevel) {
     // Return default content if no grade level set
     return getAdaptiveContent(contentType as any, '3', topic);
   }
   
-  return getAdaptiveContent(contentType as any, user.gradeLevel, topic);
+  return getAdaptiveContent(contentType as any, gradeLevel, topic);
 }
 
 export function getAttentionSpanForGrade(gradeLevel: string): number {
