@@ -37,22 +37,46 @@ interface SpellingWord {
 
 function useSpellingSpeech() {
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
-  const speak = useCallback((text: string) => {
-    if (typeof window === 'undefined') return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 0.85;
-    utt.pitch = 1.1;
-    // Try to select a female voice
-    const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Karen'));
-    if (femaleVoice) utt.voice = femaleVoice;
-    window.speechSynthesis.speak(utt);
+  const stopSpeaking = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+    setIsSpeaking(false);
   }, []);
 
-  const stopSpeaking = useCallback(() => window.speechSynthesis.cancel(), []);
+  const speak = useCallback(async (text: string) => {
+    stopSpeaking();
+    setIsSpeaking(true);
+    try {
+      const res = await fetch('/api/arcade/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error('TTS failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      blobUrlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(url); blobUrlRef.current = null; };
+      audio.onerror = () => setIsSpeaking(false);
+      await audio.play();
+    } catch {
+      setIsSpeaking(false);
+    }
+  }, [stopSpeaking]);
 
   const startListening = useCallback((onResult: (t: string) => void) => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -71,7 +95,7 @@ function useSpellingSpeech() {
 
   const stopListening = useCallback(() => { recRef.current?.stop(); setIsListening(false); }, []);
 
-  return { speak, stopSpeaking, isListening, startListening, stopListening };
+  return { speak, stopSpeaking, isSpeaking, isListening, startListening, stopListening };
 }
 
 function SpellingBee({ onBack }: { onBack: () => void }) {
@@ -84,7 +108,7 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
   const [correct, setCorrect] = useState<boolean | null>(null);
   const [seenWords, setSeenWords] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { speak, stopSpeaking, isListening, startListening, stopListening } = useSpellingSpeech();
+  const { speak, stopSpeaking, isSpeaking, isListening, startListening, stopListening } = useSpellingSpeech();
 
   const speakWord = useCallback((w: SpellingWord) => {
     // Replace the target word with "blank" in the sentence
@@ -167,7 +191,7 @@ function SpellingBee({ onBack }: { onBack: () => void }) {
           <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Definition</p><p className="text-[#2F4731]">{word.definition}</p></div>
           <div className="bg-white rounded-xl p-4 border border-amber-100"><p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Used in a Sentence</p><p className="text-[#2F4731] italic">"{word.usedInSentence.replace(new RegExp(`\\b${word.word}\\b`, 'gi'), '______')}"</p></div>
           <div className="flex gap-2">
-            <Button onClick={() => speakWord(word)} variant="outline" className="border-2 border-amber-300 text-amber-700 gap-1"><Volume2 className="w-4 h-4" /> Hear Again</Button>
+            <Button onClick={() => speakWord(word)} disabled={isSpeaking} variant="outline" className="border-2 border-amber-300 text-amber-700 gap-1">{isSpeaking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Volume2 className="w-4 h-4" />}{isSpeaking ? 'Playing…' : 'Hear Again'}</Button>
             <Button onClick={() => { stopSpeaking(); setPhase('type'); setTimeout(() => inputRef.current?.focus(), 100); }} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-lg py-6 rounded-2xl">I&apos;m Ready to Spell It!</Button>
           </div>
         </CardContent></Card>
