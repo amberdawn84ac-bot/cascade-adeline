@@ -2,7 +2,7 @@ import { generateText } from 'ai';
 import { loadConfig } from '../config';
 import { AdelineGraphState } from './types';
 import { getModel } from '../ai-models';
-import { getZPDSummaryForPrompt } from '../zpd-engine';
+import { getStudentContext } from '../learning/student-context';
 
 async function draftPlan(
   prompt: string,
@@ -39,13 +39,14 @@ export async function projectBrainstormer(state: AdelineGraphState): Promise<Ade
   const config = loadConfig();
   const modelId = config.models.default;
 
-  // Fetch ZPD context if we have a userId
+  // Fetch student context (cached) — bktSummary contains ZPD data
   let zpdContext = '';
   if (state.userId) {
     try {
-      zpdContext = await getZPDSummaryForPrompt(state.userId, { limit: 5 });
+      const studentCtx = await getStudentContext(state.userId);
+      zpdContext = studentCtx.bktSummary;
     } catch (e) {
-      console.warn('[ProjectBrainstormer] Failed to fetch ZPD context:', e);
+      console.warn('[ProjectBrainstormer] Failed to fetch student context:', e);
     }
   }
 
