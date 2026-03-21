@@ -2,7 +2,7 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { NextRequest } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 
 export const maxDuration = 30;
@@ -31,7 +31,7 @@ export async function POST(
     }
   }
 
-  const studentContext = await buildStudentContextPrompt(user.userId);
+  const studentCtx = await getStudentContext(user.userId);
 
   const topic = (entry?.title as string) || 'this topic';
   const coreConcept = (entry?.coreConcept as string) || '';
@@ -42,7 +42,7 @@ export async function POST(
     model: openai('gpt-4o'),
     system: `You are Adeline, an elite homesteading mentor and science guide. You are in a live, gritty field dialogue with your student about: "${topic}".
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 
 ENTRY CONTEXT:
 Core Concept: ${coreConcept}

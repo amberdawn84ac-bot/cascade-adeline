@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
     }
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
 
     // 1. Vector Search the Hippocampus Database (graceful fallback if unavailable)
@@ -120,7 +120,7 @@ Example: Historical injustice of Jim Crow → Modern parallel: Mass incarceratio
 
 Frame the modern action not as a burden, but as an empowering way for the student to use their historical knowledge to shape a better future.
 
-Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${studentContext}\n\nPRIMARY SOURCES:\n${sourceContext}` 
+Base your facts strictly on the provided PRIMARY SOURCES below if relevant.${studentCtx.systemPromptAddendum}\n\nPRIMARY SOURCES:\n${sourceContext}` 
         },
         { role: 'user', content: `Event to investigate: ${query}` }
       ]);

@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const dataSchema = z.object({
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const { data, question } = await req.json();
     if (!data) return NextResponse.json({ error: 'Missing data' }, { status: 400 });
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       const result = await llm.invoke([
         {
           role: 'system',
-          content: `You are Adeline, a classical mathematics tutor specializing in data science.${studentContext} Analyze the dataset the student has provided. Calculate mean, median, mode, and range. Then explain what the data means in grade-appropriate language, recommend the best visualization, and find one surprising insight.
+          content: `You are Adeline, a classical mathematics tutor specializing in data science.${studentCtx.systemPromptAddendum} Analyze the dataset the student has provided. Calculate mean, median, mode, and range. Then explain what the data means in grade-appropriate language, recommend the best visualization, and find one surprising insight.
 
 CRITICAL POLICY ANALYSIS DIRECTIVE: After analyzing the data, look for patterns that reveal systemic injustice:
 - Wage gaps between groups (gender, race, age)

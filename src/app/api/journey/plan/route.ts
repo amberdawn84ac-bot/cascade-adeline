@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { loadConfig } from '@/lib/config';
 
 export const maxDuration = 60; // Vercel: allow up to 60s for LLM call
@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
     }
 
     // --- Cache miss: generate plan with LLM ---
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
@@ -216,7 +216,7 @@ GRADUATION REQUIREMENTS (${TOTAL_CREDITS_NEEDED} individual 1-credit courses):
         role: 'system',
         content: `You are Adeline, a wise and encouraging homeschool learning coach. You are building a standards-aligned learning path for this student.
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 ${schoolLevelPrompt}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STATE STANDARDS FIRST — NON-NEGOTIABLE

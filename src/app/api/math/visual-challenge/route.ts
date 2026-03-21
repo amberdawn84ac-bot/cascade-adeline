@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import prisma from '@/lib/db';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { z } from 'zod';
 
 // NO Edge runtime here - this route uses Prisma for DB fetch
@@ -29,21 +28,11 @@ export async function POST(req: NextRequest) {
 
     const { topic, gradeLevel: requestedGrade } = await req.json();
 
-    // Fetch student context from database
-    const userData = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { 
-        gradeLevel: true,
-        interests: true,
-        learningStyle: true,
-      },
-    });
-
-    const gradeLevel = requestedGrade || userData?.gradeLevel || '5';
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeLevel = requestedGrade || studentCtx.gradeLevel;
 
     // Build the prompt with all context
-    const systemPrompt = `You are Adeline, a math tutor who teaches through VISUAL MANIPULATIVES and hands-on exploration.${studentContext}
+    const systemPrompt = `You are Adeline, a math tutor who teaches through VISUAL MANIPULATIVES and hands-on exploration.${studentCtx.systemPromptAddendum}
 
 CRITICAL VISUAL MATH DIRECTIVE:
 - Generate word problems that can be solved by MANIPULATING visual elements

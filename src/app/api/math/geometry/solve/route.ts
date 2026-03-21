@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const geometrySchema = z.object({
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const { problem } = await req.json();
     if (!problem) return NextResponse.json({ error: 'Missing problem' }, { status: 400 });
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       const result = await llm.invoke([
         {
           role: 'system',
-          content: `You are Adeline, a wise and encouraging classical mathematics tutor. Solve this geometry problem step by step. Show every calculation clearly. Connect the math to real-world examples they would relate to. Keep your tone warm, accessible, and supportive. Remind them that making mistakes is how we learn math.${studentContext}`,
+          content: `You are Adeline, a wise and encouraging classical mathematics tutor. Solve this geometry problem step by step. Show every calculation clearly. Connect the math to real-world examples they would relate to. Keep your tone warm, accessible, and supportive. Remind them that making mistakes is how we learn math.${studentCtx.systemPromptAddendum}`,
         },
         { role: 'user', content: `Geometry problem: ${problem}` },
       ]);

@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import { getModel } from '@/lib/ai-models';
 import { loadConfig } from '@/lib/config';
 import { streamText } from 'ai';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 export const maxDuration = 60;
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     const { messages, lessonTitle, lessonContent, subject } = await req.json();
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
 
     const result = await streamText({
@@ -27,7 +27,7 @@ TODAY'S LESSON: "${lessonTitle}" (${subject})
 LESSON CONTENT THE STUDENT IS WORKING FROM:
 ${lessonContent}
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 
 YOUR ROLE RIGHT NOW:
 - The student is actively working through this lesson and needs help

@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 
 const businessSchema = z.object({
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing price or quantity' }, { status: 400 });
     }
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       const result = await llm.invoke([
         {
           role: 'system',
-          content: `You are Adeline, a wise and encouraging classical educator teaching business math. Analyze the student's virtual business with real math calculations. Show your work step by step. Keep your tone supportive and inspiring—you are helping them build their dreams, not auditing them.${studentContext}
+          content: `You are Adeline, a wise and encouraging classical educator teaching business math. Analyze the student's virtual business with real math calculations. Show your work step by step. Keep your tone supportive and inspiring—you are helping them build their dreams, not auditing them.${studentCtx.systemPromptAddendum}
 
 CRITICAL POLICY ANALYSIS DIRECTIVE: After calculating the business math, analyze whether this business model could enable profit-from-harm if scaled unethically. Consider:
 - Could this business exploit vulnerable populations (elderly, poor, children)?

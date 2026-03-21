@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
     }
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || "gpt-4o",
@@ -90,7 +90,7 @@ The experiment should be:
 2. ACTIVE - student is mixing, building, creating
 3. DRAMATIC - has a wow factor
 4. SHAREABLE - worth posting on social media
-5. EDUCATIONAL - teaches real science principles${studentContext}
+5. EDUCATIONAL - teaches real science principles${studentCtx.systemPromptAddendum}
 
 CRITICAL SYSTEMIC ACTION DIRECTIVE: If this science topic relates to public health, environment, water quality, air quality, soil contamination, pesticides, or safety, you MUST generate a concrete systemic action that creates REAL POLICY CHANGE, not just neighbor delivery.
 

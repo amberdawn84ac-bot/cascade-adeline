@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import { getModel } from '@/lib/ai-models';
 import { loadConfig } from '@/lib/config';
 import { streamText } from 'ai';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,14 +15,14 @@ export async function POST(req: NextRequest) {
     const { messages, creditId } = await req.json();
 
     // Get student context
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
 
     // Get the last user message to understand what they want
     const userMessage = messages[messages.length - 1]?.content || '';
 
     const systemPrompt = `You are Adeline, a warm, encouraging, and supportive graduation coach. The student wants to change how they earn a specific credit.
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 
 CRITICAL RULES:
 1. Listen to their proposal carefully and with curiosity

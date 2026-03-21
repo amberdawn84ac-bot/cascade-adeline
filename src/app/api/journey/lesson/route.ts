@@ -3,9 +3,8 @@ import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { loadConfig } from '@/lib/config';
-import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
 import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
 
 export const maxDuration = 30;
@@ -79,15 +78,10 @@ export async function POST(req: NextRequest) {
       console.log('[journey/lesson] Cache MISS for creditId:', creditId);
     }
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
-    const zpdSummary = await getZPDSummaryForPrompt(user.userId, { limit: 5 }).catch(() => '');
-    const student = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { name: true, gradeLevel: true, interests: true },
-    });
+    const studentCtx = await getStudentContext(user.userId);
 
     // Parse grade level for age-appropriate content enforcement
-    const rawGrade = student?.gradeLevel ?? null;
+    const rawGrade = studentCtx.gradeLevel ?? null;
     const gradeNum = (() => {
       if (!rawGrade) return 9;
       const s = rawGrade.trim().toLowerCase();
@@ -115,12 +109,12 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: `You are Adeline, a brilliant homeschool teacher. You are delivering TODAY'S ACTUAL LESSON — not a plan, not an outline, not a homework assignment.
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 ${gradeGuard}
-The student's name is ${student?.name ?? 'Explorer'}, grade ${rawGrade ?? 'unknown'}.
-Their interests: ${(student?.interests ?? []).join(', ') || 'not specified'}.
+The student's name is ${studentCtx.name ?? 'Explorer'}, grade ${rawGrade ?? 'unknown'}.
+Their interests: ${studentCtx.interests.join(', ') || 'not specified'}.
 
-${zpdSummary ? `\nSTUDENT ZPD & MASTERY STATUS:\n${zpdSummary}\nBUILD THIS LESSON to directly address concepts in the student's Zone of Proximal Development above.\n` : ''}
+${studentCtx.bktSummary ? `\nSTUDENT ZPD & MASTERY STATUS:\n${studentCtx.bktSummary}\nBUILD THIS LESSON to directly address concepts in the student's Zone of Proximal Development above.\n` : ''}
 CRITICAL LESSON DELIVERY RULES - "LIFE OF FRED" STYLE:
 1. lessonContent MUST be written like a "Life of Fred" book — quirky, narrative-driven, visually engaging.
    - DO NOT write textbook paragraphs. Weave the concept into a conversational story with characters and situations.
@@ -151,7 +145,7 @@ CRITICAL LESSON DELIVERY RULES - "LIFE OF FRED" STYLE:
       try {
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 24);
-        const gl = student?.gradeLevel || gradeLevelParam || '';
+        const gl = studentCtx.gradeLevel || gradeLevelParam || '';
 
         await prisma.cachedLesson.upsert({
           where: {

@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
 const dailyELASchema = z.object({
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (cached) return NextResponse.json({ ...cached, cached: true });
 
     // Not cached: generate via AI
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || "gpt-4o",
@@ -75,11 +75,7 @@ ANCHOR TEXT REQUIREMENTS:
 - Make it feel real and immediate, not abstract
 
 SPELLING WORDS — AGE-APPROPRIATE PHONICS:
-${studentContext.includes('K') || studentContext.includes('1') || studentContext.includes('2') ? 
-  '- K-2: Focus on CVC words (cat, dig, hen), simple digraphs (shop, chop), and sight words from the text' :
-  studentContext.includes('3') || studentContext.includes('4') || studentContext.includes('5') ?
-  '- 3-5: Focus on blends (plant, trust), long vowel patterns (make, seed), and common suffixes (-ing, -ed)' :
-  '- 6+: Focus on Greek/Latin roots, prefixes, suffixes, and academic vocabulary from the text'}
+${(() => { const g = parseInt(studentCtx.gradeLevel.replace(/\D/g, '')) || 9; return g <= 2 ? '- K-2: Focus on CVC words (cat, dig, hen), simple digraphs (shop, chop), and sight words from the text' : g <= 5 ? '- 3-5: Focus on blends (plant, trust), long vowel patterns (make, seed), and common suffixes (-ing, -ed)' : '- 6+: Focus on Greek/Latin roots, prefixes, suffixes, and academic vocabulary from the text'; })()}
 - Pull words DIRECTLY from the anchor text when possible
 - 5-10 words total, scaled to grade level
 
@@ -107,7 +103,7 @@ LIBRARIAN DIRECTIVE — BOOK LINKING:
 - Include specific chapter or page references when relevant
 - Only include requiredReading if the lesson genuinely requires reading from a specific book
 
-${studentContext}`,
+${studentCtx.systemPromptAddendum}`,
       },
       { role: 'user', content: `Generate a unified Daily Literacy lesson about: ${lessonTopic}` }
     ]);

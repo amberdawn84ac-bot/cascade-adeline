@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { awardCreditsForActivity, createTranscriptEntryWithCredits } from '@/lib/learning/credit-award';
 import { loadConfig } from '@/lib/config';
 import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ...cached, creditsEarned: creditResult.creditsEarned, standardLinked: creditResult.standardLinked, cached: true });
     }
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
 
     const CATEGORY_CONTEXT: Record<string, string> = {
       'preservation': 'water bath canning, pressure canning, lacto-fermentation, dehydrating, freeze-drying, root cellaring, and cold storage',
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `You are Adeline, a wise and encouraging homesteading mentor with deep practical knowledge of ${CATEGORY_CONTEXT[category]}. Generate a real, executable homesteading project for a homeschool student.
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 
 CRITICAL RULES:
 - Adapt complexity, vocabulary, and safety guidance precisely to the student's grade level above

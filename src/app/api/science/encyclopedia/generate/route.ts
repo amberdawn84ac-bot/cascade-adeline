@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 
 const encyclopediaSchema = z.object({
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (cached) return NextResponse.json({ ...cached, cached: true });
 
     // --- Not cached: generate via AI ---
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || "gpt-4o",
@@ -81,7 +81,7 @@ You MUST tailor every word to the student's exact grade level, reading level, vo
 - A 5th grader gets mechanisms explained through analogy and real-world cause-effect
 - A 10th grader gets precise scientific vocabulary, data, and systems-level thinking
 
-${studentContext}`,
+${studentCtx.systemPromptAddendum}`,
       },
       { role: 'user', content: `Generate an interactive science lesson about: ${query}` }
     ]);

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
 import prisma from '@/lib/db';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { OpenAIEmbeddings } from '@langchain/openai';
 
 const evidenceBoardSchema = z.object({
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const { query } = await req.json();
     if (!query) return Response.json({ error: 'Missing query' }, { status: 400 });
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
 
     // Vector Search the Hippocampus Database (graceful fallback if unavailable)
@@ -105,7 +105,7 @@ Frame the modern action not as a burden, but as an empowering way for the studen
 
 Base your facts strictly on the provided PRIMARY SOURCES below if relevant.
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 
 PRIMARY SOURCES:
 ${sourceContext}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { loadConfig } from '@/lib/config';
 
 const fieldProjectSchema = z.object({
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
 
     const config = loadConfig();
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.8 })
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical homestead educator. Generate exactly 3 gritty, real-world science field projects for a homeschool student.${studentContext}
+        content: `You are Adeline, a classical homestead educator. Generate exactly 3 gritty, real-world science field projects for a homeschool student.${studentCtx.systemPromptAddendum}
 
 RULES:
 - Projects must be grounded in the real homestead: sheep pasture, saltbox greenhouse, chickens, ducks, horses, soil, water, food preservation, or local land.
