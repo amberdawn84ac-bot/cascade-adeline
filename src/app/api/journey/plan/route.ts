@@ -58,19 +58,19 @@ export async function GET(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Get student profile + cached journey snapshot
-    const student = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { 
-        gradeLevel: true,
-        interests: true,
-        createdAt: true,
-        metadata: true,
-        learningPlans: {
-          select: { state: true, graduationYear: true },
+    // Get student profile + cached journey snapshot (parallel)
+    const [studentCtx, student] = await Promise.all([
+      getStudentContext(user.userId),
+      prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { 
+          metadata: true,
+          learningPlans: {
+            select: { state: true, graduationYear: true },
+          },
         },
-      }
-    });
+      }),
+    ]);
 
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
       : 999;
 
     // Calculate graduation/target date based on grade level
-    const gradeLevel = parseGradeLevel(student.gradeLevel);
+    const gradeLevel = parseGradeLevel(studentCtx.gradeLevel);
     const schoolLevel = getSchoolLevel(gradeLevel);
     
     let graduationDate = new Date();
@@ -143,8 +143,6 @@ export async function GET(req: NextRequest) {
     }
 
     // --- Cache miss: generate plan with LLM ---
-    const studentCtx = await getStudentContext(user.userId);
-
     const config = loadConfig();
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
       .withStructuredOutput(learningPlanSchema);
