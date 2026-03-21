@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText } from 'ai';
+import { streamText, experimental_transcribe as transcribeAudio } from 'ai';
 import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
@@ -7,7 +7,7 @@ import { shouldRefuse } from '@/lib/learning/scaffolding-guardian';
 import { recordInteraction, calculateCognitiveLoad } from '@/lib/cognitive-load';
 import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
-import { getModel } from '@/lib/ai-models';
+import { getModel, getTranscriptionModel } from '@/lib/ai-models';
 import { router as adelineRouter } from '@/lib/langgraph/router';
 import { lifeCreditLogger } from '@/lib/langgraph/lifeCreditLogger';
 import { AdelineGraphState } from '@/lib/langgraph/types';
@@ -144,8 +144,8 @@ export async function POST(req: NextRequest) {
     const intent = routedState.intent;
     const selectedModel = routedState.selectedModel || config.models.default;
 
-    // 2. LIFE_LOG: background transcript save — does not block the stream
-    if (intent === 'LIFE_LOG') {
+    // 2. LIFE_LOG / AUDIO_LOG: background transcript save — does not block the stream
+    if (intent === 'LIFE_LOG' || intent === 'AUDIO_LOG') {
       lifeCreditLogger(routedState).catch(err =>
         console.warn('[Chat] lifeCreditLogger background save failed:', err),
       );
@@ -166,6 +166,29 @@ export async function POST(req: NextRequest) {
       role: m.role as 'user' | 'assistant' | 'system',
       content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
     }));
+
+    // 5.5 Media processing: transcribe audio / attach image for vision before streaming
+    if (intent === 'AUDIO_LOG' && audioBase64) {
+      try {
+        const transcriptResult = await transcribeAudio({
+          model: getTranscriptionModel(),
+          audio: Buffer.from(audioBase64, 'base64'),
+        });
+        const lastMsg = streamMessages[streamMessages.length - 1];
+        lastMsg.content = `[Voice recording transcription]: ${transcriptResult.text}${
+          lastMsg.content ? `\n\nStudent note: ${lastMsg.content}` : ''
+        }`;
+      } catch (err) {
+        console.warn('[Chat] Audio transcription failed, proceeding with text only:', err);
+      }
+    }
+
+    if (intent === 'IMAGE_LOG' && imageUrl) {
+      (streamMessages[streamMessages.length - 1] as any).content = [
+        { type: 'image', image: new URL(imageUrl) },
+        { type: 'text', text: maskedContent.masked || 'Here is something I made or did.' },
+      ];
+    }
 
     // Non-blocking: increment message count
     prisma.user.update({
@@ -231,6 +254,43 @@ export async function POST(req: NextRequest) {
                 indexConversationMemory(userId, `chat-${Date.now()}`, conv).catch(err =>
                   console.error('[Memex] Background indexing failed:', err),
                 );
+              }
+              // REFLECT: save to ReflectionEntry so parents/teachers can review Socratic exchanges
+              if (intent === 'REFLECT' && fullText) {
+                prisma.reflectionEntry.create({
+                  data: {
+                    userId,
+                    type: 'SELF_ASSESSMENT',
+                    activitySummary: maskedContent.masked,
+                    promptUsed: maskedContent.masked,
+                    aiFollowUp: fullText,
+                    conceptsTagged: [],
+                  },
+                }).catch(err => console.error('[Reflect] Save failed:', err));
+              }
+              // ASSESS: append this exchange to the running PlacementAssessment record
+              if (intent === 'ASSESS' && fullText) {
+                const exchange = {
+                  userMessage: maskedContent.masked,
+                  adelineResponse: fullText,
+                  timestamp: new Date().toISOString(),
+                };
+                prisma.placementAssessment.findFirst({
+                  where: { userId, status: 'IN_PROGRESS' },
+                  orderBy: { startedAt: 'desc' },
+                }).then(existing => {
+                  if (existing) {
+                    const prev = (existing.responses as Record<string, unknown>) ?? {};
+                    const exchanges = Array.isArray(prev.exchanges) ? prev.exchanges : [];
+                    return prisma.placementAssessment.update({
+                      where: { id: existing.id },
+                      data: { responses: { exchanges: [...exchanges, exchange] } },
+                    });
+                  }
+                  return prisma.placementAssessment.create({
+                    data: { userId, status: 'IN_PROGRESS', responses: { exchanges: [exchange] } },
+                  });
+                }).catch(err => console.error('[Assess] Save failed:', err));
               }
               return;
             }

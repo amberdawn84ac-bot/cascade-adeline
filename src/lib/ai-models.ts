@@ -34,6 +34,13 @@ export function getModel(modelId: string): LanguageModel {
 }
 
 /**
+ * Returns the Whisper transcription model for audio-to-text.
+ */
+export function getTranscriptionModel() {
+  return openai.transcription('whisper-1');
+}
+
+/**
  * Returns the appropriate AI SDK embedding model provider.
  * Supports:
  * - OpenAI (text-embedding-*)
