@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Loader2, Save, CreditCard, ExternalLink, Tag, CheckCircle } from 'lucide-react';
+import { Loader2, Save, ExternalLink, Tag, FlaskConical, BookOpen, Calculator, Globe, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 const GRADE_LEVELS = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
@@ -15,8 +15,35 @@ const INTEREST_OPTIONS = [
   'Debate', 'Film Making', 'Nature & Ecology', 'Entrepreneurship',
 ];
 
+const PACING_OPTIONS = [
+  { value: 1.0,  label: 'Standard',   desc: 'Normal grade-level pacing' },
+  { value: 1.25, label: 'Accelerated', desc: '25% faster — minor head start' },
+  { value: 1.5,  label: 'Fast Track',  desc: '50% faster — early graduation path' },
+  { value: 2.0,  label: 'Sprint',      desc: '2× speed — advanced self-directed learners only' },
+];
+
+const SUBJECT_CONFIG = [
+  { key: 'mathLevel'    as const, label: 'Math',    icon: Calculator, color: 'text-blue-600',   bg: 'bg-blue-50' },
+  { key: 'elaLevel'     as const, label: 'ELA / Reading', icon: BookOpen,   color: 'text-purple-600', bg: 'bg-purple-50' },
+  { key: 'scienceLevel' as const, label: 'Science',  icon: FlaskConical, color: 'text-green-600', bg: 'bg-green-50' },
+  { key: 'historyLevel' as const, label: 'History',  icon: Globe,        color: 'text-amber-600',  bg: 'bg-amber-50' },
+];
+
 interface Props {
-  user: { name?: string; email?: string; role?: string; gradeLevel?: string; interests?: string[]; learningStyle?: string };
+  user: {
+    name?: string;
+    email?: string;
+    role?: string;
+    gradeLevel?: string;
+    mathLevel?: number;
+    elaLevel?: number;
+    scienceLevel?: number;
+    historyLevel?: number;
+    pacingMultiplier?: number;
+    targetGraduationYear?: number;
+    interests?: string[];
+    learningStyle?: string;
+  };
   subscription?: {
     tier: string;
     status: string;
@@ -27,11 +54,23 @@ interface Props {
 
 export function SettingsForm({ user, subscription }: Props) {
   const [gradeLevel, setGradeLevel] = useState(user.gradeLevel || '');
+  const [mathLevel, setMathLevel] = useState<number | null>(user.mathLevel ?? null);
+  const [elaLevel, setElaLevel] = useState<number | null>(user.elaLevel ?? null);
+  const [scienceLevel, setScienceLevel] = useState<number | null>(user.scienceLevel ?? null);
+  const [historyLevel, setHistoryLevel] = useState<number | null>(user.historyLevel ?? null);
+  const [pacingMultiplier, setPacingMultiplier] = useState(user.pacingMultiplier ?? 1.0);
   const [interests, setInterests] = useState<string[]>(user.interests || []);
   const [learningStyle, setLearningStyle] = useState(user.learningStyle || 'EXPEDITION');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState('');
+
+  const subjectStateMap = {
+    mathLevel:    { get: mathLevel,    set: setMathLevel },
+    elaLevel:     { get: elaLevel,     set: setElaLevel },
+    scienceLevel: { get: scienceLevel, set: setScienceLevel },
+    historyLevel: { get: historyLevel, set: setHistoryLevel },
+  };
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoMessage, setPromoMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -70,7 +109,11 @@ export function SettingsForm({ user, subscription }: Props) {
       const res = await fetch('/api/users/onboarding', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gradeLevel, interests, learningStyle }),
+        body: JSON.stringify({
+          gradeLevel, interests, learningStyle,
+          mathLevel, elaLevel, scienceLevel, historyLevel,
+          pacingMultiplier,
+        }),
       });
       if (!res.ok) throw new Error('Save failed');
       setMessage('Settings saved!');
@@ -182,7 +225,7 @@ export function SettingsForm({ user, subscription }: Props) {
         <h2 className="text-xl font-bold text-[#2F4731]">Learning Preferences</h2>
 
         <div>
-          <label className="text-xs font-bold uppercase tracking-widest text-[#2F4731]/50 mb-3 block">Grade Level</label>
+          <label className="text-xs font-bold uppercase tracking-widest text-[#2F4731]/50 mb-3 block">Overall Grade Level <span className="font-normal normal-case">(fallback when subject level not set)</span></label>
           <div className="flex flex-wrap gap-2">
             {GRADE_LEVELS.map(g => (
               <button
@@ -195,7 +238,90 @@ export function SettingsForm({ user, subscription }: Props) {
                     : 'border-[#E7DAC3] text-[#2F4731] hover:border-[#BD6809]'
                 }`}
               >
-                {g === 'K' ? 'Kindergarten' : `Grade ${g}`}
+                {g === 'K' ? 'K' : `${g}`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Subject-specific grade levels */}
+        <div>
+          <label className="text-xs font-bold uppercase tracking-widest text-[#2F4731]/50 mb-1 block">Subject-Specific Levels</label>
+          <p className="text-xs text-[#2F4731]/50 mb-3">Override the grade level for each subject independently. Leave blank to use the overall grade level above.</p>
+          <div className="space-y-4">
+            {SUBJECT_CONFIG.map(({ key, label, icon: Icon, color, bg }) => {
+              const current = subjectStateMap[key].get;
+              const setter = subjectStateMap[key].set;
+              return (
+                <div key={key} className={`p-4 rounded-xl border border-[#E7DAC3] ${bg}`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon className={`w-4 h-4 ${color}`} />
+                    <span className={`text-sm font-bold ${color}`}>{label}</span>
+                    {current !== null && (
+                      <span className="ml-auto text-xs text-[#2F4731]/50">
+                        Currently: <strong>Grade {current === 0 ? 'K' : current}</strong>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setter(null)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                        current === null
+                          ? 'bg-gray-600 border-gray-600 text-white'
+                          : 'border-gray-300 text-gray-500 hover:border-gray-500'
+                      }`}
+                    >
+                      Use overall
+                    </button>
+                    {GRADE_LEVELS.map(g => {
+                      const numVal = g === 'K' ? 0 : parseInt(g);
+                      return (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setter(numVal)}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                            current === numVal
+                              ? 'bg-[#BD6809] border-[#BD6809] text-white'
+                              : 'border-[#E7DAC3] text-[#2F4731] hover:border-[#BD6809]'
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pacing multiplier */}
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Zap className="w-4 h-4 text-[#BD6809]" />
+            <label className="text-xs font-bold uppercase tracking-widest text-[#2F4731]/50">Learning Pace</label>
+          </div>
+          <p className="text-xs text-[#2F4731]/50 mb-3">Control how fast Adeline moves through grade-level material. Accelerate for early graduation.</p>
+          <div className="grid grid-cols-2 gap-2">
+            {PACING_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setPacingMultiplier(opt.value)}
+                className={`text-left p-3 rounded-xl border-2 transition-all ${
+                  pacingMultiplier === opt.value
+                    ? 'bg-[#BD6809] border-[#BD6809] text-white'
+                    : 'border-[#E7DAC3] text-[#2F4731] hover:border-[#BD6809]'
+                }`}
+              >
+                <div className="font-bold text-sm">{opt.label}</div>
+                <div className={`text-xs mt-0.5 ${
+                  pacingMultiplier === opt.value ? 'text-white/80' : 'text-[#2F4731]/50'
+                }`}>{opt.desc}</div>
               </button>
             ))}
           </div>
