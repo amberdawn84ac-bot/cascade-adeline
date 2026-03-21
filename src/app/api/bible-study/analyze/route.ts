@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { loadConfig } from '@/lib/config';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 const analysisSchema = z.object({
   passage: z.string().describe('The passage text in English'),
@@ -39,14 +40,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing reference' }, { status: 400 });
     }
 
-    const config = loadConfig();
+    const [studentCtx, config] = await Promise.all([
+      getStudentContext(user.userId, { subjectArea: 'Bible Study' }),
+      Promise.resolve(loadConfig()),
+    ]);
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.3 })
       .withStructuredOutput(analysisSchema);
 
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a classical biblical scholar with expertise in Hebrew, Greek, and textual criticism. You help students understand Scripture in its original languages and historical context.
+        content: `You are Adeline, a classical biblical scholar with expertise in Hebrew, Greek, and textual criticism. You help students understand Scripture in its original languages and historical context.${studentCtx.systemPromptAddendum}
 
 CRITICAL DIRECTIVES:
 

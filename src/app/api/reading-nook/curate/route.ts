@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeLevel = studentCtx.gradeLevel;
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'English Language Arts' });
+    const gradeLevel = studentCtx.activeGradeLevel;
     const interests = studentCtx.interests;
     const name = studentCtx.name;
 

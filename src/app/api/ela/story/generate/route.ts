@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const { prompt, genre } = await req.json();
     if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
-    const studentCtx = await getStudentContext(user.userId);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'English Language Arts' });
 
     const config = loadConfig();
     const llm = new ChatOpenAI({

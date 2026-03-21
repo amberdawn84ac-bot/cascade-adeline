@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const { query } = await req.json();
     if (!query) return Response.json({ error: 'Missing query' }, { status: 400 });
 
-    const studentCtx = await getStudentContext(user.userId);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Social Studies' });
     const config = loadConfig();
 
     // Vector Search the Hippocampus Database (graceful fallback if unavailable)

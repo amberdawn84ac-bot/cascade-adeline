@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
     const { query } = await req.json();
     if (!query) return NextResponse.json({ error: 'Missing query' }, { status: 400 });
 
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeBracket = getGradeBracket(studentCtx.gradeLevel);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Social Studies' });
+    const gradeBracket = getGradeBracket(studentCtx.activeGradeLevel);
     const topicKey = query.toLowerCase().trim();
 
     const cached = await getCachedContent('history-timeline', topicKey, gradeBracket);
