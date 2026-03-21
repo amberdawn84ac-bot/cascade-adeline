@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 const challengeSchema = z.object({
   type: z.enum(['math', 'logic', 'pattern', 'word']).describe("The type of challenge"),
@@ -23,19 +23,15 @@ export async function POST(req: NextRequest) {
     const { challengeType } = await req.json();
     const requestedType = challengeType || 'math';
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true, interests: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : 'The student is in elementary/middle school.';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
-    const interestsContext = dbUser?.interests?.length ? `Their interests include: ${dbUser.interests.join(', ')}.` : '';
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
+    const styleContext = studentCtx.learningStyle ? `Their learning style is ${studentCtx.learningStyle}.` : '';
+    const interestsContext = studentCtx.interests.length ? `Their interests include: ${studentCtx.interests.join(', ')}.` : '';
 
     // Determine difficulty based on grade level
     let difficulty: 'easy' | 'medium' | 'hard' = 'medium';
-    if (dbUser?.gradeLevel) {
-      const grade = parseInt(dbUser.gradeLevel.replace(/\D/g, '')) || 5;
+    if (studentCtx.gradeLevel) {
+      const grade = parseInt(studentCtx.gradeLevel.replace(/\D/g, '')) || 5;
       if (grade <= 3) difficulty = 'easy';
       else if (grade <= 6) difficulty = 'medium';
       else difficulty = 'hard';

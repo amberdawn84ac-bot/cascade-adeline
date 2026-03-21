@@ -6,6 +6,7 @@ export interface StudentContext {
   gradeLevel: string;
   interests: string[];
   learningStyle: string;
+  age: number | null;
   cognitiveProfile: string | null;
   bktSummary: string;
   systemPromptAddendum: string;
@@ -33,7 +34,7 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
   const [user, bktSummary] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, gradeLevel: true, interests: true, learningStyle: true, metadata: true },
+      select: { name: true, gradeLevel: true, interests: true, learningStyle: true, age: true, metadata: true },
     }),
     getZPDSummaryForPrompt(userId, { subjectArea: opts?.subjectArea, limit: 5 }).catch(() => ''),
   ]);
@@ -42,6 +43,7 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
   const gradeLevel = user?.gradeLevel ?? '3';
   const interests = user?.interests ?? [];
   const learningStyle = user?.learningStyle ?? 'EXPEDITION';
+  const age = user?.age ?? null;
   const meta = (user?.metadata ?? {}) as Record<string, unknown>;
   const cognitiveProfile = typeof meta.cognitiveProfile === 'string' ? meta.cognitiveProfile : null;
 
@@ -82,6 +84,7 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     gradeLevel,
     interests,
     learningStyle,
+    age,
     cognitiveProfile,
     bktSummary,
     systemPromptAddendum,

@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 const storyPromptSchema = z.object({
   genre: z.string().describe("The story genre (e.g., adventure, mystery, fantasy, science fiction)"),
@@ -25,19 +25,15 @@ export async function POST(req: NextRequest) {
     const { theme } = await req.json();
     const requestedTheme = theme || 'any';
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, learningStyle: true, interests: true },
-    });
-
-    const gradeContext = dbUser?.gradeLevel ? `The student is in grade ${dbUser.gradeLevel}.` : 'The student is in elementary/middle school.';
-    const styleContext = dbUser?.learningStyle ? `Their learning style is ${dbUser.learningStyle}.` : '';
-    const interestsContext = dbUser?.interests?.length ? `Their interests include: ${dbUser.interests.join(', ')}.` : '';
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
+    const styleContext = studentCtx.learningStyle ? `Their learning style is ${studentCtx.learningStyle}.` : '';
+    const interestsContext = studentCtx.interests.length ? `Their interests include: ${studentCtx.interests.join(', ')}.` : '';
 
     // Determine word count target based on grade level
     let wordCountTarget = 300;
-    if (dbUser?.gradeLevel) {
-      const grade = parseInt(dbUser.gradeLevel.replace(/\D/g, '')) || 5;
+    if (studentCtx.gradeLevel) {
+      const grade = parseInt(studentCtx.gradeLevel.replace(/\D/g, '')) || 5;
       if (grade <= 2) wordCountTarget = 100;
       else if (grade <= 4) wordCountTarget = 200;
       else if (grade <= 6) wordCountTarget = 300;

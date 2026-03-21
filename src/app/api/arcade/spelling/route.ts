@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
 import { loadConfig } from '@/lib/config';
-import prisma from '@/lib/db';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 const spellingSchema = z.object({
   word: z.string().describe("The spelling word, all lowercase"),
@@ -23,20 +23,16 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const seenWords: string[] = Array.isArray(body?.seenWords) ? body.seenWords : [];
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, interests: true },
-    });
-
-    const grade = parseInt((dbUser?.gradeLevel || '5').replace(/\D/g, '')) || 5;
+    const studentCtx = await getStudentContext(user.userId);
+    const grade = parseInt((studentCtx.gradeLevel || '5').replace(/\D/g, '')) || 5;
     let difficulty: 'easy' | 'medium' | 'hard' = 'medium';
     if (grade <= 3) difficulty = 'easy';
     else if (grade <= 6) difficulty = 'medium';
     else difficulty = 'hard';
 
-    const gradeContext = `The student is in grade ${dbUser?.gradeLevel || '5'}.`;
-    const interestsContext = dbUser?.interests?.length
-      ? `Their interests include: ${dbUser.interests.join(', ')}. Try to pick words relevant to their world.`
+    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
+    const interestsContext = studentCtx.interests.length
+      ? `Their interests include: ${studentCtx.interests.join(', ')}. Try to pick words relevant to their world.`
       : '';
     const avoidContext = seenWords.length > 0
       ? `\nDO NOT use any of these words that have already been given this session: ${seenWords.join(', ')}.`

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
+import { getStudentContext } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 import { lessonBrain } from '@/lib/langgraph/lesson/lessonGraph';
@@ -32,12 +33,8 @@ export async function POST(req: NextRequest) {
 
     const regenerate = req.nextUrl.searchParams.get('regenerate') === 'true';
 
-    const student = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, interests: true, learningStyle: true },
-    });
-
-    const gradeLevel = gradeLevelParam || student?.gradeLevel || '';
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeLevel = gradeLevelParam || studentCtx.gradeLevel;
     const gradeBracket = getGradeBracket(gradeLevel);
     const topicKey = `${slugify(subject)}:${slugify(title)}`;
     const redisKey = `lesson:${user.userId}:${creditId || topicKey}:${gradeLevel}`;
@@ -94,8 +91,8 @@ export async function POST(req: NextRequest) {
       topic: title,
       description: description || '',
       creditId,
-      interests: student?.interests ?? [],
-      learningStyle: student?.learningStyle ?? 'EXPEDITION',
+      interests: studentCtx.interests,
+      learningStyle: studentCtx.learningStyle,
     };
 
     // Run graph to completion — if it throws the outer catch returns 500

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
@@ -21,15 +21,9 @@ export async function POST(req: NextRequest) {
 
   const { projectContext } = await req.json();
 
-  const student = await prisma.user.findUnique({
-    where: { id: user.userId },
-    select: { gradeLevel: true, interests: true, age: true },
-  });
-
-  const studentContext = await buildStudentContextPrompt(user.userId);
-
-  const grade = student?.gradeLevel || '9';
-  const age = student?.age || 15;
+  const studentCtx = await getStudentContext(user.userId);
+  const grade = studentCtx.gradeLevel;
+  const age = studentCtx.age ?? 15;
 
   // Check if we have recent competitions (scraped within last 7 days)
   const recentCompetitions = await prisma.competition.findMany({
@@ -48,7 +42,7 @@ export async function POST(req: NextRequest) {
       await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/competitions/discover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentAge: age, studentGrade: grade, interests: student?.interests }),
+        body: JSON.stringify({ studentAge: age, studentGrade: grade, interests: studentCtx.interests }),
       });
     } catch (e) {
       console.error('[OpportunityMatch] Failed to trigger discovery:', e);
@@ -99,7 +93,7 @@ export async function POST(req: NextRequest) {
   const result = await llm.invoke([
     {
       role: 'system',
-      content: `You are Adeline, helping a student find the best academic competitions for their work.${studentContext}
+      content: `You are Adeline, helping a student find the best academic competitions for their work.${studentCtx.systemPromptAddendum}
 
 Your job is to match the student's project/interests to real competitions and return the TOP 3 best matches.
 
