@@ -4,6 +4,125 @@ import { getModel } from '../ai-models';
 import { loadConfig } from '../config';
 
 /**
+ * Grade band mapping — maps a student's specific grade (e.g. "5") to the
+ * grade bands used in the StateStandard table (e.g. "5", "K-5", "6-8", "9-10", "9-12").
+ */
+function getStandardGradeBands(gradeLevel: string): string[] {
+  const g = gradeLevel.trim();
+  const n = parseInt(g.replace(/\D/g, ''), 10);
+
+  if (g === 'K' || n === 0) return ['K', 'K-5'];
+  if (n >= 1 && n <= 5)  return [String(n), 'K-5'];
+  if (n >= 6 && n <= 8)  return [String(n), '6-8'];
+  if (n >= 9 && n <= 10) return [String(n), '9-10', '9-12'];
+  if (n >= 11 && n <= 12) return [String(n), '11-12', '9-12'];
+  return [g];
+}
+
+/**
+ * Ensure a student has StudentStandardProgress rows for every standard
+ * relevant to their current grade level. Called when grade is set or changed.
+ * Uses INTRODUCED as the default mastery — just ensures the checklist exists.
+ */
+export async function ensureStudentStandardsLoaded(
+  userId: string,
+  gradeLevel: string,
+  jurisdiction = 'Oklahoma'
+): Promise<number> {
+  const bands = getStandardGradeBands(gradeLevel);
+
+  const standards = await prisma.stateStandard.findMany({
+    where: {
+      jurisdiction,
+      gradeLevel: { in: bands },
+    },
+    select: { id: true },
+  });
+
+  if (standards.length === 0) return 0;
+
+  // Upsert only — never downgrade mastery on existing rows
+  const existingIds = new Set(
+    (await prisma.studentStandardProgress.findMany({
+      where: { userId, standardId: { in: standards.map((s) => s.id) } },
+      select: { standardId: true },
+    })).map((r) => r.standardId)
+  );
+
+  const toCreate = standards
+    .filter((s) => !existingIds.has(s.id))
+    .map((s) => ({
+      userId,
+      standardId: s.id,
+      mastery: 'INTRODUCED' as const,
+      sourceType: 'system',
+    }));
+
+  if (toCreate.length > 0) {
+    await prisma.studentStandardProgress.createMany({ data: toCreate });
+  }
+
+  return toCreate.length;
+}
+
+/**
+ * Use an LLM to identify which specific standards from a list are
+ * addressed by a given activity description. Returns matched standard IDs.
+ */
+export async function matchActivityToStandards(
+  activityDescription: string,
+  gradeLevel: string,
+  userId: string,
+  jurisdiction = 'Oklahoma'
+): Promise<string[]> {
+  try {
+    const bands = getStandardGradeBands(gradeLevel);
+
+    const standards = await prisma.stateStandard.findMany({
+      where: { jurisdiction, gradeLevel: { in: bands } },
+      select: { id: true, standardCode: true, subject: true, statementText: true },
+      take: 60, // keep prompt size manageable
+    });
+
+    if (standards.length === 0) return [];
+
+    const config = loadConfig();
+    const standardsList = standards
+      .map((s) => `${s.standardCode}: ${s.statementText}`)
+      .join('\n');
+
+    const { text } = await generateText({
+      model: getModel(config.models.default),
+      temperature: 0,
+      maxOutputTokens: 200,
+      prompt: `A student in grade ${gradeLevel} did the following activity:
+"${activityDescription}"
+
+Below are academic standards for their grade level. Return ONLY a JSON array of the standard codes that this activity genuinely addresses (be conservative — only include real matches, max 5):
+${standardsList}
+
+Return ONLY valid JSON like: ["OK.MATH.3.MD.2", "OK.FCS.K5.3"]
+If nothing matches, return: []`,
+    });
+
+    let cleanText = text.trim();
+    if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    }
+
+    const codes: string[] = JSON.parse(cleanText);
+    if (!Array.isArray(codes)) return [];
+
+    return standards
+      .filter((s) => codes.includes(s.standardCode))
+      .map((s) => s.id);
+  } catch (err) {
+    console.warn('[standardsService] matchActivityToStandards failed:', err);
+    return [];
+  }
+}
+
+/**
  * Standards Service — State Standards Compliance
  *
  * Ported from old dear-adeline, adapted for Prisma + AI SDK.

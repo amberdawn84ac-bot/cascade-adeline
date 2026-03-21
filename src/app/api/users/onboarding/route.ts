@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email/email-service';
 import { Prisma } from '@prisma/client';
 import { invalidateStudentContext } from '@/lib/learning/student-context';
+import { ensureStudentStandardsLoaded } from '@/lib/services/standardsService';
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
@@ -36,6 +37,12 @@ export async function PATCH(req: NextRequest) {
 
   invalidateStudentContext(user.userId);
   console.log('[onboarding/PATCH] Settings updated, student context cache busted for user:', user.userId);
+
+  if (gradeLevel) {
+    ensureStudentStandardsLoaded(user.userId, gradeLevel).catch(err =>
+      console.warn('[onboarding/PATCH] ensureStudentStandardsLoaded failed (non-fatal):', err)
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -72,6 +79,12 @@ export async function POST(req: NextRequest) {
   });
 
   invalidateStudentContext(user.userId);
+
+  if (gradeLevel) {
+    ensureStudentStandardsLoaded(user.userId, gradeLevel).catch(err =>
+      console.warn('[onboarding/POST] ensureStudentStandardsLoaded failed (non-fatal):', err)
+    );
+  }
 
   if (updated.email && !updated.email.endsWith('@placeholder.local')) {
     sendWelcomeEmail(updated.email, updated.name ?? 'Explorer').catch(err =>

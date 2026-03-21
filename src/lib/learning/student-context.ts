@@ -1,6 +1,13 @@
 import prisma from '@/lib/db';
 import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
 
+export interface TargetStandard {
+  code: string;
+  subject: string;
+  statement: string;
+  mastery: string;
+}
+
 export interface StudentContext {
   name: string;
   gradeLevel: string;
@@ -9,6 +16,7 @@ export interface StudentContext {
   age: number | null;
   cognitiveProfile: string | null;
   bktSummary: string;
+  targetStandards: TargetStandard[];
   systemPromptAddendum: string;
 }
 
@@ -24,6 +32,83 @@ export function invalidateStudentContext(userId: string): void {
   cache.delete(userId);
 }
 
+/** Maps a specific grade to the grade bands stored in StateStandard.gradeLevel */
+function gradeToBands(gradeLevel: string): string[] {
+  const g = gradeLevel.trim();
+  const n = parseInt(g.replace(/\D/g, ''), 10);
+  if (g === 'K' || n === 0) return ['K', 'K-5'];
+  if (n >= 1 && n <= 5)     return [String(n), 'K-5'];
+  if (n >= 6 && n <= 8)     return [String(n), '6-8'];
+  if (n >= 9 && n <= 10)    return [String(n), '9-10', '9-12'];
+  if (n >= 11 && n <= 12)   return [String(n), '11-12', '9-12'];
+  return [g];
+}
+
+/** Fetch the top 3 standards this student hasn't mastered yet for their grade. */
+async function fetchTargetStandards(userId: string, gradeLevel: string): Promise<TargetStandard[]> {
+  try {
+    const bands = gradeToBands(gradeLevel);
+
+    // Prefer standards already in progress (INTRODUCED/DEVELOPING) over unstarted ones
+    const inProgress = await prisma.studentStandardProgress.findMany({
+      where: {
+        userId,
+        mastery: { in: ['INTRODUCED', 'DEVELOPING'] },
+        standard: { gradeLevel: { in: bands } },
+      },
+      include: { standard: true },
+      orderBy: { demonstratedAt: 'asc' },
+      take: 3,
+    });
+
+    if (inProgress.length >= 3) {
+      return inProgress.map((p) => ({
+        code: p.standard.standardCode,
+        subject: p.standard.subject,
+        statement: p.standard.statementText,
+        mastery: p.mastery,
+      }));
+    }
+
+    // Fallback: grab any grade-level standards not yet touched at all
+    const existingIds = new Set(
+      (await prisma.studentStandardProgress.findMany({
+        where: { userId },
+        select: { standardId: true },
+      })).map((r) => r.standardId)
+    );
+
+    const untouched = await prisma.stateStandard.findMany({
+      where: {
+        gradeLevel: { in: bands },
+        jurisdiction: 'Oklahoma',
+        id: existingIds.size > 0 ? { notIn: [...existingIds] } : undefined,
+      },
+      orderBy: { standardCode: 'asc' },
+      take: 3 - inProgress.length,
+    });
+
+    const fallback: TargetStandard[] = untouched.map((s) => ({
+      code: s.standardCode,
+      subject: s.subject,
+      statement: s.statementText,
+      mastery: 'NOT_STARTED',
+    }));
+
+    return [
+      ...inProgress.map((p) => ({
+        code: p.standard.standardCode,
+        subject: p.standard.subject,
+        statement: p.standard.statementText,
+        mastery: p.mastery,
+      })),
+      ...fallback,
+    ];
+  } catch {
+    return [];
+  }
+}
+
 export async function getStudentContext(userId: string, opts?: { subjectArea?: string }): Promise<StudentContext> {
   const now = Date.now();
   const cached = cache.get(userId);
@@ -31,16 +116,21 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     return cached.data;
   }
 
-  const [user, bktSummary] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { name: true, gradeLevel: true, interests: true, learningStyle: true, age: true, metadata: true },
-    }),
+  // Step 1: fetch user profile (needed to determine grade for standards query)
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, gradeLevel: true, interests: true, learningStyle: true, age: true, metadata: true },
+  });
+
+  const gradeLevel = user?.gradeLevel ?? '3';
+
+  // Step 2: fetch ZPD summary + target standards in parallel
+  const [bktSummary, targetStandards] = await Promise.all([
     getZPDSummaryForPrompt(userId, { subjectArea: opts?.subjectArea, limit: 5 }).catch(() => ''),
+    fetchTargetStandards(userId, gradeLevel),
   ]);
 
   const name = user?.name ?? 'Explorer';
-  const gradeLevel = user?.gradeLevel ?? '3';
   const interests = user?.interests ?? [];
   const learningStyle = user?.learningStyle ?? 'EXPEDITION';
   const age = user?.age ?? null;
@@ -77,6 +167,16 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     );
   }
 
+  // SNIPER INJECTION: quietly slip in 3 unmastered grade-level standards
+  if (targetStandards.length > 0) {
+    const standardLines = targetStandards
+      .map((s, i) => `  ${i + 1}. [${s.subject}] ${s.statement} (${s.code})`)
+      .join('\n');
+    parts.push(
+      `TARGET GRADE-LEVEL STANDARDS TO WEAVE INTO CONVERSATION:\nThe following are official grade ${gradeLevel} standards this student has NOT yet mastered. Without making it feel like a test, naturally weave opportunities to address these into your responses, activities, and examples:\n${standardLines}`
+    );
+  }
+
   const systemPromptAddendum = `\n\nCRITICAL STUDENT ADAPTATION RULES — THESE OVERRIDE ALL OTHER DEFAULTS:\n${parts.join('\n')}`;
 
   const data: StudentContext = {
@@ -87,6 +187,7 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     age,
     cognitiveProfile,
     bktSummary,
+    targetStandards,
     systemPromptAddendum,
   };
 

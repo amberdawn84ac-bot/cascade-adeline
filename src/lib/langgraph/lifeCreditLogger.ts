@@ -3,6 +3,7 @@ import { loadConfig } from '../config';
 import { AdelineGraphState, LifeCreditMapping, TranscriptDraft } from './types';
 import { getModel } from '../ai-models';
 import { scheduleConceptReview } from '../spaced-repetition';
+import { matchActivityToStandards, recordStandardProgress } from '../services/standardsService';
 import prisma from '../db';
 
 async function llmMatchLifeRule(prompt: string, rules: Record<string, string>, modelId: string, gradeLevel: string) {
@@ -107,6 +108,25 @@ export async function lifeCreditLogger(state: AdelineGraphState): Promise<Adelin
     };
 
     console.log('[lifeCreditLogger] Created transcript draft:', transcriptDraft);
+
+    // Match activity to state standards and record progress (fire-and-forget — don't block response)
+    const gradeLevel = state.gradeLevel || '3';
+    if (state.userId) {
+      matchActivityToStandards(
+        transcriptDraft.activityName,
+        gradeLevel,
+        state.userId
+      ).then(async (standardIds) => {
+        for (const sid of standardIds) {
+          await recordStandardProgress(state.userId!, sid, 'life_activity').catch(() => {});
+        }
+        if (standardIds.length > 0) {
+          console.log(`[lifeCreditLogger] Checked off ${standardIds.length} standards for activity`);
+        }
+      }).catch((err) => {
+        console.warn('[lifeCreditLogger] Standards matching failed (non-fatal):', err);
+      });
+    }
 
     // Auto-schedule related concepts for spaced repetition review
     const scheduledConcepts: string[] = [];
