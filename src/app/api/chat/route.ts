@@ -97,11 +97,14 @@ export async function POST(req: NextRequest) {
       return staticStreamResponse(refusalDecision.socraticPrompt);
     }
 
-    // Fetch student data for rate limiting and grade-level context
-    const student = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, messageCount: true, messageResetAt: true },
-    });
+    // Fetch rate-limit counters; gradeLevel comes from cached getStudentContext below
+    const [studentCtx, student] = await Promise.all([
+      getStudentContext(userId),
+      prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { messageCount: true, messageResetAt: true },
+      }),
+    ]);
 
     // Rate limiting — 50 messages/day on free tier
     const DAILY_LIMIT = 50;
@@ -130,7 +133,7 @@ export async function POST(req: NextRequest) {
     // Build router state (includes gradeLevel so lifeCreditLogger maps correctly)
     const routerState: AdelineGraphState = {
       userId: user.userId,
-      gradeLevel: student?.gradeLevel ?? '3',
+      gradeLevel: studentCtx.gradeLevel ?? '3',
       prompt: maskedContent.masked,
       conversationHistory: messages.map((m: { role: string; content: string }) => ({
         role: m.role,
@@ -152,9 +155,6 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Build full system prompt: Adeline's soul + student adaptation + ZPD + intent mode
-    // Single cached call — no duplicate DB hits
-    const studentCtx = await getStudentContext(userId);
-
     const fullSystemPrompt =
       buildSystemPrompt(config) + studentCtx.systemPromptAddendum + getIntentContext(intent);
 
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
         userId: user.userId,
         activityType: 'chat',
         duration: Math.round(responseTimeMs / 1000 / 60) || 1,
-        metadata: { intent: intent ?? 'CHAT', gradeLevel: student?.gradeLevel },
+        metadata: { intent: intent ?? 'CHAT', gradeLevel: studentCtx.gradeLevel },
       },
     }).catch(() => {});
 
