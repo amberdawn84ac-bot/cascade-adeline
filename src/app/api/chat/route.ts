@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, after } from 'next/server';
 import { streamText, experimental_transcribe as transcribeAudio } from 'ai';
 import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
@@ -221,11 +221,71 @@ export async function POST(req: NextRequest) {
         }
       }).catch(() => {});
 
-    // 6. Stream Adeline's response — real LLM streaming via AI SDK v6
+    // 6. Register post-stream work with next/server after() — called during the request phase
+    // so it holds the request context. Awaits fullTextPromise which resolves in onFinish.
+    let resolveFullText!: (text: string) => void;
+    const fullTextPromise = new Promise<string>(resolve => { resolveFullText = resolve; });
+
+    after(async () => {
+      const fullText = await fullTextPromise;
+
+      const conv = [
+        { role: 'user' as const, content: maskedContent.masked },
+        { role: 'assistant' as const, content: fullText },
+      ];
+      if (shouldIndexConversation(conv)) {
+        await indexConversationMemory(userId, `chat-${Date.now()}`, conv)
+          .catch(err => console.error('[Memex] Background indexing failed:', err));
+      }
+
+      if (intent === 'REFLECT' && fullText) {
+        await prisma.reflectionEntry.create({
+          data: {
+            userId,
+            type: 'SELF_ASSESSMENT',
+            activitySummary: maskedContent.masked,
+            promptUsed: maskedContent.masked,
+            aiFollowUp: fullText,
+            conceptsTagged: [],
+          },
+        }).catch(err => console.error('[Reflect] Save failed:', err));
+      }
+
+      if (intent === 'ASSESS' && fullText) {
+        const exchange = {
+          userMessage: maskedContent.masked,
+          adelineResponse: fullText,
+          timestamp: new Date().toISOString(),
+        };
+        try {
+          const existing = await prisma.placementAssessment.findFirst({
+            where: { userId, status: 'IN_PROGRESS' },
+            orderBy: { startedAt: 'desc' },
+          });
+          if (existing) {
+            const prev = (existing.responses as Record<string, unknown>) ?? {};
+            const exchanges = Array.isArray(prev.exchanges) ? prev.exchanges : [];
+            await prisma.placementAssessment.update({
+              where: { id: existing.id },
+              data: { responses: { exchanges: [...exchanges, exchange] } },
+            });
+          } else {
+            await prisma.placementAssessment.create({
+              data: { userId, status: 'IN_PROGRESS', responses: { exchanges: [exchange] } },
+            });
+          }
+        } catch (err) {
+          console.error('[Assess] Save failed:', err);
+        }
+      }
+    });
+
+    // 7. Stream Adeline's response — real LLM streaming via AI SDK v6
     const aiResult = streamText({
       model: getModel(selectedModel),
       system: fullSystemPrompt,
       messages: streamMessages,
+      onFinish: ({ text }) => { resolveFullText(text); },
     });
 
     const encoder = new TextEncoder();
@@ -238,63 +298,11 @@ export async function POST(req: NextRequest) {
           controller.enqueue(encoder.encode(`2:${JSON.stringify([data])}\n`));
         }
 
-        let fullText = '';
         const reader = aiResult.textStream.getReader();
 
         function pump() {
           reader.read().then(({ done, value }) => {
-            if (done) {
-              controller.close();
-              // Memory indexing after stream completes (fire-and-forget)
-              const conv = [
-                { role: 'user' as const, content: maskedContent.masked },
-                { role: 'assistant' as const, content: fullText },
-              ];
-              if (shouldIndexConversation(conv)) {
-                indexConversationMemory(userId, `chat-${Date.now()}`, conv).catch(err =>
-                  console.error('[Memex] Background indexing failed:', err),
-                );
-              }
-              // REFLECT: save to ReflectionEntry so parents/teachers can review Socratic exchanges
-              if (intent === 'REFLECT' && fullText) {
-                prisma.reflectionEntry.create({
-                  data: {
-                    userId,
-                    type: 'SELF_ASSESSMENT',
-                    activitySummary: maskedContent.masked,
-                    promptUsed: maskedContent.masked,
-                    aiFollowUp: fullText,
-                    conceptsTagged: [],
-                  },
-                }).catch(err => console.error('[Reflect] Save failed:', err));
-              }
-              // ASSESS: append this exchange to the running PlacementAssessment record
-              if (intent === 'ASSESS' && fullText) {
-                const exchange = {
-                  userMessage: maskedContent.masked,
-                  adelineResponse: fullText,
-                  timestamp: new Date().toISOString(),
-                };
-                prisma.placementAssessment.findFirst({
-                  where: { userId, status: 'IN_PROGRESS' },
-                  orderBy: { startedAt: 'desc' },
-                }).then(existing => {
-                  if (existing) {
-                    const prev = (existing.responses as Record<string, unknown>) ?? {};
-                    const exchanges = Array.isArray(prev.exchanges) ? prev.exchanges : [];
-                    return prisma.placementAssessment.update({
-                      where: { id: existing.id },
-                      data: { responses: { exchanges: [...exchanges, exchange] } },
-                    });
-                  }
-                  return prisma.placementAssessment.create({
-                    data: { userId, status: 'IN_PROGRESS', responses: { exchanges: [exchange] } },
-                  });
-                }).catch(err => console.error('[Assess] Save failed:', err));
-              }
-              return;
-            }
-            fullText += value;
+            if (done) { controller.close(); return; }
             controller.enqueue(encoder.encode(`0:${JSON.stringify(value)}\n`));
             pump();
           }).catch(err => {
