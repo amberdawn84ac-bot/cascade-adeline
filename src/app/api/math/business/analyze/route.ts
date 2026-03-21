@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing price or quantity' }, { status: 400 });
     }
 
-    const studentCtx = await getStudentContext(user.userId);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Mathematics' });
 
     const config = loadConfig();
     const llm = new ChatOpenAI({

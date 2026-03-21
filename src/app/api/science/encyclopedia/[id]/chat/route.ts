@@ -31,7 +31,7 @@ export async function POST(
     }
   }
 
-  const studentCtx = await getStudentContext(user.userId);
+  const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Science' });
 
   const topic = (entry?.title as string) || 'this topic';
   const coreConcept = (entry?.coreConcept as string) || '';

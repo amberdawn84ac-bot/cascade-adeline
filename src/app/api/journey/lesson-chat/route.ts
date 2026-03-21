@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     const { messages, lessonTitle, lessonContent, subject } = await req.json();
 
-    const studentCtx = await getStudentContext(user.userId);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: subject });
     const config = loadConfig();
 
     const result = await streamText({

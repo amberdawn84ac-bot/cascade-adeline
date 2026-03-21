@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
     if (!query) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
     // --- Resolve grade bracket early (needed for cache lookup AND image style) ---
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeBracket = getGradeBracket(studentCtx.gradeLevel);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Science' });
+    const gradeBracket = getGradeBracket(studentCtx.activeGradeLevel);
     const isEarlyElementary = gradeBracket === 'K-2';
     const normalizedTopic = query.toLowerCase().trim();
 

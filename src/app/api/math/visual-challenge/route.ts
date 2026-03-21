@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
 
     const { topic, gradeLevel: requestedGrade } = await req.json();
 
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeLevel = requestedGrade || studentCtx.gradeLevel;
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Mathematics' });
+    const gradeLevel = requestedGrade || studentCtx.activeGradeLevel;
 
     // Build the prompt with all context
     const systemPrompt = `You are Adeline, a math tutor who teaches through VISUAL MANIPULATIVES and hands-on exploration.${studentCtx.systemPromptAddendum}

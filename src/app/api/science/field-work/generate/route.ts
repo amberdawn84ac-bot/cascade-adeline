@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
-    const studentCtx = await getStudentContext(user.userId);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Science' });
 
     const config = loadConfig();
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.8 })

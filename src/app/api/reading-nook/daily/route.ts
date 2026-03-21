@@ -30,23 +30,13 @@ export async function POST(req: NextRequest) {
     // Use dailyTheme if provided (from Daily Expedition), otherwise fall back to topic or default
     const lessonTopic = dailyTheme || topic || 'homesteading';
 
-    // Resolve grade bracket for cache and age-appropriate content
-    const userData = await req.json().then(() => 
-      fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/users/profile`, {
-        headers: { cookie: req.headers.get('cookie') || '' }
-      }).then(r => r.json()).catch(() => ({ gradeLevel: '' }))
-    ).catch(() => ({ gradeLevel: '' }));
-    
-    const gradeStr = (userData?.gradeLevel ?? '').toLowerCase().trim();
-    const gradeBracket = getGradeBracket(gradeStr);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'English Language Arts' });
     const normalizedTopic = lessonTopic.toLowerCase().trim();
+    const gradeBracket = getGradeBracket(studentCtx.activeGradeLevel);
 
     // Cache-first: return saved lesson if it exists
     const cached = await getCachedContent('ela-daily', normalizedTopic, gradeBracket);
     if (cached) return NextResponse.json({ ...cached, cached: true });
-
-    // Not cached: generate via AI
-    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || "gpt-4o",

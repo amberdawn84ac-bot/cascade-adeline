@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     if (!query) return NextResponse.json({ error: 'Missing query' }, { status: 400 });
 
     // --- Cache-first ---
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeBracket = getGradeBracket(studentCtx.gradeLevel);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Science' });
+    const gradeBracket = getGradeBracket(studentCtx.activeGradeLevel);
     const topicKey = query.toLowerCase().trim();
     const cached = await getCachedContent('science-experiment', topicKey, gradeBracket);
     if (cached) {

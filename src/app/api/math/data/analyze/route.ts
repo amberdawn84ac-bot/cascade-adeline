@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const { data, question } = await req.json();
     if (!data) return NextResponse.json({ error: 'Missing data' }, { status: 400 });
 
-    const studentCtx = await getStudentContext(user.userId);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Mathematics' });
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
