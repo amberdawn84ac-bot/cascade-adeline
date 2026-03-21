@@ -2,6 +2,7 @@ import prisma from '@/lib/db';
 import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
 
 export interface StudentContext {
+  name: string;
   gradeLevel: string;
   interests: string[];
   learningStyle: string;
@@ -32,11 +33,12 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
   const [user, bktSummary] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { gradeLevel: true, interests: true, learningStyle: true, metadata: true },
+      select: { name: true, gradeLevel: true, interests: true, learningStyle: true, metadata: true },
     }),
     getZPDSummaryForPrompt(userId, { subjectArea: opts?.subjectArea, limit: 5 }).catch(() => ''),
   ]);
 
+  const name = user?.name ?? 'Explorer';
   const gradeLevel = user?.gradeLevel ?? '3';
   const interests = user?.interests ?? [];
   const learningStyle = user?.learningStyle ?? 'EXPEDITION';
@@ -76,6 +78,7 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
   const systemPromptAddendum = `\n\nCRITICAL STUDENT ADAPTATION RULES — THESE OVERRIDE ALL OTHER DEFAULTS:\n${parts.join('\n')}`;
 
   const data: StudentContext = {
+    name,
     gradeLevel,
     interests,
     learningStyle,

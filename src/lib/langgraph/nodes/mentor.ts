@@ -5,7 +5,7 @@ import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import prisma from '@/lib/db';
 import { retrieveRelevantMemories, formatMemoriesForPrompt } from '@/lib/memex/memory-retriever';
 import { hippocampusTool } from '../tools/hippocampusTool';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 export async function mentor(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
 const lastMessage = state.messages[state.messages.length - 1];
@@ -18,8 +18,8 @@ try {
     const relevantMemories = await retrieveRelevantMemories(state.userId, content, 3);
     const memoryContext = formatMemoriesForPrompt(relevantMemories);
 
-    // Full student context: grade, interests, learning style, cognitive profile
-    const studentContextBlock = await buildStudentContextPrompt(state.userId);
+    // Full student context: grade, interests, learning style, cognitive profile (cached)
+    const studentCtx = await getStudentContext(state.userId);
     
     // Fetch real learning gaps from DB
     const learningGaps = await prisma.learningGap.findMany({
@@ -40,7 +40,7 @@ gapContext = `\n\nSTUDENT LEARNING GAPS — address these in your response if re
 
 const model = new ChatOpenAI({ model: config.models.default || "gpt-4o", temperature: 0.7 });
 
-const systemPrompt = buildSystemPrompt(config, `${studentContextBlock}${gapContext}${memoryContext}
+const systemPrompt = buildSystemPrompt(config, `${studentCtx.systemPromptAddendum}${gapContext}${memoryContext}
 
 CRITICAL THEOLOGICAL DIRECTIVE: When discussing the Bible, scripture, or faith, you MUST act as a primary source textual scholar:
 
