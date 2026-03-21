@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Add contribution
-    const contributor = await prisma.user.findUnique({ where: { id: user.userId }, select: { name: true } });
+    const contributorCtx = await getStudentContext(user.userId);
     const updatedMissions = ((missionOwner.metadata as any)?.coopMissions || []).map((m: any) => {
       if (m.id === missionId) {
         return {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
             ...(m.contributions || []),
             {
               userId: user.userId,
-              userName: contributor?.name || 'Student',
+              userName: contributorCtx.name || 'Student',
               role,
               data,
               notes: notes || '',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 const FULL_GRADUATION_CREDITS = 24;
 const ANNUAL_TARGET_K8 = 5.5;
@@ -35,20 +36,22 @@ export async function GET() {
     const session = await getSessionUser();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        gradeLevel: true,
-        metadata: true,
-        transcriptEntries: {
-          select: { creditsEarned: true, validationType: true },
+    const [studentCtx, user] = await Promise.all([
+      getStudentContext(session.userId),
+      prisma.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          metadata: true,
+          transcriptEntries: {
+            select: { creditsEarned: true, validationType: true },
+          },
         },
-      },
-    });
+      }),
+    ]);
 
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    const gradeNum = parseGradeNum(user.gradeLevel);
+    const gradeNum = parseGradeNum(studentCtx.gradeLevel);
     const isHighSchool = gradeNum >= 9;
 
     // Accelerated Mode: read metadata.graduationYears (e.g. 3 for 3-year plan)
@@ -82,7 +85,7 @@ export async function GET() {
       externalCredits: Math.round(externalCredits * 100) / 100,
       target,
       milestone,
-      gradeLevel: user.gradeLevel ?? 'Unknown',
+      gradeLevel: studentCtx.gradeLevel ?? 'Unknown',
       accelerated,
       yearsTarget,
     });
