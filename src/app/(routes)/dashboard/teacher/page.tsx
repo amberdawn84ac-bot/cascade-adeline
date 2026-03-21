@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Loader2, Users, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, GraduationCap } from 'lucide-react';
+import { StandardsChecklist } from '@/components/learning/StandardsChecklist';
 
 interface Student {
   id: string;
@@ -50,12 +51,13 @@ interface PendingEntry {
 }
 
 export default function TeacherDashboard() {
-  const [activePanel, setActivePanel] = useState<'overview' | 'students' | 'interventions' | 'transcripts'>('overview');
+  const [activePanel, setActivePanel] = useState<'overview' | 'students' | 'interventions' | 'transcripts' | 'standards'>('overview');
   const [students, setStudents] = useState<Student[]>([]);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [pendingTranscripts, setPendingTranscripts] = useState<PendingEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -67,7 +69,7 @@ export default function TeacherDashboard() {
       if (activePanel === 'overview') {
         const res = await fetch('/api/teacher/overview');
         if (res.ok) setOverview(await res.json());
-      } else if (activePanel === 'students') {
+      } else if (activePanel === 'students' || activePanel === 'standards') {
         const res = await fetch('/api/teacher/students');
         if (res.ok) setStudents(await res.json());
       } else if (activePanel === 'interventions') {
@@ -108,6 +110,7 @@ export default function TeacherDashboard() {
           { id: 'students', label: 'Students', icon: Users },
           { id: 'interventions', label: 'Interventions', icon: AlertTriangle },
           { id: 'transcripts', label: 'Transcripts', icon: CheckCircle },
+          { id: 'standards', label: 'Standards', icon: GraduationCap },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -239,10 +242,56 @@ export default function TeacherDashboard() {
                             </div>
                           ))}
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full mt-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+                          onClick={() => { setSelectedStudentId(student.id); setActivePanel('standards'); }}
+                        >
+                          <GraduationCap className="w-3.5 h-3.5 mr-1.5" />
+                          View Standards
+                        </Button>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {activePanel === 'standards' && (
+              <div className="max-w-3xl mx-auto">
+                {/* Student picker */}
+                {students.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-5">
+                    <button
+                      onClick={() => setSelectedStudentId(null)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        selectedStudentId === null
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-blue-300 text-blue-600 hover:bg-blue-50'
+                      }`}
+                    >
+                      My Standards
+                    </button>
+                    {students.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedStudentId(s.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                          selectedStudentId === s.id
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-blue-300 text-blue-600 hover:bg-blue-50'
+                        }`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <StandardsChecklist
+                  key={selectedStudentId ?? 'self'}
+                  studentId={selectedStudentId ?? undefined}
+                />
               </div>
             )}
 
