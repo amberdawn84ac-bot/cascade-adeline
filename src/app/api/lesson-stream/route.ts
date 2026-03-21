@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
 
     const regenerate = req.nextUrl.searchParams.get('regenerate') === 'true';
 
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeLevel = gradeLevelParam || studentCtx.gradeLevel;
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: subject });
+    const gradeLevel = gradeLevelParam || studentCtx.activeGradeLevel;
     const gradeBracket = getGradeBracket(gradeLevel);
     const topicKey = `${slugify(subject)}:${slugify(title)}`;
     const redisKey = `lesson:${user.userId}:${creditId || topicKey}:${gradeLevel}`;

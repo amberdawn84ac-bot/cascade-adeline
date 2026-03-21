@@ -10,23 +10,11 @@ export const maxDuration = 60; // Vercel: allow up to 60s for LLM call
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-/**
- * Parse gradeLevel stored as "3", "K", "K-2", "3-5", "6-8", "9-12", etc.
- * Returns the numeric grade (K=0).
- */
-function parseGradeLevel(raw: string | null): number {
-  if (!raw) return 9;
+function parseActiveGrade(raw: string): number {
   const s = raw.trim().toLowerCase();
-  if (s === 'k' || s === 'kindergarten') return 0;
-  // Range like "K-2" → average of 0 and 2 = 1
-  const rangeK = s.match(/^k-(\d+)$/);
-  if (rangeK) return Math.round(parseInt(rangeK[1]) / 2);
-  // Range like "3-5", "6-8", "9-12"
-  const range = s.match(/^(\d+)-(\d+)$/);
-  if (range) return Math.round((parseInt(range[1]) + parseInt(range[2])) / 2);
-  // Single number
-  const n = parseInt(s);
-  return isNaN(n) ? 9 : n;
+  if (s === 'k') return 0;
+  const range = s.match(/^(\d+)/);
+  return range ? parseInt(range[1]) : 9;
 }
 
 function getSchoolLevel(grade: number): 'elementary' | 'middle' | 'high' {
@@ -65,6 +53,7 @@ export async function GET(req: NextRequest) {
         where: { id: user.userId },
         select: { 
           metadata: true,
+          targetGraduationYear: true,
           learningPlans: {
             select: { state: true, graduationYear: true },
           },
@@ -95,30 +84,29 @@ export async function GET(req: NextRequest) {
       : 999;
 
     // Calculate graduation/target date based on grade level
-    const gradeLevel = parseGradeLevel(studentCtx.gradeLevel);
-    const schoolLevel = getSchoolLevel(gradeLevel);
+    const gradeNum = parseActiveGrade(studentCtx.activeGradeLevel);
+    const schoolLevel = getSchoolLevel(gradeNum);
     
     let graduationDate = new Date();
     let TOTAL_CREDITS_NEEDED: number;
     
-    if (schoolLevel === 'high') {
+    if (student?.targetGraduationYear) {
+      // Parent-set target graduation year takes priority
+      graduationDate = new Date(student.targetGraduationYear, 4, 1); // May 1st of target year
+      TOTAL_CREDITS_NEEDED = schoolLevel === 'high' ? 24 : schoolLevel === 'middle' ? 7 : 6;
+    } else if (schoolLevel === 'high') {
       // High school (9-12): Map to actual graduation
-      const yearsToGraduation = Math.max(1, 13 - gradeLevel);
+      const yearsToGraduation = Math.max(1, 13 - gradeNum);
       graduationDate.setFullYear(graduationDate.getFullYear() + yearsToGraduation);
       graduationDate.setMonth(4); // May graduation
       TOTAL_CREDITS_NEEDED = 24;
     } else {
       // Elementary (K-5) and Middle (6-8): Map to end of current school year
       const currentMonth = graduationDate.getMonth();
-      // If we're past May (month 4), target next May; otherwise target this May
       if (currentMonth >= 5) {
         graduationDate.setFullYear(graduationDate.getFullYear() + 1);
       }
-      graduationDate.setMonth(4); // End of school year (May)
-      
-      // Credits = number of core subjects for one school year
-      // Elementary: Reading, Math, Science, Social Studies, Bible, Homesteading = 6 credits
-      // Middle: ELA, Math, Science, History, Bible, Homesteading, Elective = 7 credits
+      graduationDate.setMonth(4);
       TOTAL_CREDITS_NEEDED = schoolLevel === 'middle' ? 7 : 6;
     }
 
@@ -147,7 +135,19 @@ export async function GET(req: NextRequest) {
     const llm = new ChatOpenAI({ model: config.models.default || 'gpt-4o', temperature: 0.7 })
       .withStructuredOutput(learningPlanSchema);
 
-    const gradeLabel = gradeLevel === 0 ? 'Kindergarten' : `Grade ${gradeLevel}`;
+    const gradeLabel = gradeNum === 0 ? 'Kindergarten' : `Grade ${gradeNum}`;
+
+    // Build subject-specific level note if any subjects differ from the overall grade
+    const { subjectLevels } = studentCtx;
+    const subjectLevelLines = [
+      subjectLevels.math    != null && subjectLevels.math    !== gradeNum ? `Math: Grade ${subjectLevels.math}`       : null,
+      subjectLevels.ela     != null && subjectLevels.ela     !== gradeNum ? `ELA: Grade ${subjectLevels.ela}`         : null,
+      subjectLevels.science != null && subjectLevels.science !== gradeNum ? `Science: Grade ${subjectLevels.science}` : null,
+      subjectLevels.history != null && subjectLevels.history !== gradeNum ? `History: Grade ${subjectLevels.history}` : null,
+    ].filter(Boolean);
+    const subjectLevelNote = subjectLevelLines.length > 0
+      ? `\nSUBJECT-SPECIFIC LEVELS: This student has decoupled grade levels. Their current working levels are:\n${subjectLevelLines.map(l => `  - ${l}`).join('\n')}\nUse the SUBJECT-SPECIFIC grade level when suggesting courses and content depth for each subject. Do NOT treat them as a uniform grade ${gradeNum} student.`
+      : '';
 
     const schoolLevelPrompt = schoolLevel === 'elementary' ? `
 SCHOOL LEVEL: ELEMENTARY (${gradeLabel})
@@ -214,7 +214,7 @@ GRADUATION REQUIREMENTS (${TOTAL_CREDITS_NEEDED} individual 1-credit courses):
         role: 'system',
         content: `You are Adeline, a wise and encouraging homeschool learning coach. You are building a standards-aligned learning path for this student.
 
-${studentCtx.systemPromptAddendum}
+${studentCtx.systemPromptAddendum}${subjectLevelNote}
 ${schoolLevelPrompt}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STATE STANDARDS FIRST — NON-NEGOTIABLE
