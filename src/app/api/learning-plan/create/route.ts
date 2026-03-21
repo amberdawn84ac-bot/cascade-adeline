@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { loadConfig } from '@/lib/config';
 
 const learningPlanSchema = z.object({
@@ -49,12 +49,7 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
 
-    // Get student context
-    const studentContext = await buildStudentContextPrompt(user.userId);
-    const studentProfile = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, interests: true },
-    });
+    const studentCtx = await getStudentContext(user.userId);
 
     // Generate personalized learning plan using AI
     const config = loadConfig();
@@ -66,7 +61,7 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: `You are Adeline, creating a personalized standards-based learning plan for a student in ${state}.
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 
 OFFICIAL STANDARDS FRAMEWORK: Common Core State Standards (CCSS)
 
@@ -113,7 +108,7 @@ Generate a complete learning plan with granular standards for each subject.`,
       },
       {
         role: 'user',
-        content: `Create my learning plan for ${state}. I'm in grade ${studentProfile?.gradeLevel || '9'} and graduate in ${graduationYear}.`,
+        content: `Create my learning plan for ${state}. I'm in grade ${studentCtx.gradeLevel} and graduate in ${graduationYear}.`,
       },
     ]);
 
@@ -140,7 +135,7 @@ Generate a complete learning plan with granular standards for each subject.`,
           update: {
             statementText: standard.description,
             subject: subject.subject,
-            gradeLevel: studentProfile?.gradeLevel || '9-12',
+            gradeLevel: studentCtx.gradeLevel || '9-12',
             typicalMicrocreditValue: standard.microcreditValue,
             masteryIndicators: {
               criteria: standard.masteryThreshold.criteria,
@@ -150,7 +145,7 @@ Generate a complete learning plan with granular standards for each subject.`,
             standardCode: standard.standardCode,
             jurisdiction: state,
             subject: subject.subject,
-            gradeLevel: studentProfile?.gradeLevel || '9-12',
+            gradeLevel: studentCtx.gradeLevel || '9-12',
             statementText: standard.description,
             typicalMicrocreditValue: standard.microcreditValue,
             masteryIndicators: {

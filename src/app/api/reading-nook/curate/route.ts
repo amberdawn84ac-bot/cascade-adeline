@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { getSessionUser } from '@/lib/auth';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';
 
@@ -25,16 +25,10 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const studentContext = await buildStudentContextPrompt(user.userId);
-
-    const student = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, interests: true, name: true }
-    });
-
-    const gradeLevel = student?.gradeLevel || '9';
-    const interests = student?.interests || [];
-    const name = student?.name || 'Explorer';
+    const studentCtx = await getStudentContext(user.userId);
+    const gradeLevel = studentCtx.gradeLevel;
+    const interests = studentCtx.interests;
+    const name = studentCtx.name;
 
     // Parse grade for age-appropriate content
     const gradeNum = (() => {
@@ -60,7 +54,7 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: `You are Adeline, a brilliant living-books librarian. You hand-pick REAL, published books for homeschool students based on their specific interests and grade level.
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 
 ${ageGuard}
 

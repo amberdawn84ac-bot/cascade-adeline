@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { loadConfig } from '@/lib/config';
-import { buildStudentContextPrompt } from '@/lib/learning/student-context';
+import { getStudentContext } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 
 const classicLessonSchema = z.object({
@@ -48,12 +48,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid subject' }, { status: 400 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { gradeLevel: true, interests: true, name: true },
-    });
-
-    const studentContext = await buildStudentContextPrompt(user.userId);
+    const studentCtx = await getStudentContext(user.userId);
     const config = loadConfig();
     const llm = new ChatOpenAI({
       model: config.models.default || 'gpt-4o',
@@ -72,14 +67,14 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: `You are Adeline, a dedicated homeschool tutor creating traditional, structured lessons.
 
-${studentContext}
+${studentCtx.systemPromptAddendum}
 
 CRITICAL INSTRUCTIONS:
 - Generate a SINGLE-SUBJECT lesson for ${subjectName}. DO NOT mix subjects.
 - This is a traditional, structured lesson - not a project or expedition.
 - The lesson should be highly organized with clear sections and step-by-step instruction.
-- Grade level: ${dbUser?.gradeLevel || '5'}
-- Student interests: ${dbUser?.interests?.join(', ') || 'general topics'}
+- Grade level: ${studentCtx.gradeLevel}
+- Student interests: ${studentCtx.interests.join(', ') || 'general topics'}
 
 ${SUBJECT_PROMPTS[subject as keyof typeof SUBJECT_PROMPTS]}
 
@@ -95,7 +90,7 @@ The worksheet is meant to be PRINTED and completed with a pencil. Format accordi
       },
       {
         role: 'user',
-        content: `Create today's ${subjectName} lesson for ${dbUser?.name || 'the student'}.`,
+        content: `Create today's ${subjectName} lesson for ${studentCtx.name}.`,
       },
     ]);
 
