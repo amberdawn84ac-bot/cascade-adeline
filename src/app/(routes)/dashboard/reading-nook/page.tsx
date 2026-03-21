@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -81,33 +81,41 @@ export default function ReadingNookPage() {
   });
 
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
-  const speak = (text: string) => {
-    if (typeof window === 'undefined') return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 0.88;
-    utt.pitch = 1.1;
-    
-    // Select a natural female voice (Adeline's voice)
-    const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(v => 
-      (v.name.includes('Samantha') || // macOS natural female
-       v.name.includes('Karen') ||    // macOS Australian female
-       v.name.includes('Fiona') ||    // macOS Scottish female
-       v.name.includes('Microsoft Zira') || // Windows female
-       v.name.includes('Google US English Female') || // Chrome female
-       v.name.includes('female')) && 
-      v.lang.startsWith('en')
-    ) || voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('male'));
-    
-    if (femaleVoice) {
-      utt.voice = femaleVoice;
+  const stopSpeaking = useCallback(() => {
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ''; audioRef.current = null; }
+    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
+    setIsSpeaking(false);
+  }, []);
+
+  const speak = useCallback(async (text: string) => {
+    stopSpeaking();
+    setIsSpeaking(true);
+    try {
+      const res = await fetch('/api/arcade/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error('TTS failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      blobUrlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(url); blobUrlRef.current = null; };
+      audio.onerror = () => setIsSpeaking(false);
+      await audio.play();
+    } catch {
+      setIsSpeaking(false);
     }
-    
-    window.speechSynthesis.speak(utt);
-  };
+  }, [stopSpeaking]);
+
+  useEffect(() => () => stopSpeaking(), [stopSpeaking]);
 
   const startListening = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -553,8 +561,8 @@ export default function ReadingNookPage() {
                         {msg.role === 'assistant' && (
                           <div className="flex items-center justify-between mb-1">
                             <p className="text-xs font-bold text-amber-500 uppercase tracking-wide">Adeline</p>
-                            <button onClick={() => speak(msg.content)} className="text-amber-400 hover:text-amber-600 ml-3" title="Read aloud">
-                              <Volume2 className="w-3.5 h-3.5" />
+                            <button onClick={() => speak(msg.content)} disabled={isSpeaking} className="text-amber-400 hover:text-amber-600 ml-3 disabled:opacity-50" title="Read aloud">
+                              {isSpeaking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Volume2 className="w-3.5 h-3.5" />}
                             </button>
                           </div>
                         )}
