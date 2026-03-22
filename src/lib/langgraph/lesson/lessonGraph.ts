@@ -1,6 +1,7 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { LessonState, LessonStateType } from './lessonState';
 import { orchestrator } from './nodes/orchestrator';
+import { architectAgent } from './nodes/architectAgent';
 import { contentAgent } from './nodes/contentAgent';
 import { mediaAgent } from './nodes/mediaAgent';
 import { assessmentAgent } from './nodes/assessmentAgent';
@@ -14,15 +15,10 @@ function routeAfterAssessment(state: LessonStateType): string {
   return 'activityAgent';
 }
 
-function routeAfterOrchestrator(state: LessonStateType): string {
-  if (state.phase === 'remediation') {
-    return 'contentAgent';
-  }
-  return 'contentAgent';
-}
 
 export const lessonBrain = new StateGraph(LessonState)
   .addNode('orchestrator', orchestrator)
+  .addNode('architectAgent', architectAgent)
   .addNode('contentAgent', contentAgent)
   .addNode('mediaAgent', mediaAgent)
   .addNode('assessmentAgent', assessmentAgent)
@@ -30,9 +26,8 @@ export const lessonBrain = new StateGraph(LessonState)
   .addNode('personalizerAgent', personalizerAgent)
 
   .addEdge(START, 'orchestrator')
-  .addConditionalEdges('orchestrator', routeAfterOrchestrator, {
-    contentAgent: 'contentAgent',
-  })
+  .addEdge('orchestrator', 'architectAgent')
+  .addEdge('architectAgent', 'contentAgent')
   .addEdge('contentAgent', 'mediaAgent')
   .addEdge('mediaAgent', 'assessmentAgent')
   .addConditionalEdges('assessmentAgent', routeAfterAssessment, {

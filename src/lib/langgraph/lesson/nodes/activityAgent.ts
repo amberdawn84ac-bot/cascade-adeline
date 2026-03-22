@@ -9,7 +9,13 @@ const activitySchema = z.object({
   photoPrompt: z.string(),
 });
 
+const ACTIVITY_BLOCK_TYPES = ['activity', 'interactive_slider', 'diagram_viewer'];
+
 export async function activityAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
+  if (state.blueprint && !state.blueprint.some(t => ACTIVITY_BLOCK_TYPES.includes(t))) {
+    console.log('[activityAgent] Skipped — no activity blocks in blueprint');
+    return {};
+  }
   const model = new ChatOpenAI({
     model: 'gpt-4o-mini',
     temperature: 0.6,
@@ -17,10 +23,14 @@ export async function activityAgent(state: LessonStateType): Promise<Partial<Les
 
   const interests = state.interests.join(', ') || 'general';
 
+  const blueprintNote = state.blueprint
+    ? `\nBLUEPRINT: ${state.blueprint.join(' → ')}\nThis agent handles: ${state.blueprint.filter(t => ACTIVITY_BLOCK_TYPES.includes(t)).join(', ')}.`
+    : '';
+
   const result = await model.invoke([
     {
       role: 'system',
-      content: `You are creating a hands-on activity for a homeschool student (grade ${state.gradeLevel}).
+      content: `You are creating a hands-on activity for a homeschool student (grade ${state.gradeLevel}).${blueprintNote}
 
 ACTIVITY RULES — ZERO VAGUENESS ALLOWED:
 - COOKING/BAKING: Write the FULL recipe. Every ingredient with EXACT measurements (e.g. "2¼ cups all-purpose flour", "1 tsp baking soda"). Oven temperature. Exact bake time. Every step in order.

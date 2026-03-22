@@ -68,6 +68,14 @@ export const LessonState = Annotation.Root({
     reducer: (_, r) => r,
     default: () => 'EXPEDITION',
   }),
+  learningMode: Annotation<'classic' | 'expedition'>({
+    reducer: (_, r) => r,
+    default: () => 'classic',
+  }),
+  blueprint: Annotation<string[] | undefined>({
+    reducer: (_, r) => r,
+    default: () => undefined,
+  }),
   bktSummary: Annotation<string>({
     reducer: (_, r) => r,
     default: () => '',

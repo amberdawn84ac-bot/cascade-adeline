@@ -12,7 +12,13 @@ const contentSchema = z.object({
   })).min(2).max(5),
 });
 
+const CONTENT_BLOCK_TYPES = ['primary_text', 'concept_text', 'critical_thinking', 'title'];
+
 export async function contentAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
+  if (state.blueprint && !state.blueprint.some(t => CONTENT_BLOCK_TYPES.includes(t))) {
+    console.log('[contentAgent] Skipped — no content blocks in blueprint');
+    return {};
+  }
   const config = loadConfig();
   const model = new ChatOpenAI({
     model: config.models.default || 'gpt-4o',
@@ -22,7 +28,11 @@ export async function contentAgent(state: LessonStateType): Promise<Partial<Less
   const isRemediation = state.phase === 'remediation';
   const interests = state.interests.join(', ') || 'general learning';
 
-  const systemPrompt = `You are Adeline, a brilliant homeschool teacher writing in the "Life of Fred" style.
+  const blueprintNote = state.blueprint
+    ? `\nBLUEPRINT SEQUENCE (follow this order for content blocks): ${state.blueprint.join(' → ')}\nFor this agent, focus on these block types from the blueprint: ${state.blueprint.filter(t => CONTENT_BLOCK_TYPES.includes(t)).join(', ')}.`
+    : '';
+
+  const systemPrompt = `You are Adeline, a brilliant homeschool teacher writing in the "Life of Fred" style.${blueprintNote}
 
 STUDENT PROFILE:
 - Grade: ${state.gradeLevel || 'unknown'}

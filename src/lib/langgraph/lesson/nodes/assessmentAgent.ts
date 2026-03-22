@@ -17,7 +17,13 @@ const assessmentSchema = z.object({
   })).min(2).max(5),
 });
 
+const ASSESSMENT_BLOCK_TYPES = ['quiz', 'vocab_tooltip'];
+
 export async function assessmentAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
+  if (state.blueprint && !state.blueprint.some(t => ASSESSMENT_BLOCK_TYPES.includes(t))) {
+    console.log('[assessmentAgent] Skipped — no assessment blocks in blueprint');
+    return {};
+  }
   const model = new ChatOpenAI({
     model: 'gpt-4o-mini',
     temperature: 0.4,
@@ -26,10 +32,14 @@ export async function assessmentAgent(state: LessonStateType): Promise<Partial<L
   const textBlocks = state.blocks.filter(b => b.type === 'text');
   const lessonContent = textBlocks.map(b => b.content as string).join('\n\n');
 
+  const blueprintNote = state.blueprint
+    ? `\nBLUEPRINT: ${state.blueprint.join(' → ')}\nThis agent handles: ${state.blueprint.filter(t => ASSESSMENT_BLOCK_TYPES.includes(t)).join(', ')}.`
+    : '';
+
   const result = await model.invoke([
     {
       role: 'system',
-      content: `You are creating assessment materials for a homeschool student (grade ${state.gradeLevel}).
+      content: `You are creating assessment materials for a homeschool student (grade ${state.gradeLevel}).${blueprintNote}
 ${state.interests?.length ? `Student interests: ${state.interests.join(', ')} — use these as real-world context in answer options where natural.` : ''}
 
 Rules:

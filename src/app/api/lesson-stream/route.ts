@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { subject, title, description, creditId, gradeLevel: gradeLevelParam, quizScore } = await req.json();
+    const { subject, title, description, creditId, gradeLevel: gradeLevelParam, quizScore, learningMode } = await req.json();
     if (!subject || !title) {
       return NextResponse.json({ error: 'subject and title required' }, { status: 400 });
     }
@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
       creditId,
       interests: studentCtx.interests,
       learningStyle: studentCtx.learningStyle,
+      learningMode: (learningMode === 'expedition' || learningMode === 'classic') ? learningMode : 'classic',
       ...(quizScore !== undefined ? { quizScore } : {}),
     };
 
