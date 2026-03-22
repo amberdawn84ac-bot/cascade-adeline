@@ -4,6 +4,8 @@ import { getStudentContext } from '@/lib/learning/student-context';
 import prisma from '@/lib/db';
 import { getAllCodesForSubject, getStandardsForSubject } from '@/lib/standards/subjectStandardsMap';
 import { getOrCreateStandard, recordStandardProgress } from '@/lib/services/standardsService';
+import { calculateLessonCredits, getTotalCreditHours } from '@/lib/standards/creditCalculator';
+import type { LessonBlock } from '@/lib/langgraph/lesson/lessonState';
 
 async function getRedis() {
   try {
@@ -23,8 +25,9 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { creditId, subject, title, quizResults } = await req.json();
+    const { creditId, subject, title, quizResults, blocks } = await req.json();
     // quizResults: Array<{ blockIndex: number; isCorrect: boolean }>
+    // blocks: LessonBlock[] - full lesson blocks for credit calculation
 
     const results: Array<{ blockIndex: number; isCorrect: boolean }> = quizResults ?? [];
     const total = results.length;
@@ -54,82 +57,127 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── Write transcript entry when mastery achieved ──────────────────────
-    // Each lesson covers roughly 1/20 of a course credit (a full credit = ~20 lesson sessions).
-    // Scale by quiz performance so a 100% score = full 0.05 cr, 70% = 0.035 cr.
-    // This matches the calibrated-formula pattern used by the arcade route.
-    let transcriptEntry: Awaited<ReturnType<typeof prisma.transcriptEntry.create>> | null = null;
+    // ── Calculate multi-subject credits ──────────────────────────────────
+    let transcriptEntries: Awaited<ReturnType<typeof prisma.transcriptEntry.create>>[] = [];
+    let creditAwards: ReturnType<typeof calculateLessonCredits> = [];
+    
     if (masteryAchieved && subject && title) {
       try {
-        const BASE_LESSON_CREDIT = 0.05;
-        const creditsEarned = parseFloat((BASE_LESSON_CREDIT * (score / 100)).toFixed(4));
+        // Calculate credits for all subjects this lesson covers
+        const lessonBlocks: LessonBlock[] = blocks ?? [];
+        const completedBlockIds = lessonBlocks.map((_, i) => `block-${i}`);
+        const standardsCodes = getAllCodesForSubject(subject);
+        
+        creditAwards = calculateLessonCredits({
+          subject,
+          topic: title,
+          blocks: lessonBlocks,
+          standardsCodes,
+          quizScore: score,
+          completedBlocks: completedBlockIds,
+        });
+        
+        const totalHours = getTotalCreditHours(creditAwards);
+        console.log(`[lesson-complete] Multi-subject credits: ${totalHours} total hours across ${creditAwards.length} subjects`);
+        creditAwards.forEach(award => {
+          console.log(`  - ${award.subject}: ${award.hours} hours (${award.standards.length} standards)`);
+        });
 
-        // Link to matching plan standard for progress tracking (subject match only)
-        let planStandardId: string | null = null;
-        try {
-          const plan = await prisma.learningPlan.findUnique({
-            where: { userId: user.userId },
-            include: {
-              planStandards: {
-                where: { isActive: true },
-                include: { standard: true },
-              },
+        // Get learning plan for linking
+        const plan = await prisma.learningPlan.findUnique({
+          where: { userId: user.userId },
+          include: {
+            planStandards: {
+              where: { isActive: true },
+              include: { standard: true },
             },
-          });
+          },
+        });
+
+        // Create transcript entry for each subject credit award
+        for (const award of creditAwards) {
+          let planStandardId: string | null = null;
+          
+          // Try to match to learning plan standard
           if (plan) {
-            const subjectLower = subject.toLowerCase();
+            const subjectLower = award.subject.toLowerCase();
             const matched = plan.planStandards.find(ps =>
               ps.standard.subject.toLowerCase().includes(subjectLower) ||
               subjectLower.includes(ps.standard.subject.toLowerCase())
             );
             if (matched) {
               planStandardId = matched.id;
-              // Increment StudentStandardProgress for dashboard tracking
+              // Update StudentStandardProgress
               await prisma.studentStandardProgress.upsert({
                 where: { userId_standardId: { userId: user.userId, standardId: matched.standardId } },
-                update: { microcreditsEarned: { increment: creditsEarned }, lastActivityAt: new Date(), mastery: 'DEVELOPING' },
-                create: { userId: user.userId, standardId: matched.standardId, microcreditsEarned: creditsEarned, lastActivityAt: new Date(), mastery: 'DEVELOPING', evidence: {} },
+                update: { 
+                  microcreditsEarned: { increment: award.hours }, 
+                  lastActivityAt: new Date(), 
+                  mastery: 'DEVELOPING' 
+                },
+                create: { 
+                  userId: user.userId, 
+                  standardId: matched.standardId, 
+                  microcreditsEarned: award.hours, 
+                  lastActivityAt: new Date(), 
+                  mastery: 'DEVELOPING', 
+                  evidence: {} 
+                },
               });
             }
           }
-        } catch { /* non-fatal — still write transcript even if plan lookup fails */ }
+          
+          const entry = await prisma.transcriptEntry.create({
+            data: {
+              userId: user.userId,
+              activityName: `${title} - ${award.subject}`,
+              mappedSubject: award.subject,
+              creditsEarned: award.hours,
+              dateCompleted: new Date(),
+              notes: `Lesson completed with ${score}% mastery (${award.standards.length} standards)`,
+              planStandardId,
+              masteryEvidence: { score, correct, total, quizResults, standards: award.standards },
+              metadata: { creditId, gradeLevel, source: 'lesson-stream', primarySubject: subject },
+            },
+          });
+          
+          transcriptEntries.push(entry);
+        }
 
-        transcriptEntry = await prisma.transcriptEntry.create({
-          data: {
-            userId: user.userId,
-            activityName: title,
-            mappedSubject: subject,
-            creditsEarned,
-            dateCompleted: new Date(),
-            notes: `Lesson completed with ${score}% mastery`,
-            planStandardId,
-            masteryEvidence: { score, correct, total, quizResults },
-            metadata: { creditId, gradeLevel, source: 'lesson-stream' },
-          },
-        });
+        console.log(`[lesson-complete] ${transcriptEntries.length} transcript entries written — ${totalHours} total hours for "${title}"`);
 
-        console.log(`[lesson-complete] Transcript written — ${creditsEarned} microcredits for "${title}" (${subject})`);
-
-        // ── Record StudentStandardProgress for each CCSS/OAS code ────────
-        const standardCodes = getAllCodesForSubject(subject);
-        const entry = getStandardsForSubject(subject);
-        if (standardCodes.length > 0) {
+        // ── Record StudentStandardProgress for all standards across all subjects ────────
+        const allStandards = new Set<string>();
+        creditAwards.forEach(award => award.standards.forEach(s => allStandards.add(s)));
+        
+        if (allStandards.size > 0) {
           const progressResults = await Promise.allSettled(
-            standardCodes.map(async (code) => {
+            Array.from(allStandards).map(async (code) => {
               const jx = code.startsWith('OAS') ? 'Oklahoma' : code.startsWith('AP') ? 'AP' : 'Common Core';
-              const std = await getOrCreateStandard(code, jx, entry?.scedCode ? gradeLevel : undefined);
-              if (std) await recordStandardProgress(user.userId, std.id, 'lesson', transcriptEntry?.id);
+              const std = await getOrCreateStandard(code, jx, gradeLevel);
+              if (std) {
+                // Use first transcript entry as reference
+                await recordStandardProgress(user.userId, std.id, 'lesson', transcriptEntries[0]?.id);
+              }
             })
           );
           const succeeded = progressResults.filter(r => r.status === 'fulfilled').length;
-          console.log(`[lesson-complete] Standards recorded: ${succeeded}/${standardCodes.length} for "${subject}"`);
+          console.log(`[lesson-complete] Standards recorded: ${succeeded}/${allStandards.size} across all subjects`);
         }
       } catch (transcriptErr) {
         console.error('[lesson-complete] Transcript write failed (non-fatal):', transcriptErr);
       }
     }
 
-    return NextResponse.json({ score, masteryAchieved, remediationTriggered, correct, total, transcriptEntry });
+    return NextResponse.json({ 
+      score, 
+      masteryAchieved, 
+      remediationTriggered, 
+      correct, 
+      total, 
+      transcriptEntries,
+      creditAwards: masteryAchieved ? creditAwards : undefined,
+    });
 
   } catch (error) {
     console.error('[lesson-complete] Error:', error);

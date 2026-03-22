@@ -170,6 +170,7 @@ export default function JourneyPage() {
           subject: lessonCredit.subject,
           title: lessonCredit.title,
           quizResults,
+          blocks: lessonBlocks,
         }),
       });
       if (res.ok) {

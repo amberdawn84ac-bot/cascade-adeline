@@ -1,6 +1,8 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { LessonStateType } from '../lessonState';
 import { getAllCodesForSubject } from '@/lib/standards/subjectStandardsMap';
+import { calculateLessonCredits } from '@/lib/standards/creditCalculator';
+import type { LessonBlock } from '../lessonState';
 
 const ALLOWED_BLOCK_TYPES = [
   'title',

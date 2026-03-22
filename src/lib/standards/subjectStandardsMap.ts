@@ -39,7 +39,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     oas: ['OAS.USH.3.5', 'OAS.USH.2.3', 'OAS.USH.1.1'],
     ap: ['APUSH-6.2.I.A', 'APUSH-7.1.I.A'],
     creditSubject: 'U.S. History',
-    creditHoursPerLesson: 2.0,
+    creditHoursPerLesson: 0.75,
     scedCode: '04101',
   },
   'u.s. history': {
@@ -47,14 +47,14 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     oas: ['OAS.USH.3.5', 'OAS.USH.2.3', 'OAS.USH.1.1'],
     ap: ['APUSH-6.2.I.A', 'APUSH-7.1.I.A'],
     creditSubject: 'U.S. History',
-    creditHoursPerLesson: 2.0,
+    creditHoursPerLesson: 0.75,
     scedCode: '04101',
   },
   'history': {
     ccss: HISTORY_CCSS_RH_6_8,
     oas: ['OAS.USH.3.5', 'OAS.USH.2.3', 'OAS.OK.5.2', 'OAS.OK.5.3'],
     creditSubject: 'U.S. History',
-    creditHoursPerLesson: 2.0,
+    creditHoursPerLesson: 0.5,
     scedCode: '04101',
   },
   'world history': {
@@ -62,21 +62,21 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     oas: ['OAS.WH.1.1', 'OAS.WH.2.1', 'OAS.WH.3.1'],
     ap: ['APWH-1.1', 'APWH-2.1'],
     creditSubject: 'World History',
-    creditHoursPerLesson: 2.0,
+    creditHoursPerLesson: 0.75,
     scedCode: '04104',
   },
   'oklahoma history': {
     ccss: HISTORY_CCSS_RH_6_8,
     oas: ['OAS.OK.5.2', 'OAS.OK.5.3', 'OAS.OK.5.4', 'OAS.OK.5.5'],
     creditSubject: 'Oklahoma History',
-    creditHoursPerLesson: 1.5,
+    creditHoursPerLesson: 0.5,
     scedCode: '04151',
   },
   'social studies': {
     ccss: HISTORY_CCSS_RH_6_8,
     oas: ['OAS.SS.6.1', 'OAS.SS.7.1', 'OAS.SS.8.1'],
     creditSubject: 'Social Studies',
-    creditHoursPerLesson: 1.5,
+    creditHoursPerLesson: 0.5,
     scedCode: '04101',
   },
   'civics': {
@@ -88,7 +88,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     oas: ['OAS.GOV.1.1', 'OAS.GOV.2.1', 'OAS.GOV.3.1', 'OAS.GOV.4.1'],
     ap: ['APCGOV-1.1', 'APCGOV-2.1'],
     creditSubject: 'U.S. Government',
-    creditHoursPerLesson: 1.5,
+    creditHoursPerLesson: 0.75,
     scedCode: '04201',
   },
   'government': {
@@ -100,7 +100,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     oas: ['OAS.GOV.1.1', 'OAS.GOV.2.1', 'OAS.GOV.3.1'],
     ap: ['APCGOV-1.1', 'APCGOV-2.1'],
     creditSubject: 'U.S. Government',
-    creditHoursPerLesson: 1.5,
+    creditHoursPerLesson: 0.75,
     scedCode: '04201',
   },
   'economics': {
@@ -111,7 +111,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     oas: ['OAS.ECON.1.1', 'OAS.ECON.2.1', 'OAS.ECON.3.1'],
     ap: ['APECON-1.1'],
     creditSubject: 'Economics',
-    creditHoursPerLesson: 1.5,
+    creditHoursPerLesson: 0.75,
     scedCode: '04202',
   },
   'english': {
@@ -124,7 +124,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     ],
     oas: ['OAS.ELA.9.1', 'OAS.ELA.9.2', 'OAS.ELA.9.3'],
     creditSubject: 'English Language Arts',
-    creditHoursPerLesson: 1.0,
+    creditHoursPerLesson: 0.75,
     scedCode: '01001',
   },
   'language arts': {
@@ -135,7 +135,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     ],
     oas: ['OAS.ELA.6.1', 'OAS.ELA.7.1', 'OAS.ELA.8.1'],
     creditSubject: 'English Language Arts',
-    creditHoursPerLesson: 1.0,
+    creditHoursPerLesson: 0.5,
     scedCode: '01001',
   },
   'mathematics': {
@@ -145,7 +145,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     ],
     oas: ['OAS.MATH.6.D.1', 'OAS.MATH.7.A.1'],
     creditSubject: 'Mathematics',
-    creditHoursPerLesson: 2.0,
+    creditHoursPerLesson: 0.5,
     scedCode: '02101',
   },
   'math': {
@@ -155,7 +155,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     ],
     oas: ['OAS.MATH.6.D.1', 'OAS.MATH.7.A.1'],
     creditSubject: 'Mathematics',
-    creditHoursPerLesson: 2.0,
+    creditHoursPerLesson: 0.5,
     scedCode: '02101',
   },
   'science': {
@@ -166,7 +166,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     ],
     oas: ['OAS.SCI.6.LS2.1', 'OAS.SCI.7.LS2.1', 'OAS.SCI.8.PS1.1'],
     creditSubject: 'Science',
-    creditHoursPerLesson: 2.0,
+    creditHoursPerLesson: 0.5,
     scedCode: '03001',
   },
   'biology': {
@@ -177,7 +177,7 @@ export const SUBJECT_STANDARDS_MAP: Record<string, SubjectStandardsEntry> = {
     oas: ['OAS.SCI.BIO.1.1', 'OAS.SCI.BIO.2.1', 'OAS.SCI.BIO.3.1'],
     ap: ['APBIO-1.A'],
     creditSubject: 'Biology',
-    creditHoursPerLesson: 2.0,
+    creditHoursPerLesson: 0.75,
     scedCode: '03001',
   },
   'biblical studies': {

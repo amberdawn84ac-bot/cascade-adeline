@@ -9,6 +9,13 @@ export interface RetrievedSourceSummary {
   url?: string;
 }
 
+export interface CreditAward {
+  subject: string;
+  hours: number;
+  standards: string[];
+  sourceBlocks?: string[];
+}
+
 export interface LessonBlock {
   type:
     | 'text'
@@ -134,6 +141,10 @@ export const LessonState = Annotation.Root({
     default: () => [],
   }),
   retrievedSources: Annotation<RetrievedSourceSummary[]>({
+    reducer: (_, r) => r,
+    default: () => [],
+  }),
+  creditAwards: Annotation<CreditAward[]>({
     reducer: (_, r) => r,
     default: () => [],
   }),
