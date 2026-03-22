@@ -110,6 +110,7 @@ model User {
   subscription            Subscription?
   approvedEntries         TranscriptEntry[]         @relation("TranscriptApprover")
   transcriptEntries       TranscriptEntry[]
+  sourceGapRequests       SourceGapRequest[]
   parent                  User?                     @relation("ParentToChild", fields: [parentId], references: [id])
   children                User[]                    @relation("ParentToChild")
   userActivities          UserActivity[]            @relation("UserActivities")
@@ -119,6 +120,8 @@ model User {
   createdShareLinks       ShareLink[]               @relation("ShareLinkCreator")
   cachedLessons           CachedLesson[]            @relation("CachedLessons")
   dailyReflections        DailyReflection[]         @relation("StudentReflections")
+  bookClubMemberships     BookClubMember[]
+  bookClubPosts           BookClubPost[]
 
   @@index([email])
   @@index([role])
@@ -395,14 +398,14 @@ model UserConceptMastery {
 }
 
 model UserInteractionStats {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  sessionId       String   @map("session_id")
-  messageId       String   @map("message_id")
-  responseTimeMs  Int      @map("response_time_ms")
-  editDistance    Int      @map("edit_distance")
-  sentimentScore  Float    @map("sentiment_score")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  sessionId      String   @map("session_id")
+  messageId      String   @map("message_id")
+  responseTimeMs Int      @map("response_time_ms")
+  editDistance   Int      @map("edit_distance")
+  sentimentScore Float    @map("sentiment_score")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([userId, createdAt])
@@ -876,6 +879,23 @@ enum OpportunityType {
   SCHOLARSHIP
 }
 
+model SourceGapRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  topic       String
+  subject     String
+  missingRole String    @map("missing_role")
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime? @map("resolved_at")
+  resolution  String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resolved])
+  @@map("source_gap_requests")
+}
+
 enum SourceType {
   PRIMARY
   CURATED
@@ -975,17 +995,17 @@ enum CompetitionType {
 }
 
 model CachedLesson {
-  id               String   @id @default(uuid()) @db.Uuid
-  userId           String   @map("user_id") @db.Uuid
-  creditId         String   @map("credit_id")
-  gradeLevel       String   @default("") @map("grade_level")
-  subject          String
-  title            String
-  lessonData       Json     @map("lesson_data")
-  generatedAt      DateTime @default(now()) @map("generated_at")
-  expiresAt        DateTime @map("expires_at")
-  createdAt        DateTime @default(now()) @map("created_at")
-  user             User     @relation("CachedLessons", fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  creditId    String   @map("credit_id")
+  gradeLevel  String   @default("") @map("grade_level")
+  subject     String
+  title       String
+  lessonData  Json     @map("lesson_data")
+  generatedAt DateTime @default(now()) @map("generated_at")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User     @relation("CachedLessons", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, creditId, gradeLevel])
   @@index([userId])
@@ -1006,4 +1026,49 @@ model DailyReflection {
   @@index([studentId])
   @@index([date])
   @@map("daily_reflections")
+}
+
+model BookClub {
+  id        String           @id @default(uuid()) @db.Uuid
+  name      String
+  bookId    String           @map("book_id")
+  bookTitle String           @map("book_title")
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  members   BookClubMember[]
+  posts     BookClubPost[]
+
+  @@index([active])
+  @@map("book_clubs")
+}
+
+model BookClubMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  clubId   String   @map("club_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  joinedAt DateTime @default(now()) @map("joined_at")
+  club     BookClub @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+  @@index([userId])
+  @@index([clubId])
+  @@map("book_club_members")
+}
+
+model BookClubPost {
+  id        String   @id @default(uuid()) @db.Uuid
+  clubId    String   @map("club_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  content   String   @db.Text
+  isAdeline Boolean  @default(false) @map("is_adeline")
+  chapter   String?  @map("chapter")
+  createdAt DateTime @default(now()) @map("created_at")
+  club      BookClub @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([clubId])
+  @@index([createdAt])
+  @@map("book_club_posts")
 }

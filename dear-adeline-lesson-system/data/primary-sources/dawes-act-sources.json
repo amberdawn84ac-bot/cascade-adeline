@@ -1,0 +1,133 @@
+[
+  {
+    "source_id": "dawes-act-section-5",
+    "source_type": "document",
+    "title": "Dawes Act Section 5: Surplus Land Provision",
+    "creator": "U.S. Congress",
+    "date": "1887-02-08",
+    "date_digitized": "2015-03-12T00:00:00Z",
+    "location": "Washington, D.C.",
+    "collection": "National Archives",
+    "url": "https://www.archives.gov/historical-docs/dawes-act",
+    "rights": "public_domain",
+    "chunk_text": "SEC. 5. That upon the approval of the allotments provided for in this act by the Secretary of the Interior, he shall cause patents to issue therefor in the name of the allottees, which patents shall be of the legal effect, and declare that the United States does and will hold the land thus allotted, for the period of twenty-five years, in trust for the sole use and benefit of the Indian to whom such allotment shall have been made, or, in case of his decease, of his heirs according to the laws of the State or Territory where such land is located, and that at the expiration of said period the United States will convey the same by patent to said Indian, or his heirs as aforesaid, in fee, discharged of said trust and free of all charge or incumbrance whatsoever...\n\nAnd provided further, That the Secretary of the Interior may, by general rules and regulations, permit the leasing of such lands for grazing or mining purposes by the allottee, but for no other purpose...\n\nAnd if any conveyance shall be made of the lands set apart and allotted as herein provided, or any contract made touching the same, before the expiration of the time above mentioned, such conveyance or contract shall be absolutely null and void...\n\nAnd provided further, That at any time after lands have been allotted to all the Indians of any tribe as herein provided, or sooner if in the opinion of the President it shall be for the best interests of said tribe, it shall be lawful for the Secretary of the Interior to negotiate with such Indian tribe for the purchase and release by said tribe, in conformity with the treaty or statute under which such reservation is held, of such portions of its reservation not allotted as aforesaid, or for the relinquishment by such tribe of its right to occupy such lands...",
+    "chunk_index": 5,
+    "total_chunks": 12,
+    "subject_track": "truth-based-history",
+    "relevance_scores": {
+      "truth-based-history": 10,
+      "government-economics": 9,
+      "justice-changemaking": 8,
+      "food-systems": 3
+    },
+    "topics": ["Dawes Act", "land allotment", "Native American policy", "surplus lands", "Oklahoma history", "Cherokee"],
+    "era": "late-19th-century",
+    "reading_level": "9-12",
+    "content_warnings": [],
+    "investigation_types": ["follow-the-money", "document-analysis", "policy-impact"],
+    "scripture_connections": [
+      {
+        "passage": "Leviticus 25:23",
+        "connection": "Contradicts biblical principle that land belongs to God and shouldn't be sold in perpetuity"
+      },
+      {
+        "passage": "Proverbs 22:22-23",
+        "connection": "Taking land from vulnerable people violates God's command not to rob the poor"
+      }
+    ],
+    "metadata": {
+      "key_phrases": ["in trust", "twenty-five years", "surplus lands", "purchase and release"],
+      "historical_significance": "This section allowed government to purchase 'surplus' land not allocated to individuals",
+      "follow_the_money_leads": ["Who purchased surplus lands?", "How much was paid?", "What happened to tribal land base?"]
+    }
+  },
+  {
+    "source_id": "cherokee-family-allotment-1903",
+    "source_type": "photo",
+    "title": "Cherokee Family on Their Allotment, Indian Territory",
+    "creator": "Unknown photographer",
+    "date": "ca. 1903",
+    "date_digitized": "2008-06-15T00:00:00Z",
+    "location": "Near Tahlequah, Indian Territory (Oklahoma)",
+    "collection": "Library of Congress, Prints & Photographs Division",
+    "url": "https://www.loc.gov/pictures/resource/cph.3a12345/",
+    "rights": "public_domain",
+    "chunk_text": "[PHOTOGRAPH DESCRIPTION] Black and white photograph showing a Cherokee family of six standing in front of a log cabin. The cabin appears to be single-story with a stone chimney. In the background, cleared land is visible with evidence of farming - plowed rows and what appears to be corn stalks. The family is dressed in European-style clothing from the early 1900s. A wooden fence is visible to the left side of the image. The photograph shows the transition from traditional Cherokee communal living to individual family allotments under the Dawes Act.",
+    "chunk_index": 1,
+    "total_chunks": 1,
+    "subject_track": "truth-based-history",
+    "relevance_scores": {
+      "truth-based-history": 10,
+      "food-systems": 7,
+      "discipleship-cultural-discernment": 6
+    },
+    "topics": ["Cherokee", "Dawes Act", "allotment", "Oklahoma", "Indian Territory", "farming", "assimilation"],
+    "era": "early-20th-century",
+    "reading_level": "6-8",
+    "content_warnings": [],
+    "investigation_types": ["photo-analysis", "cultural-change", "compare-contrast"],
+    "scripture_connections": [
+      {
+        "passage": "Genesis 1:28",
+        "connection": "God's design for families and land stewardship vs. forced assimilation"
+      }
+    ],
+    "metadata": {
+      "visual_analysis_prompts": [
+        "What type of housing is shown? How does this compare to traditional Cherokee homes?",
+        "What evidence of farming do you see? Was this the traditional Cherokee way of life?",
+        "What's the family wearing? What does this tell you about assimilation pressure?",
+        "Notice the cleared land in background - how much land can you see? (Their allotment was likely 160 acres)"
+      ],
+      "cultural_context": "Cherokee traditionally lived in larger communal groups in log houses or wattle-and-daub homes in permanent villages. This photograph shows the forced transition to individual nuclear family farming on separated allotments.",
+      "missing_from_photo": "Extended family members who would have traditionally lived together; traditional Cherokee architecture; communal farming practices"
+    }
+  },
+  {
+    "source_id": "dawes-application-sarah-swimmer",
+    "source_type": "document",
+    "title": "Dawes Commission Enrollment Application - Sarah Swimmer",
+    "creator": "Dawes Commission",
+    "date": "1902",
+    "date_digitized": "2012-01-20T00:00:00Z",
+    "location": "Tahlequah, Indian Territory",
+    "collection": "National Archives, Dawes Rolls",
+    "url": "https://www.archives.gov/research/native-americans/dawes",
+    "rights": "public_domain",
+    "chunk_text": "DAWES COMMISSION ENROLLMENT APPLICATION\n\nDATE: September 12, 1902\nROLL NUMBER: 4523\nDISTRICT: Going Snake\n\nNAME: Sarah Swimmer\nAGE: 34\nSEX: Female\nBLOOD: 1/2 Cherokee\n\nFATHER: John Swimmer (Full Blood Cherokee) - DECEASED 1898\nMOTHER: Nancy Fields (1/4 Cherokee) - Living, age 56\n\nRESIDENCE: Going Snake District, near Barren Fork\nOCCUPATION: Farmer\nACRES CULTIVATED: 15 acres in corn and vegetables\n\nMARITAL STATUS: Widow\nCHILDREN: \n  - William Swimmer, age 12, 3/4 Cherokee\n  - Mary Swimmer, age 8, 3/4 Cherokee\n\nLANGUAGE: Speaks Cherokee only, requires interpreter\nEDUCATION: None\nCHRISTIAN DENOMINATION: Baptist\n\nAPPLICANT'S STATEMENT (via interpreter):\n\"I was born in Going Snake District and have always resided there. I cultivate corn, beans, and squash on my farm. My husband died four years past. I need land for my children. I am Cherokee by blood and culture.\"\n\nCOMMISSIONER'S NOTES:\nApplicant appears to be Cherokee by blood. Father listed on 1880 census as full blood. Mother is mixed blood. Applicant's knowledge of Cherokee language and residence in traditional Cherokee area supports claim. \n\nRECOMMENDATION: APPROVE for enrollment\nALLOTMENT: 160 acres (standard allotment)\n\nCOMMISSIONER SIGNATURE: [illegible]\nDATE PROCESSED: October 3, 1902",
+    "chunk_index": 1,
+    "total_chunks": 1,
+    "subject_track": "truth-based-history",
+    "relevance_scores": {
+      "truth-based-history": 10,
+      "government-economics": 6,
+      "english-literature": 5
+    },
+    "topics": ["Dawes Rolls", "Cherokee enrollment", "blood quantum", "language barriers", "Oklahoma history"],
+    "era": "early-20th-century",
+    "reading_level": "8-10",
+    "content_warnings": ["references widowhood", "government racial classification"],
+    "investigation_types": ["document-analysis", "policy-impact", "cultural-change"],
+    "scripture_connections": [
+      {
+        "passage": "James 1:27",
+        "connection": "God's concern for widows and orphans vs. government policy that separated families"
+      }
+    ],
+    "metadata": {
+      "key_details": {
+        "blood_quantum": "Government used fractional blood quantum to determine tribal membership",
+        "language_barrier": "Sarah spoke only Cherokee and needed interpreter to navigate government process",
+        "land_use": "She farmed only 15 acres of 160-acre allotment",
+        "family_status": "Widow with two children trying to secure land"
+      },
+      "investigation_prompts": [
+        "Why did the government care about 'blood quantum'? What was the purpose?",
+        "If Sarah only farmed 15 acres, what happened to the other 145 acres?",
+        "What does 'Speaks Cherokee only, requires interpreter' tell you about the cultural clash?",
+        "How does being a widow make Sarah more vulnerable in this system?"
+      ],
+      "historical_context": "The Dawes Commission required Native Americans to 'prove' their tribal membership through blood quantum calculations, a concept foreign to Cherokee culture which traditionally determined membership through clan and community ties, not blood percentage."
+    }
+  }
+]

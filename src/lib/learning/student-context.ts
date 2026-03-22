@@ -1,5 +1,6 @@
 import prisma from '@/lib/db';
 import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
+import { getRecommendedBooks } from '@/lib/learning/curated-library';
 
 export interface TargetStandard {
   code: string;
@@ -260,6 +261,23 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
       .join('\n');
     parts.push(
       `TARGET GRADE-LEVEL STANDARDS TO WEAVE INTO CONVERSATION:\nThe following are official grade ${activeGradeLevel} standards this student has NOT yet mastered. Without making it feel like a test, naturally weave opportunities to address these into your responses, activities, and examples:\n${standardLines}`
+    );
+  }
+
+  // Inject approved reading list based on ELA level (or overall grade)
+  const elaGradeNum = subjectLevels.ela !== null ? subjectLevels.ela : (() => {
+    const g = gradeLevel.trim();
+    if (g === 'K') return 0;
+    const n = parseInt(g);
+    return isNaN(n) ? 3 : n;
+  })();
+  const recommendedBooks = getRecommendedBooks(elaGradeNum, 5);
+  if (recommendedBooks.length > 0) {
+    const bookList = recommendedBooks
+      .map((b) => `  • "${b.title}" by ${b.author}`)
+      .join('\n');
+    parts.push(
+      `APPROVED READING LIST: If you suggest a book or reading assignment, you MUST ONLY choose from this exact curated public-domain list. Do NOT recommend any book outside this list or any copyrighted work:\n${bookList}`
     );
   }
 

@@ -1,0 +1,329 @@
+/* ============================================
+   DEAR ADELINE FIELD NOTES AESTHETIC
+   Nature journal / sketchnote style for lessons
+   ============================================ */
+
+/* Import handwritten fonts from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Delius&family=Caveat:wght@400;600;700&family=Permanent+Marker&family=Amatic+SC:wght@400;700&display=swap');
+
+/* ============================================
+   CSS VARIABLES - Color Palette
+   ============================================ */
+:root {
+  /* Paper & Background */
+  --paper-cream: #FFFEF7;
+  --paper-light: #FFF8E7;
+  --paper-shadow: rgba(139, 115, 85, 0.15);
+  
+  /* Text Colors */
+  --ink-brown: #4A3C2E;
+  --ink-dark: #2D2419;
+  --ink-light: #7A6A5A;
+  
+  /* Accent Colors (from Dear Adeline brand) */
+  --neon-fuschia: #FF006E;
+  --neon-orange: #FF7F11;
+  --deep-purple: #6A4C93;
+  --forest-green: #7BA05B;
+  --golden-wheat: #D4A574;
+  
+  /* Decorative Elements */
+  --border-brown: #8B7355;
+  --highlight-yellow: rgba(255, 230, 109, 0.4);
+  --highlight-pink: rgba(255, 0, 110, 0.15);
+  --highlight-mint: rgba(123, 160, 91, 0.2);
+  
+  /* Typography */
+  --font-handwritten: 'Kalam', cursive;
+  --font-neat: 'Delius', cursive;
+  --font-bold: 'Permanent Marker', cursive;
+  --font-emphasis: 'Amatic SC', cursive;
+  --font-casual: 'Caveat', cursive;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+.field-notes-wrapper {
+  position: relative;
+  background: var(--paper-cream);
+  min-height: 100vh;
+  padding: 40px 20px;
+  font-family: var(--font-handwritten);
+  color: var(--ink-brown);
+  line-height: 1.6;
+}
+
+/* Paper texture overlay */
+.paper-texture {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--border-brown) 2px,
+      var(--border-brown) 3px
+    );
+  z-index: 0;
+}
+
+.field-notes-content {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   SCRIPTURE BANNER (Top of page)
+   ============================================ */
+.scripture-banner {
+  background: var(--paper-light);
+  border: 2px solid var(--border-brown);
+  border-left: none;
+  border-right: none;
+  padding: 20px;
+  margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 2px 8px var(--paper-shadow);
+}
+
+.banner-decoration-left,
+.banner-decoration-right {
+  width: 50px;
+  color: var(--deep-purple);
+  flex-shrink: 0;
+}
+
+.scripture-text {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-neat);
+  font-size: 14px;
+  color: var(--ink-dark);
+}
+
+.scripture-text .reference {
+  font-family: var(--font-emphasis);
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--deep-purple);
+}
+
+.scripture-text .divider {
+  margin: 0 10px;
+  color: var(--golden-wheat);
+}
+
+/* ============================================
+   LESSON HEADER
+   ============================================ */
+.lesson-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.decorative-line-left,
+.decorative-line-right {
+  flex: 1;
+  height: 3px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--border-brown) 20%,
+    var(--border-brown) 80%,
+    transparent
+  );
+  position: relative;
+}
+
+.decorative-line-left::before,
+.decorative-line-right::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--golden-wheat);
+  border-radius: 50%;
+  top: -2.5px;
+}
+
+.decorative-line-left::before { left: 20%; }
+.decorative-line-right::after { right: 20%; }
+
+.lesson-title {
+  font-family: var(--font-bold);
+  font-size: 42px;
+  color: var(--ink-dark);
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.5px;
+  transform: rotate(-0.5deg);
+  text-shadow: 2px 2px 0px rgba(255, 127, 17, 0.2);
+}
+
+/* ============================================
+   SUBJECT BADGE
+   ============================================ */
+.subject-badge {
+  display: inline-block;
+  background: var(--deep-purple);
+  color: white;
+  font-family: var(--font-neat);
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  margin-bottom: 25px;
+  transform: rotate(-1deg);
+  box-shadow: 2px 2px 5px rgba(106, 76, 147, 0.3);
+  text-transform: capitalize;
+}
+
+/* ============================================
+   OBJECTIVES BOX
+   ============================================ */
+.objectives-box {
+  background: var(--paper-light);
+  border: 2px dashed var(--border-brown);
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 40px;
+  position: relative;
+  transform: rotate(0.5deg);
+}
+
+.objectives-box::before {
+  content: '⭐';
+  position: absolute;
+  top: -15px;
+  left: 20px;
+  font-size: 24px;
+}
+
+.objectives-box h3 {
+  font-family: var(--font-emphasis);
+  font-size: 28px;
+  color: var(--deep-purple);
+  margin: 0 0 15px 0;
+}
+
+.objectives-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.objectives-box li {
+  padding-left: 30px;
+  margin-bottom: 10px;
+  position: relative;
+  font-family: var(--font-handwritten);
+  font-size: 16px;
+}
+
+.objectives-box li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--neon-orange);
+  font-weight: bold;
+}
+
+/* ============================================
+   LESSON BLOCKS CONTAINER
+   ============================================ */
+.lesson-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  margin: 40px 0;
+}
+
+/* ============================================
+   BOTTOM BORDER DECORATION
+   ============================================ */
+.bottom-border {
+  margin-top: 60px;
+  padding-top: 20px;
+}
+
+.border-decoration {
+  width: 100%;
+  height: 80px;
+  display: block;
+}
+
+/* ============================================
+   LESSON FOOTER
+   ============================================ */
+.lesson-footer {
+  margin-top: 40px;
+  padding: 30px;
+  background: var(--paper-light);
+  border-radius: 12px;
+  border: 2px solid var(--golden-wheat);
+}
+
+.credits-earned h4 {
+  font-family: var(--font-emphasis);
+  font-size: 24px;
+  color: var(--deep-purple);
+  margin: 0 0 15px 0;
+}
+
+.credit-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dotted var(--border-brown);
+  font-family: var(--font-neat);
+}
+
+.credit-subject {
+  font-weight: bold;
+  color: var(--ink-dark);
+}
+
+.credit-hours {
+  color: var(--ink-light);
+  font-style: italic;
+}
+
+.footer-decorations {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.wheat-icon {
+  width: 40px;
+  height: 40px;
+  fill: var(--golden-wheat);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .lesson-title {
+    font-size: 32px;
+  }
+  
+  .field-notes-content {
+    padding: 0 15px;
+  }
+  
+  .objectives-box {
+    padding: 20px;
+  }
+}

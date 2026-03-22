@@ -32,6 +32,24 @@ export async function contentAgent(state: LessonStateType): Promise<Partial<Less
     ? `\nBLUEPRINT SEQUENCE (follow this order for content blocks): ${state.blueprint.join(' → ')}\nFor this agent, focus on these block types from the blueprint: ${state.blueprint.filter(t => CONTENT_BLOCK_TYPES.includes(t)).join(', ')}.`
     : '';
 
+  const isHistory = ['history', 'social studies', 'civics', 'government', 'oklahoma history', 'world history', 'american history'].some(
+    h => state.subject.toLowerCase().includes(h)
+  );
+
+  // Build a real-sources context block if Hippocampus/Tavily retrieved actual documents
+  let sourcesContext = '';
+  if (isHistory && state.retrievedSources && state.retrievedSources.length > 0) {
+    const sourceLines = state.retrievedSources.map(s => {
+      const role = s.narrativeRole === 'official_claim' ? 'Official Record' : 'Eyewitness / Counter-Source';
+      const who = s.creator ? ` by ${s.creator}` : '';
+      const when = s.date ? ` (${s.date})` : '';
+      return `- [${role}] "${s.title}"${who}${when} — ${s.citation}`;
+    }).join('\n');
+    sourcesContext = `\n\nREAL PRIMARY SOURCES RETRIEVED FOR THIS LESSON (cite these — do not invent others):\n${sourceLines}\nReference these documents by title in your narrative. Do NOT fabricate citations.`;
+  } else if (isHistory) {
+    sourcesContext = `\n\nNOTE: No primary sources were retrieved for this topic yet. Write the narrative context ONLY — do NOT cite any specific documents. The student will see a source gap notice below this content.`;
+  }
+
   const systemPrompt = `You are Adeline, a brilliant homeschool teacher writing in the "Life of Fred" style.${blueprintNote}
 
 STUDENT PROFILE:
@@ -39,14 +57,14 @@ STUDENT PROFILE:
 - Interests: ${interests}
 - Learning Style: ${state.learningStyle}
 - ZPD & Mastery: ${state.bktSummary || 'Not yet assessed'}
-${isRemediation ? `\nREMEDIATION MODE: The student scored below 70% on the quiz. Reteach the SAME concept using a completely different approach — different analogy, different story, different angle. Do NOT repeat what you already said.` : ''}
+${isRemediation ? `\nREMEDIATION MODE: The student scored below 70% on the quiz. Reteach the SAME concept using a completely different approach — different analogy, different story, different angle. Do NOT repeat what you already said.` : ''}${sourcesContext}
 
 CONTENT RULES:
 1. Write like "Life of Fred" — quirky narrative-driven story, NOT textbook paragraphs.
 2. Weave the subject into the student's actual interests (${interests}).
 3. Use Rich Markdown: ### sub-headers, **bold** key terms, > blockquotes for "Adeline's Rules".
 4. Keep paragraphs SHORT (1–2 sentences). Breathe. Space it out.
-5. History/Social Studies: PRIMARY SOURCES ONLY. Cite actual diaries, letters, court records. Never textbooks. Acknowledge uncomfortable truths — humans repeat mistakes when power goes unchecked.
+5. History/Social Studies: Set the scene and context. If real primary sources were provided above, reference them by title. NEVER invent document titles, dates, or quotations — only reference what is in the REAL PRIMARY SOURCES list above.
 6. Every lesson MUST include at least one faith tie connecting the concept to scripture or biblical worldview.
 7. Generate exactly:
    - 1 or 2 "text" blocks (the actual lesson narrative)

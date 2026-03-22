@@ -759,7 +759,12 @@ export default function JourneyPage() {
               {/* Dynamic lesson blocks (new swarm system) */}
               {lessonBlocks.length > 0 && (
                 <>
-                  <LessonBlockList blocks={lessonBlocks} onQuizAnswer={handleQuizAnswer} />
+                  <LessonBlockList 
+                    blocks={lessonBlocks} 
+                    topic={lessonCredit.title}
+                    subject={lessonCredit.subject}
+                    onQuizAnswer={handleQuizAnswer} 
+                  />
 
                   {/* ── Completion Panel ── */}
                   {!lessonLoading && !completionResult && (() => {

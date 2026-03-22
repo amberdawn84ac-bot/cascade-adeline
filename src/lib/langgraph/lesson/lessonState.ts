@@ -1,5 +1,14 @@
 import { Annotation } from '@langchain/langgraph';
 
+export interface RetrievedSourceSummary {
+  title: string;
+  citation: string;
+  narrativeRole: string;
+  creator?: string;
+  date?: string;
+  url?: string;
+}
+
 export interface LessonBlock {
   type:
     | 'text'
@@ -13,7 +22,10 @@ export interface LessonBlock {
     | 'photo'
     | 'video'
     | 'animation'
-    | 'infographic';
+    | 'infographic'
+    | 'primary_source'
+    | 'investigation'
+    | 'source_gap';
   content: string | Record<string, unknown>;
   interactive?: {
     options?: string[];
@@ -24,6 +36,17 @@ export interface LessonBlock {
     definition?: string;
     example?: string;
     category?: string;
+    sourceType?: 'document' | 'photo' | 'audio' | 'artifact' | 'court_record' | 'speech' | 'newspaper';
+    narrativeRole?: 'official_claim' | 'eyewitness' | 'counter_document' | 'propagandist' | 'victim_testimony' | 'government_record' | 'scripture' | 'investigative_data' | 'evidence';
+    citation?: string;
+    creator?: string;
+    date?: string;
+    collection?: string;
+    url?: string;
+    investigationPrompts?: string[];
+    investigationType?: 'follow-the-money' | 'compare-sources' | 'timeline' | 'network-map' | 'propaganda-analysis' | 'document-analysis';
+    guidingQuestions?: string[];
+    whoBenefits?: string;
   };
   metadata: {
     skills: string[];
@@ -31,6 +54,8 @@ export interface LessonBlock {
     zpd_level: string;
     faith_tie?: boolean;
     agent?: string;
+    hippocampusId?: string;
+    sourceSlug?: string;
   };
   next_handoff?: string;
 }
@@ -103,6 +128,14 @@ export const LessonState = Annotation.Root({
   phase: Annotation<string>({
     reducer: (_, r) => r,
     default: () => 'intro',
+  }),
+  standardsCodes: Annotation<string[]>({
+    reducer: (_, r) => r,
+    default: () => [],
+  }),
+  retrievedSources: Annotation<RetrievedSourceSummary[]>({
+    reducer: (_, r) => r,
+    default: () => [],
   }),
   metadata: Annotation<Record<string, unknown>>({
     reducer: (l, r) => ({ ...l, ...r }),

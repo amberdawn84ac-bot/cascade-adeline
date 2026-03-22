@@ -4,10 +4,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, BookOpen, Send, Book, RefreshCw, Volume2, Mic, MicOff } from 'lucide-react';
+import {
+  Loader2, BookOpen, Send, Book, RefreshCw,
+  Volume2, Mic, MicOff, ChevronDown, ChevronUp, Trophy, MessageCircle,
+} from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
 import { SubjectLessonsPanel } from '@/components/learning/SubjectLessonsPanel';
 import { BookTeleportButton } from '@/components/dashboard/BookTeleportButton';
+import { BookClubView } from '@/components/reading-nook/BookClubView';
 
 interface LivingBook {
   title: string;
@@ -25,16 +29,6 @@ interface ReadingEntry {
   minutes: number;
 }
 
-const COVER_COLORS = [
-  { bg: '#4A3728', text: '#F5E6C8' },
-  { bg: '#2F4731', text: '#E8F5E9' },
-  { bg: '#6B2D3E', text: '#FCE4EC' },
-  { bg: '#1A3A5C', text: '#E3F2FD' },
-];
-
-const BOOK_IT_GOAL = 5;
-const BRAUMS_GOAL = 400;
-
 interface DailyLesson {
   anchorText: string;
   comprehension: string;
@@ -49,8 +43,20 @@ interface DailyLesson {
   };
 }
 
+type Section = 'bookshelf' | 'coach' | 'rewards' | 'club';
+
+const COVER_COLORS = [
+  { bg: '#4A3728', text: '#F5E6C8' },
+  { bg: '#2F4731', text: '#E8F5E9' },
+  { bg: '#6B2D3E', text: '#FCE4EC' },
+  { bg: '#1A3A5C', text: '#E3F2FD' },
+];
+
+const BOOK_IT_GOAL = 5;
+const BRAUMS_GOAL = 400;
+
 export default function ReadingNookPage() {
-  const [activeTab, setActiveTab] = useState<'daily' | 'bookshelf' | 'coach' | 'rewards'>('daily');
+  const [expandedSection, setExpandedSection] = useState<Section | null>(null);
 
   // Daily Literacy Hub
   const [dailyLesson, setDailyLesson] = useState<DailyLesson | null>(null);
@@ -64,7 +70,7 @@ export default function ReadingNookPage() {
   const [isCurating, setIsCurating] = useState(false);
   const [bookshelfLoaded, setBookshelfLoaded] = useState(false);
 
-  // Narration
+  // Reading Coach (narration)
   const [bookTitle, setBookTitle] = useState('');
   const [chapter, setChapter] = useState('');
   const [narrationStarted, setNarrationStarted] = useState(false);
@@ -140,8 +146,8 @@ export default function ReadingNookPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'bookshelf' && !bookshelfLoaded) loadBooks();
-  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (expandedSection === 'bookshelf' && !bookshelfLoaded) loadBooks();
+  }, [expandedSection]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -151,11 +157,7 @@ export default function ReadingNookPage() {
     setIsCurating(true);
     try {
       const res = await fetch('/api/reading-nook/curate', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setBooks(data);
-        setBookshelfLoaded(true);
-      }
+      if (res.ok) { setBooks(await res.json()); setBookshelfLoaded(true); }
     } catch (e) {
       console.error('Failed to curate books:', e);
     } finally {
@@ -189,10 +191,7 @@ export default function ReadingNookPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dailyTheme: dailyTheme || 'homesteading' }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setDailyLesson(data);
-      }
+      if (res.ok) setDailyLesson(await res.json());
     } catch (e) {
       console.error('Failed to generate daily lesson:', e);
     } finally {
@@ -210,517 +209,501 @@ export default function ReadingNookPage() {
   const bookItDone = uniqueBooks.length >= BOOK_IT_GOAL;
   const braamsDone = totalMinutes >= BRAUMS_GOAL;
 
+  function toggleSection(s: Section) {
+    setExpandedSection((prev) => (prev === s ? null : s));
+  }
+
+  // ── Reusable expandable card shell ────────────────────────────────────────
+  function SectionCard({
+    sectionId, label, icon, borderCls, bgCls, colorCls, children,
+  }: {
+    sectionId: Section; label: string; icon: React.ReactNode;
+    borderCls: string; bgCls: string; colorCls: string; children: React.ReactNode;
+  }) {
+    const open = expandedSection === sectionId;
+    return (
+      <div className={`rounded-2xl border-2 overflow-hidden transition-all ${borderCls} bg-white shadow-sm`}>
+        <button
+          onClick={() => toggleSection(sectionId)}
+          className={`w-full flex items-center justify-between px-5 py-4 font-bold text-sm uppercase tracking-widest transition-colors ${open ? `${bgCls} ${colorCls}` : `text-amber-800 hover:bg-amber-50`}`}
+        >
+          <span className="flex items-center gap-3">
+            <span className={colorCls}>{icon}</span>
+            {label}
+          </span>
+          {open
+            ? <ChevronUp className={`w-4 h-4 ${colorCls}`} />
+            : <ChevronDown className="w-4 h-4 text-amber-400" />}
+        </button>
+        {open && (
+          <div className="border-t border-amber-100">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-[#FAF8F2]">
-      {/* Header */}
-      <div className="p-6 border-b border-amber-200 bg-amber-50/60 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-amber-900 flex items-center gap-3">
-            <BookOpen className="w-8 h-8" /> The Reading Nook
-          </h1>
-          <p className="text-amber-700 text-sm mt-1 italic">Books that breathe. Stories that stay with you.</p>
-        </div>
-      </div>
 
-      {/* Tab Nav */}
-      <div className="flex border-b border-amber-200 bg-amber-50/40">
-        {(['daily', 'bookshelf', 'coach', 'rewards'] as const).map((tab) => {
-          const labels = { daily: '📚 Daily Literacy', bookshelf: 'My Bookshelf', coach: 'Reading Coach', rewards: 'Reading Rewards' };
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3 text-sm uppercase tracking-widest transition-colors ${activeTab === tab ? 'bg-amber-700 text-white' : 'text-amber-700/60 hover:bg-amber-100'}`}
-            >
-              {labels[tab]}
-            </button>
-          );
-        })}
+      {/* ── Header ── */}
+      <div className="p-6 border-b border-amber-200 bg-amber-50/60">
+        <h1 className="text-3xl font-bold text-amber-900 flex items-center gap-3">
+          <BookOpen className="w-8 h-8" /> The Reading Nook
+        </h1>
+        <p className="text-amber-700 text-sm mt-1 italic">Books that breathe. Stories that stay with you.</p>
       </div>
 
       <div className="flex-1 overflow-y-auto">
 
-        {/* ── DAILY LITERACY HUB ── */}
-        {activeTab === 'daily' && (
-          <div className="p-6 max-w-4xl mx-auto space-y-6">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-amber-900 mb-2">Daily Literacy Hub</h2>
-              <p className="text-amber-700 italic">Choose your learning theme. Reading, spelling, grammar, and writing — all connected to what YOU want to explore today.</p>
-            </div>
+        {/* ════════════════════════════════════════════
+            DAILY LITERACY HUB — always visible at top
+            ════════════════════════════════════════════ */}
+        <div className="p-6 max-w-4xl mx-auto space-y-6">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-amber-900 mb-2">Daily Literacy Hub</h2>
+            <p className="text-amber-700 italic">
+              Choose your learning theme. Reading, spelling, grammar, and writing — all connected to what YOU want to explore today.
+            </p>
+          </div>
 
-            {!dailyLesson ? (
-              <Card className="border-2 border-amber-200 bg-white shadow-lg">
-                <CardContent className="p-8 text-center space-y-6">
-                  <BookOpen className="w-16 h-16 text-amber-600 mx-auto" />
-                  <div>
-                    <h3 className="text-xl font-bold text-amber-900 mb-2">Generate Today's Lesson</h3>
-                    <p className="text-amber-700 text-sm mb-4">
-                      Adeline will create a unified literacy lesson with reading, spelling, grammar, and writing — all connected to one engaging story.
-                    </p>
-                  </div>
-                  <div className="max-w-md mx-auto">
-                    <Input
-                      placeholder="What do you want to learn about today? (e.g., chickens, tractors, baking)"
-                      value={dailyTheme}
-                      onChange={(e) => setDailyTheme(e.target.value)}
-                      className="mb-4"
-                    />
-                    <Button
-                      onClick={generateDailyLesson}
-                      disabled={isGeneratingDaily}
-                      className="w-full bg-amber-700 hover:bg-amber-800 text-white font-bold py-3"
-                    >
-                      {isGeneratingDaily ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          Generating Your Lesson...
-                        </>
-                      ) : (
-                        <>
-                          <Book className="w-4 h-4 mr-2" />
-                          Generate Daily Lesson
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {/* Anchor Text */}
-                <Card className="border-2 border-amber-300 bg-amber-50">
-                  <CardContent className="p-6">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-amber-800 mb-3 flex items-center gap-2">
-                      📖 Today's Story
-                    </h3>
-                    <p className="text-lg leading-relaxed text-amber-900 font-serif">{dailyLesson.anchorText}</p>
-                  </CardContent>
-                </Card>
-
-                {/* Comprehension */}
-                <Card className="border-2 border-blue-200 bg-blue-50">
-                  <CardContent className="p-6">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-blue-800 mb-3 flex items-center gap-2">
-                      🤔 Comprehension Check
-                    </h3>
-                    <p className="text-blue-900 font-medium">{dailyLesson.comprehension}</p>
-                  </CardContent>
-                </Card>
-
-                {/* Spelling Words */}
-                <Card className="border-2 border-green-200 bg-green-50">
-                  <CardContent className="p-6">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-green-800 mb-3 flex items-center gap-2">
-                      ✏️ Spelling Words
-                    </h3>
-                    <div className="flex flex-wrap gap-3">
-                      {dailyLesson.spellingWords.map((word, i) => (
-                        <span
-                          key={i}
-                          className="px-4 py-2 bg-white border-2 border-green-300 rounded-lg text-green-900 font-bold text-lg"
-                        >
-                          {word}
-                        </span>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Grammar Focus */}
-                <Card className="border-2 border-purple-200 bg-purple-50">
-                  <CardContent className="p-6">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-purple-800 mb-3 flex items-center gap-2">
-                      🔍 Grammar Challenge
-                    </h3>
-                    <p className="text-purple-900 font-medium">{dailyLesson.grammarFocus}</p>
-                  </CardContent>
-                </Card>
-
-                {/* Writing Response */}
-                <Card className="border-2 border-rose-300 bg-rose-50">
-                  <CardContent className="p-6">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-rose-800 mb-3 flex items-center gap-2">
-                      ✍️ Writing Response
-                    </h3>
-                    <p className="text-rose-900 font-bold mb-4 text-lg">{dailyLesson.writingPrompt}</p>
-                    <textarea
-                      value={writingResponse}
-                      onChange={(e) => setWritingResponse(e.target.value)}
-                      placeholder="Write your 3-5 sentence response here..."
-                      className="w-full min-h-[200px] p-4 border-2 border-rose-200 rounded-lg focus:border-rose-400 focus:outline-none resize-y text-rose-900 bg-white"
-                      rows={8}
-                    />
-                    <p className="text-xs text-rose-600 mt-2 italic">
-                      {writingResponse.split(/[.!?]+/).filter(s => s.trim().length > 0).length} sentences written
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Required Reading - Book Teleport */}
-                {dailyLesson.requiredReading && (
-                  <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100">
-                    <CardContent className="p-6">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-amber-900 mb-4 flex items-center gap-2">
-                        📚 Required Reading
-                      </h3>
-                      <p className="text-amber-800 mb-4 text-sm">
-                        This lesson requires you to read from your bookshelf. Click below to open the book:
-                      </p>
-                      <BookTeleportButton
-                        title={dailyLesson.requiredReading.title}
-                        bookId={dailyLesson.requiredReading.bookId}
-                        chapterOrPage={dailyLesson.requiredReading.chapterOrPage}
-                        className="w-full py-6"
-                      />
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Submit and Actions */}
-                <div className="flex gap-4 justify-center pt-4">
+          {!dailyLesson ? (
+            <Card className="border-2 border-amber-200 bg-white shadow-lg">
+              <CardContent className="p-8 text-center space-y-6">
+                <BookOpen className="w-16 h-16 text-amber-600 mx-auto" />
+                <div>
+                  <h3 className="text-xl font-bold text-amber-900 mb-2">Generate Today&apos;s Lesson</h3>
+                  <p className="text-amber-700 text-sm mb-4">
+                    Adeline will create a unified literacy lesson with reading, spelling, grammar, and writing — all connected to one engaging story.
+                  </p>
+                </div>
+                <div className="max-w-md mx-auto">
+                  <Input
+                    placeholder="What do you want to learn about today? (e.g., chickens, tractors, baking)"
+                    value={dailyTheme}
+                    onChange={(e) => setDailyTheme(e.target.value)}
+                    className="mb-4"
+                  />
                   <Button
-                    onClick={async () => {
-                      setIsSavingLesson(true);
-                      try {
-                        // Save the complete ELA lesson with writing response
-                        await fetch('/api/reading-nook/save-lesson', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            lesson: dailyLesson,
-                            writingResponse,
-                            theme: dailyTheme,
-                          }),
-                        });
-                        alert('✅ ELA lesson saved! Great work!');
-                        setWritingResponse('');
-                        setDailyLesson(null);
-                      } catch (e) {
-                        console.error('Failed to save lesson:', e);
-                        alert('Failed to save lesson. Please try again.');
-                      } finally {
-                        setIsSavingLesson(false);
-                      }
-                    }}
-                    disabled={isSavingLesson || !writingResponse.trim()}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 text-lg"
+                    onClick={generateDailyLesson}
+                    disabled={isGeneratingDaily}
+                    className="w-full bg-amber-700 hover:bg-amber-800 text-white font-bold py-3"
                   >
-                    {isSavingLesson ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        Saving...
-                      </>
+                    {isGeneratingDaily ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating Your Lesson...</>
                     ) : (
-                      '📝 Submit ELA Lesson'
+                      <><Book className="w-4 h-4 mr-2" /> Generate Daily Lesson</>
                     )}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setDailyLesson(null);
-                      setWritingResponse('');
-                    }}
-                    variant="outline"
-                    className="border-2 border-amber-300 text-amber-700 hover:bg-amber-50"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    New Lesson
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── MY BOOKSHELF ── */}
-        {activeTab === 'bookshelf' && (
-          <div className="p-6 max-w-5xl mx-auto space-y-8">
-            {/* Today's Reading Lessons from Learning Plan */}
-            <div>
-              <h2 className="text-sm font-black uppercase tracking-widest text-amber-800 mb-4">Today's Reading Lessons</h2>
-              <SubjectLessonsPanel
-                subject="Reading & Literature"
-                keywords={['reading', 'literature', 'english', 'language arts', 'ela', 'writing', 'composition', 'grammar', 'creative writing', 'poetry', 'journalism', 'speech', 'communications', 'rhetoric', 'vocabulary', 'phonics']}
-                accentColor="#b45309"
-              />
-            </div>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-amber-900">Your Living Books</h2>
-                <p className="text-sm text-amber-700 italic mt-1">Hand-picked by Adeline for your exact interests and grade.</p>
-              </div>
-              <Button onClick={() => { setBookshelfLoaded(false); setBooks([]); loadBooks(); }} variant="ghost" disabled={isCurating} className="text-xs text-amber-700 uppercase tracking-widest gap-2">
-                <RefreshCw className="w-3 h-3" /> New Picks
-              </Button>
-            </div>
-
-            {isCurating ? (
-              <div className="flex flex-col items-center py-24 gap-4">
-                <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
-                <p className="text-amber-700 italic text-sm">Adeline is browsing the library for you…</p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-                {books.map((book, i) => {
-                  const color = COVER_COLORS[i % COVER_COLORS.length];
-                  return (
-                    <div key={i} className="flex flex-col rounded-xl overflow-hidden shadow-lg border border-amber-100 bg-white hover:shadow-xl transition-shadow">
-                      <div className="h-44 flex items-end p-4 relative" style={{ backgroundColor: color.bg }}>
-                        <Book className="absolute top-4 right-4 w-6 h-6 opacity-20" style={{ color: color.text }} />
-                        <div>
-                          <p className="font-bold text-base leading-tight" style={{ color: color.text }}>{book.title}</p>
-                          <p className="text-xs mt-1 opacity-75" style={{ color: color.text }}>by {book.author}</p>
-                        </div>
-                      </div>
-                      <div className="flex-1 p-4 flex flex-col gap-3">
-                        <p className="text-xs text-gray-500 leading-relaxed italic">{book.coverDescription}</p>
-                        
-                        <div className="flex flex-col gap-2">
-                          {book.gutenbergUrl && (
-                            <a
-                              href={book.gutenbergUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                            >
-                              <BookOpen className="w-4 h-4" />
-                              Read Free (Gutenberg)
-                            </a>
-                          )}
-                          <a
-                            href={`https://www.google.com/search?q=${encodeURIComponent(book.title + ' ' + book.author + ' Google Books')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-sky-600 hover:bg-sky-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                          >
-                            <BookOpen className="w-4 h-4" />
-                            Find on Google Books
-                          </a>
-                          <a
-                            href={`https://www.google.com/search?q=${encodeURIComponent(book.title + ' ' + book.author + ' read online free')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="border border-amber-300 hover:bg-amber-50 text-amber-800 text-center py-2 px-4 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-                          >
-                            <BookOpen className="w-4 h-4" />
-                            Search Online
-                          </a>
-                        </div>
-                        
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-auto">
-                          <p className="text-xs font-bold text-amber-800 mb-1">Why you&apos;ll love it</p>
-                          <p className="text-xs text-amber-700 leading-relaxed">{book.whyYouWillLoveIt}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── READING COACH ── */}
-        {activeTab === 'coach' && (
-          <div className="p-6 max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold text-amber-900 mb-1">Reading Coach</h2>
-            <p className="text-sm text-amber-700 italic mb-6">Read aloud to Adeline. She&apos;ll listen and help you with real-time feedback.</p>
-
-            {!narrationStarted ? (
-              <Card className="border-2 border-amber-200">
-                <CardContent className="p-6 space-y-4">
-                  <div>
-                    <label className="text-sm font-bold text-amber-800 block mb-1">What book are you reading?</label>
-                    <Input value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="e.g. Charlotte's Web" className="border-amber-200 focus:border-amber-500" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-amber-800 block mb-1">Chapter or section <span className="font-normal text-amber-600">(optional)</span></label>
-                    <Input value={chapter} onChange={(e) => setChapter(e.target.value)} placeholder="e.g. Chapter 4 — In the Barn" className="border-amber-200 focus:border-amber-500" />
-                  </div>
-                  <Button onClick={startNarration} disabled={!bookTitle.trim()} className="w-full bg-amber-700 hover:bg-amber-800 text-white uppercase tracking-widest text-sm py-6">
-                    Start Reading Coach
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="flex flex-col" style={{ height: 'calc(100vh - 22rem)' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-amber-700" />
-                    <span className="text-sm font-bold text-amber-900">{bookTitle}</span>
-                    {chapter && <span className="text-xs text-amber-500">— {chapter}</span>}
-                  </div>
-                  <button onClick={() => { setNarrationStarted(false); setMessages([]); setBookTitle(''); setChapter(''); }} className="text-xs text-amber-400 hover:text-amber-700 uppercase tracking-wider">
-                    ← New Session
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-4 mb-4 bg-white rounded-xl border-2 border-amber-100 p-4">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-amber-700 text-white' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
-                        {msg.role === 'assistant' && (
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs font-bold text-amber-500 uppercase tracking-wide">Adeline</p>
-                            <button onClick={() => speak(msg.content)} disabled={isSpeaking} className="text-amber-400 hover:text-amber-600 ml-3 disabled:opacity-50" title="Read aloud">
-                              {isSpeaking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Volume2 className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        )}
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                <form onSubmit={handleSubmit} className="flex gap-2">
-                  <Input value={input} onChange={handleInputChange} placeholder="Tell Adeline what happened…" disabled={isLoading} className="flex-1 border-amber-200 focus:border-amber-500" />
-                  <button
-                    type="button"
-                    onMouseDown={startListening}
-                    onMouseUp={stopListening}
-                    onTouchStart={startListening}
-                    onTouchEnd={stopListening}
-                    disabled={isLoading}
-                    className={`px-3 rounded-xl border-2 transition-all ${isListening ? 'border-red-400 bg-red-50 text-red-500 animate-pulse' : 'border-amber-200 text-amber-500 hover:border-amber-400'}`}
-                    title="Hold to speak"
-                  >
-                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  </button>
-                  <Button type="submit" disabled={isLoading} className="bg-amber-700 hover:bg-amber-800">
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </form>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── READING REWARDS ── */}
-        {activeTab === 'rewards' && (
-          <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-amber-900 mb-1">Reading Rewards</h2>
-            <p className="text-sm text-amber-700 italic mb-6">Track your reading. Earn real-world prizes. <span className="font-semibold">{currentMonthName}</span></p>
-
-            {/* Log Form */}
-            <Card className="border-2 border-amber-200 mb-8">
-              <CardContent className="p-5">
-                <h3 className="font-bold text-amber-900 mb-3">Log Today&apos;s Reading</h3>
-                <div className="flex gap-3 flex-wrap">
-                  <Input value={logBookTitle} onChange={(e) => setLogBookTitle(e.target.value)} placeholder="Book title" className="flex-1 min-w-[180px] border-amber-200" />
-                  <Input value={logMinutes} onChange={(e) => setLogMinutes(e.target.value)} type="number" min="1" placeholder="Minutes" className="w-32 border-amber-200" />
-                  <Button onClick={logReading} disabled={!logBookTitle.trim() || !logMinutes.trim()} className="bg-amber-700 hover:bg-amber-800 text-white">
-                    + Log It
                   </Button>
                 </div>
               </CardContent>
             </Card>
+          ) : (
+            <div className="space-y-6">
+              <Card className="border-2 border-amber-300 bg-amber-50">
+                <CardContent className="p-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-amber-800 mb-3">📖 Today&apos;s Story</h3>
+                  <p className="text-lg leading-relaxed text-amber-900 font-serif">{dailyLesson.anchorText}</p>
+                </CardContent>
+              </Card>
 
-            {/* Punch Cards */}
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <Card className="border-2 border-blue-200 bg-blue-50">
+                <CardContent className="p-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-blue-800 mb-3">🤔 Comprehension Check</h3>
+                  <p className="text-blue-900 font-medium">{dailyLesson.comprehension}</p>
+                </CardContent>
+              </Card>
 
-              {/* Pizza Hut BOOK IT! */}
-              <div className={`rounded-2xl p-6 border-4 transition-all ${bookItDone ? 'border-red-500 bg-red-50' : 'border-red-200 bg-white'}`}>
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <p className="text-2xl font-black text-red-700 uppercase tracking-tight leading-none">Pizza Hut</p>
-                    <p className="text-base font-bold text-red-600 mt-0.5">BOOK IT! Program</p>
-                    <p className="text-xs text-red-400 mt-1">Read {BOOK_IT_GOAL} different books → Free personal pan pizza</p>
+              <Card className="border-2 border-green-200 bg-green-50">
+                <CardContent className="p-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-green-800 mb-3">✏️ Spelling Words</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {dailyLesson.spellingWords.map((word, i) => (
+                      <span key={i} className="px-4 py-2 bg-white border-2 border-green-300 rounded-lg text-green-900 font-bold text-lg">
+                        {word}
+                      </span>
+                    ))}
                   </div>
-                  <span className="text-4xl">🍕</span>
-                </div>
-                <div className="flex gap-2 mb-4">
-                  {Array.from({ length: BOOK_IT_GOAL }).map((_, i) => (
-                    <div key={i} className={`flex-1 h-12 rounded-lg flex items-center justify-center text-lg border-2 transition-all ${i < uniqueBooks.length ? 'bg-red-500 border-red-600 shadow-inner' : 'bg-gray-100 border-gray-200'}`}>
-                      {i < uniqueBooks.length ? '⭐' : ''}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between text-sm mb-1.5">
-                  <span className="font-bold text-red-700">{uniqueBooks.length} / {BOOK_IT_GOAL} books</span>
-                  <span className="text-red-400">{Math.round(bookItProgress * 100)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div className="bg-red-500 h-3 rounded-full transition-all" style={{ width: `${bookItProgress * 100}%` }} />
-                </div>
-                {bookItDone && (
-                  <div className="mt-4 bg-red-100 border border-red-300 rounded-xl p-4 text-center">
-                    <p className="text-2xl mb-1">🎉</p>
-                    <p className="font-black text-red-700 text-lg">Goal Complete!</p>
-                    <p className="text-sm text-red-600 mt-1">Parent: Visit <strong>bookitprogram.com</strong> to print the certificate and claim your free pizza!</p>
-                  </div>
-                )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-purple-200 bg-purple-50">
+                <CardContent className="p-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-purple-800 mb-3">🔍 Grammar Challenge</h3>
+                  <p className="text-purple-900 font-medium">{dailyLesson.grammarFocus}</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-rose-300 bg-rose-50">
+                <CardContent className="p-6">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-rose-800 mb-3">✍️ Writing Response</h3>
+                  <p className="text-rose-900 font-bold mb-4 text-lg">{dailyLesson.writingPrompt}</p>
+                  <textarea
+                    value={writingResponse}
+                    onChange={(e) => setWritingResponse(e.target.value)}
+                    placeholder="Write your 3-5 sentence response here..."
+                    className="w-full min-h-[200px] p-4 border-2 border-rose-200 rounded-lg focus:border-rose-400 focus:outline-none resize-y text-rose-900 bg-white"
+                    rows={8}
+                  />
+                  <p className="text-xs text-rose-600 mt-2 italic">
+                    {writingResponse.split(/[.!?]+/).filter(s => s.trim().length > 0).length} sentences written
+                  </p>
+                </CardContent>
+              </Card>
+
+              {dailyLesson.requiredReading && (
+                <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100">
+                  <CardContent className="p-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-amber-900 mb-4">📚 Required Reading</h3>
+                    <p className="text-amber-800 mb-4 text-sm">This lesson requires you to read from your bookshelf. Click below to open the book:</p>
+                    <BookTeleportButton
+                      title={dailyLesson.requiredReading.title}
+                      bookId={dailyLesson.requiredReading.bookId}
+                      chapterOrPage={dailyLesson.requiredReading.chapterOrPage}
+                      className="w-full py-6"
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex gap-4 justify-center pt-4">
+                <Button
+                  onClick={async () => {
+                    setIsSavingLesson(true);
+                    try {
+                      await fetch('/api/reading-nook/save-lesson', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lesson: dailyLesson, writingResponse, theme: dailyTheme }),
+                      });
+                      alert('✅ ELA lesson saved! Great work!');
+                      setWritingResponse('');
+                      setDailyLesson(null);
+                    } catch (e) {
+                      console.error('Failed to save lesson:', e);
+                      alert('Failed to save lesson. Please try again.');
+                    } finally {
+                      setIsSavingLesson(false);
+                    }
+                  }}
+                  disabled={isSavingLesson || !writingResponse.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 text-lg"
+                >
+                  {isSavingLesson ? <><Loader2 className="w-5 h-5 animate-spin mr-2" />Saving...</> : '📝 Submit ELA Lesson'}
+                </Button>
+                <Button
+                  onClick={() => { setDailyLesson(null); setWritingResponse(''); }}
+                  variant="outline"
+                  className="border-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" /> New Lesson
+                </Button>
               </div>
+            </div>
+          )}
+        </div>
 
-              {/* Braum's Book Buddy */}
-              <div className={`rounded-2xl p-6 border-4 transition-all ${braamsDone ? 'border-blue-500 bg-blue-50' : 'border-blue-200 bg-white'}`}>
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <p className="text-2xl font-black text-blue-700 uppercase tracking-tight leading-none">Braum&apos;s</p>
-                    <p className="text-base font-bold text-blue-600 mt-0.5">Book Buddy Program</p>
-                    <p className="text-xs text-blue-400 mt-1">Read {BRAUMS_GOAL} minutes this month → Free ice cream</p>
-                  </div>
-                  <span className="text-4xl">🍦</span>
+        {/* ═══════════════════════════════════════
+            4 EXPANDABLE SECTION CARDS
+            ═══════════════════════════════════════ */}
+        <div className="px-6 pb-10 max-w-4xl mx-auto space-y-3">
+          <h2 className="text-sm font-black uppercase tracking-widest text-amber-600 mb-4">Explore the Reading Nook</h2>
+
+          {/* ── My Bookshelf ── */}
+          <SectionCard
+            sectionId="bookshelf"
+            label="My Bookshelf"
+            icon={<Book className="w-5 h-5" />}
+            borderCls="border-amber-300"
+            bgCls="bg-amber-50"
+            colorCls="text-amber-800"
+          >
+            <div className="p-6 space-y-8">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-widest text-amber-800 mb-4">Today&apos;s Reading Lessons</h3>
+                <SubjectLessonsPanel
+                  subject="Reading & Literature"
+                  keywords={['reading', 'literature', 'english', 'language arts', 'ela', 'writing', 'composition', 'grammar', 'creative writing', 'poetry', 'journalism', 'speech', 'communications', 'rhetoric', 'vocabulary', 'phonics']}
+                  accentColor="#b45309"
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-bold text-amber-900">Your Living Books</h3>
+                  <p className="text-sm text-amber-700 italic mt-1">Hand-picked by Adeline for your exact interests and grade.</p>
                 </div>
-                <div className="flex gap-2 mb-4">
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const threshold = (i + 1) * (BRAUMS_GOAL / 5);
-                    const filled = totalMinutes >= threshold;
+                <Button
+                  onClick={() => { setBookshelfLoaded(false); setBooks([]); loadBooks(); }}
+                  variant="ghost"
+                  disabled={isCurating}
+                  className="text-xs text-amber-700 uppercase tracking-widest gap-2"
+                >
+                  <RefreshCw className="w-3 h-3" /> New Picks
+                </Button>
+              </div>
+              {isCurating ? (
+                <div className="flex flex-col items-center py-16 gap-4">
+                  <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
+                  <p className="text-amber-700 italic text-sm">Adeline is browsing the library for you…</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {books.map((book, i) => {
+                    const bc = COVER_COLORS[i % COVER_COLORS.length];
                     return (
-                      <div key={i} className={`flex-1 h-12 rounded-lg flex items-center justify-center text-lg border-2 transition-all ${filled ? 'bg-blue-500 border-blue-600 shadow-inner' : 'bg-gray-100 border-gray-200'}`}>
-                        {filled ? '⭐' : ''}
+                      <div key={i} className="flex flex-col rounded-xl overflow-hidden shadow-lg border border-amber-100 bg-white hover:shadow-xl transition-shadow">
+                        <div className="h-44 flex items-end p-4 relative" style={{ backgroundColor: bc.bg }}>
+                          <Book className="absolute top-4 right-4 w-6 h-6 opacity-20" style={{ color: bc.text }} />
+                          <div>
+                            <p className="font-bold text-base leading-tight" style={{ color: bc.text }}>{book.title}</p>
+                            <p className="text-xs mt-1 opacity-75" style={{ color: bc.text }}>by {book.author}</p>
+                          </div>
+                        </div>
+                        <div className="flex-1 p-4 flex flex-col gap-3">
+                          <p className="text-xs text-gray-500 leading-relaxed italic">{book.coverDescription}</p>
+                          <div className="flex flex-col gap-2">
+                            {book.gutenbergUrl && (
+                              <a href={book.gutenbergUrl} target="_blank" rel="noopener noreferrer"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                                <BookOpen className="w-4 h-4" /> Read Free (Gutenberg)
+                              </a>
+                            )}
+                            <a href={`https://www.google.com/search?q=${encodeURIComponent(book.title + ' ' + book.author + ' Google Books')}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="bg-sky-600 hover:bg-sky-700 text-white text-center py-2 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                              <BookOpen className="w-4 h-4" /> Find on Google Books
+                            </a>
+                            <a href={`https://www.google.com/search?q=${encodeURIComponent(book.title + ' ' + book.author + ' read online free')}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="border border-amber-300 hover:bg-amber-50 text-amber-800 text-center py-2 px-4 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                              <BookOpen className="w-4 h-4" /> Search Online
+                            </a>
+                          </div>
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-auto">
+                            <p className="text-xs font-bold text-amber-800 mb-1">Why you&apos;ll love it</p>
+                            <p className="text-xs text-amber-700 leading-relaxed">{book.whyYouWillLoveIt}</p>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-                <div className="flex justify-between text-sm mb-1.5">
-                  <span className="font-bold text-blue-700">{totalMinutes} / {BRAUMS_GOAL} min</span>
-                  <span className="text-blue-400">{Math.round(braamsProgress * 100)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div className="bg-blue-500 h-3 rounded-full transition-all" style={{ width: `${braamsProgress * 100}%` }} />
-                </div>
-                {braamsDone && (
-                  <div className="mt-4 bg-blue-100 border border-blue-300 rounded-xl p-4 text-center">
-                    <p className="text-2xl mb-1">🎉</p>
-                    <p className="font-black text-blue-700 text-lg">Goal Complete!</p>
-                    <p className="text-sm text-blue-600 mt-1">Parent: Take this student to <strong>Braum&apos;s</strong> — they&apos;ve earned a free ice cream!</p>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
+          </SectionCard>
 
-            {/* Log history */}
-            {monthEntries.length > 0 && (
-              <div>
-                <h3 className="font-bold text-amber-900 mb-3">This Month&apos;s Reading Log</h3>
-                <div className="space-y-2">
-                  {[...monthEntries].reverse().map((entry) => (
-                    <div key={entry.id} className="flex items-center justify-between bg-white border border-amber-100 rounded-xl px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="w-4 h-4 text-amber-400" />
-                        <span className="font-medium text-amber-900 text-sm">{entry.bookTitle}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-amber-400">{entry.date}</span>
-                        <span className="text-sm font-bold text-amber-700">{entry.minutes} min</span>
-                      </div>
+          {/* ── Reading Coach ── */}
+          <SectionCard
+            sectionId="coach"
+            label="Reading Coach"
+            icon={<Mic className="w-5 h-5" />}
+            borderCls="border-emerald-300"
+            bgCls="bg-emerald-50"
+            colorCls="text-emerald-800"
+          >
+            <div className="p-6 max-w-3xl mx-auto">
+              <p className="text-sm text-amber-700 italic mb-6">Read aloud to Adeline. She&apos;ll listen and help you with real-time feedback.</p>
+              {!narrationStarted ? (
+                <Card className="border-2 border-amber-200">
+                  <CardContent className="p-6 space-y-4">
+                    <div>
+                      <label className="text-sm font-bold text-amber-800 block mb-1">What book are you reading?</label>
+                      <Input value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} placeholder="e.g. Treasure Island" className="border-amber-200 focus:border-amber-500" />
                     </div>
-                  ))}
+                    <div>
+                      <label className="text-sm font-bold text-amber-800 block mb-1">Chapter or section <span className="font-normal text-amber-600">(optional)</span></label>
+                      <Input value={chapter} onChange={(e) => setChapter(e.target.value)} placeholder="e.g. Chapter 4 — In the Barn" className="border-amber-200 focus:border-amber-500" />
+                    </div>
+                    <Button onClick={startNarration} disabled={!bookTitle.trim()} className="w-full bg-amber-700 hover:bg-amber-800 text-white uppercase tracking-widest text-sm py-6">
+                      Start Reading Coach
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="flex flex-col" style={{ height: 'calc(100vh - 28rem)' }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-amber-700" />
+                      <span className="text-sm font-bold text-amber-900">{bookTitle}</span>
+                      {chapter && <span className="text-xs text-amber-500">— {chapter}</span>}
+                    </div>
+                    <button onClick={() => { setNarrationStarted(false); setMessages([]); setBookTitle(''); setChapter(''); }}
+                      className="text-xs text-amber-400 hover:text-amber-700 uppercase tracking-wider">
+                      ← New Session
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto space-y-4 mb-4 bg-white rounded-xl border-2 border-amber-100 p-4">
+                    {messages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-amber-700 text-white' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
+                          {msg.role === 'assistant' && (
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-bold text-amber-500 uppercase tracking-wide">Adeline</p>
+                              <button onClick={() => speak(msg.content)} disabled={isSpeaking} className="text-amber-400 hover:text-amber-600 ml-3 disabled:opacity-50" title="Read aloud">
+                                {isSpeaking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Volume2 className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          )}
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+                          <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                  <form onSubmit={handleSubmit} className="flex gap-2">
+                    <Input value={input} onChange={handleInputChange} placeholder="Tell Adeline what happened…" disabled={isLoading} className="flex-1 border-amber-200 focus:border-amber-500" />
+                    <button type="button" onMouseDown={startListening} onMouseUp={stopListening}
+                      onTouchStart={startListening} onTouchEnd={stopListening} disabled={isLoading}
+                      className={`px-3 rounded-xl border-2 transition-all ${isListening ? 'border-red-400 bg-red-50 text-red-500 animate-pulse' : 'border-amber-200 text-amber-500 hover:border-amber-400'}`}
+                      title="Hold to speak">
+                      {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                    </button>
+                    <Button type="submit" disabled={isLoading} className="bg-amber-700 hover:bg-amber-800">
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </form>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* ── Reading Rewards ── */}
+          <SectionCard
+            sectionId="rewards"
+            label="Reading Rewards"
+            icon={<Trophy className="w-5 h-5" />}
+            borderCls="border-blue-300"
+            bgCls="bg-blue-50"
+            colorCls="text-blue-800"
+          >
+            <div className="p-6 max-w-4xl mx-auto">
+              <p className="text-sm text-amber-700 italic mb-6">Track your reading. Earn real-world prizes. <span className="font-semibold">{currentMonthName}</span></p>
+              <Card className="border-2 border-amber-200 mb-8">
+                <CardContent className="p-5">
+                  <h3 className="font-bold text-amber-900 mb-3">Log Today&apos;s Reading</h3>
+                  <div className="flex gap-3 flex-wrap">
+                    <Input value={logBookTitle} onChange={(e) => setLogBookTitle(e.target.value)} placeholder="Book title" className="flex-1 min-w-[180px] border-amber-200" />
+                    <Input value={logMinutes} onChange={(e) => setLogMinutes(e.target.value)} type="number" min="1" placeholder="Minutes" className="w-32 border-amber-200" />
+                    <Button onClick={logReading} disabled={!logBookTitle.trim() || !logMinutes.trim()} className="bg-amber-700 hover:bg-amber-800 text-white">
+                      + Log It
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                {/* Pizza Hut BOOK IT! */}
+                <div className={`rounded-2xl p-6 border-4 transition-all ${bookItDone ? 'border-red-500 bg-red-50' : 'border-red-200 bg-white'}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <p className="text-2xl font-black text-red-700 uppercase tracking-tight leading-none">Pizza Hut</p>
+                      <p className="text-base font-bold text-red-600 mt-0.5">BOOK IT! Program</p>
+                      <p className="text-xs text-red-400 mt-1">Read {BOOK_IT_GOAL} different books → Free personal pan pizza</p>
+                    </div>
+                    <span className="text-4xl">🍕</span>
+                  </div>
+                  <div className="flex gap-2 mb-4">
+                    {Array.from({ length: BOOK_IT_GOAL }).map((_, i) => (
+                      <div key={i} className={`flex-1 h-12 rounded-lg flex items-center justify-center text-lg border-2 transition-all ${i < uniqueBooks.length ? 'bg-red-500 border-red-600 shadow-inner' : 'bg-gray-100 border-gray-200'}`}>
+                        {i < uniqueBooks.length ? '⭐' : ''}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="font-bold text-red-700">{uniqueBooks.length} / {BOOK_IT_GOAL} books</span>
+                    <span className="text-red-400">{Math.round(bookItProgress * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="bg-red-500 h-3 rounded-full transition-all" style={{ width: `${bookItProgress * 100}%` }} />
+                  </div>
+                  {bookItDone && (
+                    <div className="mt-4 bg-red-100 border border-red-300 rounded-xl p-4 text-center">
+                      <p className="text-2xl mb-1">🎉</p>
+                      <p className="font-black text-red-700 text-lg">Goal Complete!</p>
+                      <p className="text-sm text-red-600 mt-1">Parent: Visit <strong>bookitprogram.com</strong> to print the certificate and claim your free pizza!</p>
+                    </div>
+                  )}
+                </div>
+                {/* Braum's Book Buddy */}
+                <div className={`rounded-2xl p-6 border-4 transition-all ${braamsDone ? 'border-blue-500 bg-blue-50' : 'border-blue-200 bg-white'}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <p className="text-2xl font-black text-blue-700 uppercase tracking-tight leading-none">Braum&apos;s</p>
+                      <p className="text-base font-bold text-blue-600 mt-0.5">Book Buddy Program</p>
+                      <p className="text-xs text-blue-400 mt-1">Read {BRAUMS_GOAL} minutes this month → Free ice cream</p>
+                    </div>
+                    <span className="text-4xl">🍦</span>
+                  </div>
+                  <div className="flex gap-2 mb-4">
+                    {Array.from({ length: 5 }).map((_, i) => {
+                      const threshold = (i + 1) * (BRAUMS_GOAL / 5);
+                      const filled = totalMinutes >= threshold;
+                      return (
+                        <div key={i} className={`flex-1 h-12 rounded-lg flex items-center justify-center text-lg border-2 transition-all ${filled ? 'bg-blue-500 border-blue-600 shadow-inner' : 'bg-gray-100 border-gray-200'}`}>
+                          {filled ? '⭐' : ''}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="font-bold text-blue-700">{totalMinutes} / {BRAUMS_GOAL} min</span>
+                    <span className="text-blue-400">{Math.round(braamsProgress * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="bg-blue-500 h-3 rounded-full transition-all" style={{ width: `${braamsProgress * 100}%` }} />
+                  </div>
+                  {braamsDone && (
+                    <div className="mt-4 bg-blue-100 border border-blue-300 rounded-xl p-4 text-center">
+                      <p className="text-2xl mb-1">🎉</p>
+                      <p className="font-black text-blue-700 text-lg">Goal Complete!</p>
+                      <p className="text-sm text-blue-600 mt-1">Parent: Take this student to <strong>Braum&apos;s</strong> — they&apos;ve earned a free ice cream!</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-        )}
+              {monthEntries.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-amber-900 mb-3">This Month&apos;s Reading Log</h3>
+                  <div className="space-y-2">
+                    {[...monthEntries].reverse().map((entry) => (
+                      <div key={entry.id} className="flex items-center justify-between bg-white border border-amber-100 rounded-xl px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <BookOpen className="w-4 h-4 text-amber-400" />
+                          <span className="font-medium text-amber-900 text-sm">{entry.bookTitle}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-amber-400">{entry.date}</span>
+                          <span className="text-sm font-bold text-amber-700">{entry.minutes} min</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* ── Book Club ── */}
+          <SectionCard
+            sectionId="club"
+            label="Book Club"
+            icon={<MessageCircle className="w-5 h-5" />}
+            borderCls="border-purple-300"
+            bgCls="bg-purple-50"
+            colorCls="text-purple-800"
+          >
+            <BookClubView />
+          </SectionCard>
+
+        </div>
       </div>
     </div>
   );
 }
-

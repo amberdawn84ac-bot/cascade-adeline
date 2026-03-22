@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { LessonStateType } from '../lessonState';
+import { getAllCodesForSubject } from '@/lib/standards/subjectStandardsMap';
 
 const ALLOWED_BLOCK_TYPES = [
   'title',
@@ -11,6 +12,8 @@ const ALLOWED_BLOCK_TYPES = [
   'quiz',
   'critical_thinking',
   'activity',
+  'primary_source',
+  'investigation',
 ] as const;
 
 export type BlueprintBlockType = typeof ALLOWED_BLOCK_TYPES[number];
@@ -37,6 +40,24 @@ const EXPEDITION_EXAMPLE = [
   'activity',
 ];
 
+const HISTORY_NARRATIVE_GAP_EXAMPLE = [
+  'title',
+  'primary_text',
+  'primary_source',
+  'investigation',
+  'primary_source',
+  'critical_thinking',
+  'quiz',
+  'activity',
+];
+
+const HISTORY_SUBJECTS = ['history', 'social studies', 'civics', 'government', 'economics', 'american history', 'world history'];
+
+function isHistorySubject(subject: string): boolean {
+  const s = subject.toLowerCase();
+  return HISTORY_SUBJECTS.some(h => s.includes(h));
+}
+
 export async function architectAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
   const model = new ChatOpenAI({
     model: 'gpt-4o-mini',
@@ -45,6 +66,13 @@ export async function architectAgent(state: LessonStateType): Promise<Partial<Le
 
   const mode = state.learningMode ?? 'classic';
   const interests = state.interests?.join(', ') || 'general';
+  const isHistory = isHistorySubject(state.subject);
+
+  if (isHistory) {
+    const standardsCodes = getAllCodesForSubject(state.subject);
+    console.log(`[architectAgent] History subject — Narrative Gap blueprint, ${standardsCodes.length} standards for "${state.topic}"`);
+    return { blueprint: [...HISTORY_NARRATIVE_GAP_EXAMPLE], standardsCodes };
+  }
 
   const systemPrompt = `You are a Curriculum Architect for a homeschool AI tutor named Adeline.
 
@@ -104,6 +132,7 @@ ${JSON.stringify(mode === 'classic' ? CLASSIC_EXAMPLE : EXPEDITION_EXAMPLE)}`;
     console.warn('[architectAgent] Failed to parse blueprint JSON — using default for mode:', mode);
   }
 
-  console.log(`[architectAgent] Blueprint (${mode}): ${blueprint.join(' → ')}`);
-  return { blueprint };
+  const standardsCodes = getAllCodesForSubject(state.subject);
+  console.log(`[architectAgent] Blueprint (${mode}): ${blueprint.join(' → ')} — ${standardsCodes.length} standards`);
+  return { blueprint, standardsCodes };
 }

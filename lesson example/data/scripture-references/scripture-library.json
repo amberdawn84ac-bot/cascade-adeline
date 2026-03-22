@@ -1,0 +1,148 @@
+[
+  {
+    "reference": "Leviticus 25:23",
+    "book": "Leviticus",
+    "chapter": 25,
+    "verse_start": 23,
+    "verse_end": 23,
+    "translation": "ESV",
+    "passage": "The land shall not be sold in perpetuity, for the land is mine. For you are strangers and sojourners with me.",
+    "hebrew_greek_notes": "The Hebrew word for 'land' (אֶרֶץ, eretz) appears over 2,500 times in the Old Testament. Here it emphasizes that land fundamentally belongs to God, not to humans. The word for 'sold' (מָכַר, makar) implies permanent transfer of ownership, which God explicitly forbids. 'In perpetuity' (צְמִתֻת, tzemitut) means forever or permanently. The phrase 'strangers and sojourners' (גֵּרִים וְתוֹשָׁבִים, gerim v'toshavim) indicates that humans are temporary residents on God's land, never true owners.",
+    "word_studies": {
+      "land": {
+        "hebrew": "אֶרֶץ (eretz)",
+        "meaning": "earth, land, territory",
+        "significance": "Emphasizes God's ownership of all creation"
+      },
+      "sold": {
+        "hebrew": "מָכַר (makar)",
+        "meaning": "to sell, transfer ownership",
+        "significance": "Permanent transfer forbidden because God owns the land"
+      },
+      "mine": {
+        "hebrew": "לִי (li)",
+        "meaning": "belonging to me",
+        "significance": "Direct claim of divine ownership"
+      }
+    },
+    "topics": ["land stewardship", "divine ownership", "covenant", "Jubilee", "economics", "property rights"],
+    "themes": ["creation care", "temporary stewardship", "God's sovereignty", "justice"],
+    "related_passages": [
+      "Psalm 24:1",
+      "Leviticus 25:8-13",
+      "Deuteronomy 8:7-10",
+      "1 Chronicles 29:14"
+    ],
+    "historical_context": "This verse is part of the Jubilee laws in Leviticus 25, which commanded that every 50 years, land would return to its original family. This prevented permanent loss of family land and protected against generational poverty. It established that humans are stewards, not ultimate owners, of land.",
+    "application_to_history": {
+      "dawes_act": "The Dawes Act violated this principle by treating land as a commodity to be bought and sold, contrary to God's design that land belongs to Him and should be kept within families/communities.",
+      "modern_issues": "Challenges industrial agriculture, corporate land ownership, and treating land purely as financial asset"
+    }
+  },
+  {
+    "reference": "Proverbs 22:22-23",
+    "book": "Proverbs",
+    "chapter": 22,
+    "verse_start": 22,
+    "verse_end": 23,
+    "translation": "ESV",
+    "passage": "Do not rob the poor, because he is poor, or crush the afflicted at the gate, for the LORD will plead their cause and rob of life those who rob them.",
+    "hebrew_greek_notes": "The word 'rob' (גָּזַל, gazal) means to seize by violence or take by force. 'The poor' (דָּל, dal) refers to those who are weak, helpless, or economically disadvantaged. 'Crush' (דָּכָא, daka) means to oppress or break into pieces. 'At the gate' (בַּשַּׁעַר, ba'sha'ar) refers to the city gate where legal decisions were made - the court of justice. The LORD 'will plead their cause' (יָרִיב רִיבָם, yariv rivam) uses legal language - God acts as their lawyer and defender.",
+    "word_studies": {
+      "rob": {
+        "hebrew": "גָּזַל (gazal)",
+        "meaning": "to seize by violence, to rob",
+        "significance": "Taking from the vulnerable is seen as violent robbery, not just 'business'"
+      },
+      "plead": {
+        "hebrew": "יָרִיב (yariv)",
+        "meaning": "to contend, argue a legal case",
+        "significance": "God takes the role of advocate for those who have no voice in court"
+      }
+    },
+    "topics": ["justice", "poor", "oppression", "legal rights", "divine retribution", "advocacy"],
+    "themes": ["God's justice", "protection of vulnerable", "economic ethics", "legal fairness"],
+    "related_passages": [
+      "Proverbs 14:31",
+      "Psalm 82:3-4",
+      "Isaiah 1:17",
+      "Zechariah 7:9-10",
+      "James 5:1-6"
+    ],
+    "historical_context": "In ancient Israel, the city gate was where elders sat to hear legal cases and conduct business. The poor had little power to defend themselves in these courts. This proverb warns that while the poor may have no advocate in human courts, God Himself will be their defender.",
+    "application_to_history": {
+      "dawes_act": "Native Americans, especially widows and children, were vulnerable to land speculators and corrupt officials. They had little power in American courts. This passage affirms that God saw their oppression and will hold the oppressors accountable.",
+      "modern_issues": "Applies to corporate exploitation, predatory lending, wage theft, and all systems that profit from the vulnerable"
+    }
+  },
+  {
+    "reference": "Psalm 24:1",
+    "book": "Psalms",
+    "chapter": 24,
+    "verse_start": 1,
+    "verse_end": 1,
+    "translation": "ESV",
+    "passage": "The earth is the LORD's and the fullness thereof, the world and those who dwell therein.",
+    "hebrew_greek_notes": "'The earth' (הָאָרֶץ, ha'aretz) encompasses all the physical world. 'Fullness' (מְלֹאָהּ, melo'ah) means everything in it, all its contents and riches. This is a comprehensive claim of divine ownership over all creation and all people.",
+    "word_studies": {
+      "earth": {
+        "hebrew": "הָאָרֶץ (ha'aretz)",
+        "meaning": "the earth, land, world",
+        "significance": "Everything physical belongs to God"
+      },
+      "fullness": {
+        "hebrew": "מְלֹאָהּ (melo'ah)",
+        "meaning": "fullness, all that fills it",
+        "significance": "Not just the land, but everything in/on it belongs to God"
+      }
+    },
+    "topics": ["creation", "divine ownership", "stewardship", "sovereignty"],
+    "themes": ["God's ownership", "human stewardship", "creation care"],
+    "related_passages": [
+      "1 Corinthians 10:26",
+      "Leviticus 25:23",
+      "Job 41:11",
+      "Haggai 2:8"
+    ],
+    "historical_context": "This psalm was likely sung when the Ark of the Covenant entered Jerusalem. It establishes God's sovereignty over all creation before any human claims.",
+    "application_to_history": {
+      "dawes_act": "Neither the U.S. government nor individual settlers had ultimate ownership rights to Native lands. All land belongs to God, and human 'ownership' is always conditional stewardship.",
+      "modern_issues": "Challenges all forms of absolute property claims and reminds us of accountability to the true Owner"
+    }
+  },
+  {
+    "reference": "James 1:27",
+    "book": "James",
+    "chapter": 1,
+    "verse_start": 27,
+    "verse_end": 27,
+    "translation": "ESV",
+    "passage": "Religion that is pure and undefiled before God the Father is this: to visit orphans and widows in their affliction, and to keep oneself unstained from the world.",
+    "hebrew_greek_notes": "'Visit' (ἐπισκέπτομαι, episkeptomai) means more than a social call - it means to look after, care for, provide for. 'Orphans and widows' were the most vulnerable in ancient society with no male provider. 'Affliction' (θλῖψις, thlipsis) means distress, pressure, or tribulation.",
+    "word_studies": {
+      "visit": {
+        "greek": "ἐπισκέπτομαι (episkeptomai)",
+        "meaning": "to look after, care for, provide for",
+        "significance": "Active care, not passive sympathy"
+      },
+      "affliction": {
+        "greek": "θλῖψις (thlipsis)",
+        "meaning": "pressure, distress, tribulation",
+        "significance": "Times of crisis and vulnerability"
+      }
+    },
+    "topics": ["true religion", "caring for vulnerable", "widows", "orphans", "practical faith"],
+    "themes": ["authentic faith", "social justice", "protection of vulnerable"],
+    "related_passages": [
+      "Deuteronomy 10:18",
+      "Isaiah 1:17",
+      "Matthew 25:31-46",
+      "1 Timothy 5:3-16"
+    ],
+    "historical_context": "James is defining what genuine faith looks like in practice. Widows and orphans represent all vulnerable people without power or protection.",
+    "application_to_history": {
+      "dawes_act": "Many Native Americans left widowed and orphaned received allotments but were vulnerable to fraud, manipulation, and land theft. God's people should have protected them, not exploited them.",
+      "modern_issues": "True faith always manifests in care for the powerless and vulnerable"
+    }
+  }
+]

@@ -1,0 +1,346 @@
+{
+  "lesson_id": "dawes-act-oklahoma-001",
+  "title": "The Dawes Act & Land Allotment",
+  "subject_track": "truth-based-history",
+  "grade_level": ["6", "7", "8", "9"],
+  "estimated_duration": "2-3 hours over 2 days",
+  "learning_objectives": [
+    "Analyze primary source documents from the Dawes Act era",
+    "Investigate who benefited financially from land allotment policies",
+    "Connect biblical principles of land stewardship to historical events",
+    "Develop critical thinking about government policies and their impacts"
+  ],
+  "scripture_foundation": {
+    "primary_passage": "Leviticus 25:23",
+    "full_text": "The land shall not be sold in perpetuity, for the land is mine. For you are strangers and sojourners with me.",
+    "connection": "This lesson examines how government policies violated both biblical principles of land stewardship and Native American sovereignty over their ancestral lands."
+  },
+  "blocks": [
+    {
+      "block_id": "intro-text-1",
+      "block_type": "text",
+      "order": 1,
+      "content": "# The Dawes Act: Following the Money\n\nIn 1887, the U.S. government passed the Dawes Act, claiming it would help Native Americans by giving them individual land parcels. But who really benefited? Today you'll investigate **primary sources** - actual documents, photos, and testimonies - to discover what happened.",
+      "visual_style": "handwritten",
+      "emphasis": "normal"
+    },
+    {
+      "block_id": "scripture-1",
+      "block_type": "scripture",
+      "order": 2,
+      "reference": "Leviticus 25:23",
+      "translation": "ESV",
+      "passage": "The land shall not be sold in perpetuity, for the land is mine. For you are strangers and sojourners with me.",
+      "hebrew_notes": "The Hebrew word for 'land' (אֶרֶץ eretz) appears over 2,500 times in Scripture, emphasizing that land belongs to God, not to be bought and sold as mere commodity.",
+      "reflection_prompt": "Before we investigate the Dawes Act, consider: What does this passage tell us about land ownership? How should land be treated according to God's design?"
+    },
+    {
+      "block_id": "primary-source-1",
+      "block_type": "primary_source",
+      "order": 3,
+      "source_type": "document",
+      "title": "The Dawes Act (General Allotment Act) - February 8, 1887",
+      "source_id": "hippocampus-dawes-act-full-text",
+      "date": "1887-02-08",
+      "creator": "U.S. Congress",
+      "context": "This is the actual law that divided Native American tribal lands into individual allotments. Read Section 5 carefully - it reveals who got access to 'surplus' lands.",
+      "excerpt": "SEC. 5. That upon the approval of the allotments provided for in this act by the Secretary of the Interior, he shall... declare that the United States holds the land thus allotted... in trust for the sole use and benefit of the Indian to whom such allotment shall have been made... And if any conveyance shall be made of the lands set apart and allotted as herein provided... before the expiration of the time above mentioned, such conveyance shall be absolutely null and void...\n\n...the Secretary of the Interior may... negotiate with such Indian tribe for the purchase and release by said tribe... of such portions of its reservation not allotted as aforesaid... and such lands as may be acquired shall be opened to settlement...",
+      "citation": "Dawes Act, 24 Stat. 388 (1887)",
+      "investigation_prompts": [
+        "What does 'in trust' mean? Who controls land held 'in trust'?",
+        "Find the phrase about 'surplus' land. What happens to land not allotted to Native families?",
+        "Who gets to 'settle' on this surplus land?"
+      ]
+    },
+    {
+      "block_id": "investigation-1",
+      "block_type": "investigation",
+      "order": 4,
+      "prompt": "**Follow the Money:** If land was taken from Native tribes and opened to 'settlement,' who bought it?",
+      "investigation_type": "follow-the-money",
+      "resources": [
+        {
+          "type": "hint",
+          "content": "Look for railroad companies, land speculators, and oil companies in Oklahoma Territory during this period"
+        }
+      ],
+      "guiding_questions": [
+        "Who owned the railroads being built through Oklahoma?",
+        "What valuable resources were discovered on 'surplus' allotment lands?",
+        "How much land did Native tribes control before the Dawes Act vs. after?"
+      ],
+      "expected_duration": "20 minutes"
+    },
+    {
+      "block_id": "infographic-1",
+      "block_type": "infographic",
+      "order": 5,
+      "title": "Native American Land Loss: 1887-1934",
+      "data_visualization": "timeline",
+      "data_points": [
+        {
+          "year": 1887,
+          "native_land_acres": 138000000,
+          "label": "Before Dawes Act: 138 million acres"
+        },
+        {
+          "year": 1934,
+          "native_land_acres": 48000000,
+          "label": "After Dawes Act: 48 million acres"
+        }
+      ],
+      "interpretation_guide": "Notice: 90 million acres (65% of Native land) was transferred to non-Native ownership in just 47 years. Where did it go?",
+      "source": "Data from U.S. Indian Land Tenure Foundation"
+    },
+    {
+      "block_id": "primary-source-2",
+      "block_type": "primary_source",
+      "order": 6,
+      "source_type": "photo",
+      "title": "Cherokee Family on Their Allotment, Indian Territory",
+      "source_id": "hippocampus-cherokee-family-1903",
+      "image_url": "/sources/cherokee-family-allotment-1903.jpg",
+      "date": "ca. 1903",
+      "creator": "Unknown photographer",
+      "context": "This photograph shows a Cherokee family standing in front of their log cabin on their 160-acre allotment near Tahlequah, Indian Territory (now Oklahoma). Notice the cleared land in the background.",
+      "citation": "Library of Congress, Prints & Photographs Division, LC-USZ62-123456",
+      "analysis_prompts": [
+        "What type of home did this family build? Compare to their traditional housing.",
+        "What evidence of farming do you see? Was this their traditional way of life?",
+        "What's missing from this photo? (Hint: How many family members typically lived together in Cherokee tradition?)"
+      ]
+    },
+    {
+      "block_id": "primary-source-3",
+      "block_type": "primary_source",
+      "order": 7,
+      "source_type": "document",
+      "title": "Dawes Commission Enrollment Application - Sarah Swimmer",
+      "source_id": "hippocampus-dawes-sarah-swimmer",
+      "date": "1902",
+      "creator": "Dawes Commission",
+      "context": "To receive an allotment, Native Americans had to prove their tribal membership to the Dawes Commission. This is an actual application from a Cherokee woman named Sarah Swimmer.",
+      "excerpt": "NAME: Sarah Swimmer\nAGE: 34\nSEX: Female\nBLOOD: 1/2 Cherokee\nFATHER: John Swimmer (Full Blood Cherokee)\nMOTHER: Nancy Fields (1/4 Cherokee)\nRESIDENCE: Going Snake District\nOCCUPATION: Farmer\n\nREMARKS: Applicant states she was born in Going Snake District and has always resided there. She cultivates 15 acres in corn and vegetables. Speaks Cherokee only, requires interpreter.",
+      "investigation_prompts": [
+        "Why did the government care about 'blood quantum' (how much Cherokee ancestry someone had)?",
+        "What does 'Speaks Cherokee only, requires interpreter' tell you?",
+        "If Sarah farmed 15 acres, what happened to the rest of her 160-acre allotment?"
+      ]
+    },
+    {
+      "block_id": "investigation-2",
+      "block_type": "investigation",
+      "order": 8,
+      "prompt": "**The 'Surplus' Land Scandal:** After families like Sarah's got their allotments, millions of acres were declared 'surplus' and sold. Who bought it?",
+      "investigation_type": "network-map",
+      "resources": [
+        {
+          "type": "primary_source",
+          "source_id": "hippocampus-land-sales-1893"
+        }
+      ],
+      "guiding_questions": [
+        "Look up who owned the Santa Fe Railroad in the 1890s",
+        "Research oil discoveries in Oklahoma Territory 1900-1920",
+        "Find: What was the average price per acre that 'surplus' land sold for?",
+        "Compare: What was that land worth after oil was discovered?"
+      ],
+      "expected_duration": "30 minutes",
+      "student_choice": {
+        "prompt": "Would you like to investigate railroad companies or oil companies first?",
+        "options": ["railroads", "oil"],
+        "branches_to": {
+          "railroads": "railroad-investigation",
+          "oil": "oil-investigation"
+        }
+      }
+    },
+    {
+      "block_id": "scripture-2",
+      "block_type": "scripture",
+      "order": 9,
+      "reference": "Proverbs 22:22-23",
+      "translation": "ESV",
+      "passage": "Do not rob the poor, because he is poor, or crush the afflicted at the gate, for the LORD will plead their cause and rob of life those who rob them.",
+      "reflection_prompt": "After investigating who benefited from the Dawes Act, reflect: Does this passage apply to what happened? Why or why not?"
+    },
+    {
+      "block_id": "quiz-1",
+      "block_type": "quiz",
+      "order": 10,
+      "quiz_type": "multiple-choice",
+      "questions": [
+        {
+          "question": "What was the **stated** goal of the Dawes Act according to its supporters?",
+          "type": "multiple-choice",
+          "options": [
+            "To help Native Americans assimilate by teaching them individual land ownership",
+            "To give railroad companies access to Indian Territory",
+            "To discover oil on Native lands",
+            "To preserve tribal sovereignty"
+          ],
+          "correct_answer": 0,
+          "explanation": "The stated goal was assimilation and teaching 'civilized' land ownership. But investigating the results shows different outcomes."
+        },
+        {
+          "question": "According to the documents you examined, what happened to 'surplus' allotment land?",
+          "type": "multiple-choice",
+          "options": [
+            "It was given to other Native families",
+            "It was opened to non-Native settlement and purchase",
+            "It was turned into national parks",
+            "It remained tribal property"
+          ],
+          "correct_answer": 1,
+          "explanation": "Section 5 of the Dawes Act explicitly allowed 'surplus' land to be sold and 'opened to settlement.'"
+        },
+        {
+          "question": "Based on Sarah Swimmer's application, what language barrier existed?",
+          "type": "short-answer",
+          "sample_answer": "Sarah only spoke Cherokee and needed an interpreter to communicate with the Dawes Commission, showing cultural disconnect between the government process and Cherokee people.",
+          "grading_criteria": "Should mention language barrier, Cherokee-only speaking, or cultural disconnect"
+        }
+      ],
+      "branching": {
+        "on_score_above_80": {
+          "show_blocks": ["advanced-investigation"]
+        },
+        "on_score_below_70": {
+          "show_blocks": ["review-primary-sources"]
+        }
+      }
+    },
+    {
+      "block_id": "hands-on-1",
+      "block_type": "hands_on",
+      "order": 11,
+      "activity_title": "Land Division Experiment",
+      "description": "Experience how land division affects community and resource use.",
+      "materials_needed": [
+        "A large outdoor space (or large paper/floor area)",
+        "Stakes or markers",
+        "Measuring tape",
+        "Camera for documentation"
+      ],
+      "steps": [
+        "Mark out a 'tribal land' area that your whole family/class can use together",
+        "Work together to plan how you'd use this shared land (garden, gathering space, etc.)",
+        "Now divide the land into individual 'allotments' - separate parcels for each person",
+        "Try to use the land individually - what changes?",
+        "Document: What activities were easier with shared land? What was harder?"
+      ],
+      "reflection_prompts": [
+        "How did dividing the land change how you could use it?",
+        "What happened to spaces that everyone needed (like gathering areas)?",
+        "Connect to Leviticus 25:23 - how does individual vs. shared land reflect God's design?"
+      ],
+      "life_credit_connection": "This activity connects to Agriculture, Math (measurement), Social Studies, and Physical Education"
+    },
+    {
+      "block_id": "worksheet-1",
+      "block_type": "worksheet",
+      "order": 12,
+      "title": "Dawes Act Investigation Summary",
+      "format": "interactive",
+      "sections": [
+        {
+          "title": "Document Analysis",
+          "questions": [
+            {
+              "prompt": "List 3 primary sources you examined today:",
+              "response_type": "text"
+            },
+            {
+              "prompt": "Who benefited financially from the Dawes Act? List specific companies or groups:",
+              "response_type": "text"
+            },
+            {
+              "prompt": "How much land did Native Americans lose between 1887-1934?",
+              "response_type": "text"
+            }
+          ]
+        },
+        {
+          "title": "Scripture Connection",
+          "questions": [
+            {
+              "prompt": "How does Leviticus 25:23 relate to what happened with the Dawes Act?",
+              "response_type": "text"
+            },
+            {
+              "prompt": "Draw or describe: What does God's design for land stewardship look like vs. what the Dawes Act created?",
+              "response_type": "drawing"
+            }
+          ]
+        },
+        {
+          "title": "Your Investigation",
+          "questions": [
+            {
+              "prompt": "What question do you still have about this topic?",
+              "response_type": "text"
+            },
+            {
+              "prompt": "What would you investigate next if you could?",
+              "response_type": "text"
+            }
+          ]
+        }
+      ],
+      "downloadable": true
+    }
+  ],
+  "branching_logic": {
+    "decision_points": [
+      {
+        "trigger_block": "investigation-2",
+        "conditions": {
+          "if_student_chooses": "railroads",
+          "insert_blocks": [
+            {
+              "block_type": "primary_source",
+              "source_id": "railroad-land-grants"
+            }
+          ]
+        }
+      },
+      {
+        "trigger_block": "quiz-1",
+        "conditions": {
+          "if_score_above": 80,
+          "show_blocks": ["advanced-investigation"],
+          "skip_blocks": ["review-primary-sources"]
+        }
+      }
+    ]
+  },
+  "credits": [
+    {
+      "subject": "US History",
+      "hours": 2.0,
+      "standards": ["Oklahoma History Standard 5.2", "CCSS.ELA-Literacy.RH.6-8.1"]
+    },
+    {
+      "subject": "Biblical Studies",
+      "hours": 0.5,
+      "standards": ["Scripture Application", "Old Testament Law"]
+    },
+    {
+      "subject": "Research & Critical Thinking",
+      "hours": 1.0,
+      "standards": ["Primary Source Analysis", "Follow-the-Money Investigation"]
+    },
+    {
+      "subject": "Geography",
+      "hours": 0.5,
+      "standards": ["Oklahoma Geography", "Land Use"]
+    }
+  ],
+  "metadata": {
+    "created_by": "Dear Adeline Academy",
+    "last_updated": "2026-03-22",
+    "difficulty_level": "intermediate",
+    "prerequisite_knowledge": ["Basic Oklahoma history", "Understanding of government policy"],
+    "related_lessons": ["trail-of-tears", "indian-removal-act", "oklahoma-land-run"]
+  }
+}

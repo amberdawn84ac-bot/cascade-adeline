@@ -3,6 +3,7 @@ import { LessonState, LessonStateType } from './lessonState';
 import { orchestrator } from './nodes/orchestrator';
 import { architectAgent } from './nodes/architectAgent';
 import { contentAgent } from './nodes/contentAgent';
+import { sourceRetrieverAgent } from './nodes/sourceRetrieverAgent';
 import { mediaAgent } from './nodes/mediaAgent';
 import { assessmentAgent } from './nodes/assessmentAgent';
 import { activityAgent } from './nodes/activityAgent';
@@ -20,6 +21,7 @@ export const lessonBrain = new StateGraph(LessonState)
   .addNode('orchestrator', orchestrator)
   .addNode('architectAgent', architectAgent)
   .addNode('contentAgent', contentAgent)
+  .addNode('sourceRetrieverAgent', sourceRetrieverAgent)
   .addNode('mediaAgent', mediaAgent)
   .addNode('assessmentAgent', assessmentAgent)
   .addNode('activityAgent', activityAgent)
@@ -27,7 +29,8 @@ export const lessonBrain = new StateGraph(LessonState)
 
   .addEdge(START, 'orchestrator')
   .addEdge('orchestrator', 'architectAgent')
-  .addEdge('architectAgent', 'contentAgent')
+  .addEdge('architectAgent', 'sourceRetrieverAgent')
+  .addEdge('sourceRetrieverAgent', 'contentAgent')
   .addEdge('contentAgent', 'mediaAgent')
   .addEdge('mediaAgent', 'assessmentAgent')
   .addConditionalEdges('assessmentAgent', routeAfterAssessment, {
