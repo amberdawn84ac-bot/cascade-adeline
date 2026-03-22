@@ -76,12 +76,31 @@ cascade-adeline/
 │   │   ├── auth/            # Auth callback routes
 │   │   ├── login/
 │   │   └── onboarding/
-│   ├── components/          # React components (23 subdirectories)
-│   ├── lib/                 # Core business logic (21 subdirectories)
-│   │   ├── langgraph/       # AI pipeline nodes (LangGraph)
+│   ├── components/          # React components (~21 subdirectories)
+│   │   ├── chat/            # Chat UI, message rendering, streaming
+│   │   ├── gen-ui/          # Generative UI components (TranscriptCard, etc.)
+│   │   ├── sketchnote/      # Sketchnotes aesthetic components
+│   │   ├── dashboard/       # Parent/student dashboards
+│   │   ├── journal/         # Daily journal feature
+│   │   ├── lessons/         # Lesson display and planning
+│   │   ├── college-prep/    # Curriculum planning tools
+│   │   ├── subscription/    # Pricing, checkout, upgrade flows
+│   │   └── ...              # nav, auth, onboarding, settings, ui (shadcn), etc.
+│   ├── lib/                 # Core business logic
+│   │   ├── langgraph/       # AI pipeline (LangGraph graph + nodes + tools)
 │   │   ├── learning/        # ZPD, spaced repetition, adaptive content
 │   │   ├── safety/          # PII masking, content moderation
-│   │   ├── credits/         # Life-to-credit mapping
+│   │   ├── life-credits/    # Life-to-credit mapping
+│   │   ├── ai-models.ts     # Model provider abstraction (OpenAI, Anthropic, Google)
+│   │   ├── config.ts        # Loads adeline.config.toml at runtime
+│   │   ├── stripe.ts        # Stripe client, STRIPE_PRICES, TIER_LIMITS
+│   │   ├── db.ts            # Prisma client singleton
+│   │   ├── email/           # Resend email templates
+│   │   ├── collaborative/   # Collaborative session features
+│   │   ├── memex/           # Knowledge graph / memex system
+│   │   ├── observability/   # Logging and tracing
+│   │   ├── semantic-cache.ts # Semantic response caching
+│   │   ├── lti/             # LTI integration
 │   │   └── ...
 │   ├── hooks/               # React hooks
 │   └── types/               # Shared TypeScript types
@@ -146,13 +165,47 @@ Sketchnotes aesthetic with a farmhouse palette. **Use these colors consistently:
 ## Key Modules
 
 ### AI Pipeline (`src/lib/langgraph/`)
-LangGraph orchestrates the chat pipeline with these nodes:
-- **LifeCreditLogger** — parses activity descriptions, maps to academic credits
-- **DiscernmentEngine** — "follow the money" corporate investigations
-- **ProjectBrainstormer** — generates real-world project ideas
-- **GenUIPlanner** — selects which UI component to render inline
-- **OpportunityScout** — finds interest-based competitions/opportunities
-- **GapDetector** — identifies learning gaps from transcript history
+LangGraph orchestrates the chat pipeline. The graph is defined in `index.ts` and compiled as `adelineBrain`.
+
+**Nodes** (the actual LangGraph graph nodes in `nodes/`):
+| Node | Intent(s) handled | Purpose |
+|------|-------------------|---------|
+| `router` | all | Classifies incoming message into an intent |
+| `registrar` | `LOG_CREDIT` | Parses activity descriptions, maps to transcript credits |
+| `investigator` | `INVESTIGATE` | "Follow the money" corporate investigations |
+| `mentor` | `CHAT`, `REFLECT`, `GEN_UI` | General conversation, reflection, inline UI generation |
+| `opportunityScout` | `OPPORTUNITY` | Finds interest-based competitions/scholarships |
+| `projectBrainstormer` | `BRAINSTORM` | Generates real-world project ideas |
+| `visionAnalyzer` | `IMAGE_LOG`, `VISION` | Analyzes uploaded photos, logs credits from images |
+
+**Supporting tools/utilities** (called by nodes, not nodes themselves):
+- `lifeCreditLogger.ts` — credit calculation logic used by `registrar`
+- `discernmentEngine.ts` — investigation logic used by `investigator`
+- `genUIPlanner.ts` — component selection logic used by `mentor`
+- `opportunityScout.ts` — search logic used by `opportunityScout` node
+- `projectBrainstormer.ts` — ideation logic used by `projectBrainstormer` node
+- `gapDetector.ts` — learning gap analysis (utility)
+- `reflectionCoach.ts` — metacognitive prompting (utility)
+- `voiceLogger.ts` — audio transcription helper
+- `generateAnalogy.ts` — cognitive load override utility
+
+**Intent types** (`src/lib/langgraph/state.ts`):
+```typescript
+type Intent = 'CHAT' | 'INVESTIGATE' | 'LOG_CREDIT' | 'REFLECT' | 'GEN_UI'
+            | 'OPPORTUNITY' | 'BRAINSTORM' | 'IMAGE_LOG' | 'VISION'
+```
+
+**Router heuristic-first classification** (`src/lib/langgraph/nodes/router.ts`):
+1. Metadata overrides first: `imageUrl` in state → `IMAGE_LOG`; `audioBase64` → `LOG_CREDIT`
+2. Keyword heuristics (fast, no LLM call):
+   - Life-log phrases (`"i baked"`, `"i built"`, `"i made"`, `"i helped"`, `"i cooked"`, `"i read"`, `"i wrote"`, `"i finished"`, `"i completed"`, `"i sewed"`, `"i planted"`, `"i gardened"`, `"i volunteered"`, `"i served"`) → `LOG_CREDIT`
+   - `"brainstorm"`, `"idea"`, `"i want to build"` → `BRAINSTORM`
+   - `"who profits"`, `"follow the money"`, `"investigate"`, `"regulatory capture"`, `"what really happened"`, `"who funded"` → `INVESTIGATE`
+   - `"opportunit"`, `"scholarship"`, `"competition"` → `OPPORTUNITY`
+   - Reflection phrases (`"i learned"`, `"i realized"`, `"i struggled with"`, etc.) → `REFLECT`
+3. LLM fallback (GPT-4o with structured output) only for ambiguous messages
+
+Model selection is read from `adeline.config.toml` via `loadConfig()` — investigation intents route to Claude 3.5 Sonnet, everything else to GPT-4o.
 
 ### Learning Engine (`src/lib/learning/`)
 - **`zpd-engine.ts`** — Zone of Proximal Development calculations
@@ -259,14 +312,19 @@ ANTHROPIC_API_KEY=            # Claude 3.5 for investigation queries
 GOOGLE_API_KEY=               # Gemini as alternative provider
 TAVILY_API_KEY=               # Web search for discernment engine
 NEXT_PUBLIC_POSTHOG_KEY=      # PostHog analytics
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_STUDENT_MONTHLY=
 STRIPE_PRICE_STUDENT_YEARLY=
 STRIPE_PRICE_PARENT_MONTHLY=
 STRIPE_PRICE_PARENT_YEARLY=
-STRIPE_PRICE_FAMILY_MONTHLY=
-STRIPE_PRICE_FAMILY_YEARLY=
+STRIPE_PRICE_TEACHER_MONTHLY=
+STRIPE_PRICE_TEACHER_YEARLY=
+STRIPE_PRICE_EXTRA_STUDENT=
+RESEND_API_KEY=               # Transactional email
+EMAIL_FROM=                   # Sender address for Resend emails
+USER_PROVISION_SECRET=        # Supabase user signup webhook secret
 ```
 
 See `.env.example` for the full list with documentation.
@@ -338,15 +396,20 @@ The knowledge graph seed (`seed-knowledge-graph.ts`) loads 19 concepts with prer
 
 ### Vercel Configuration (`vercel.json`)
 - Region: `iad1` (Virginia)
-- Function timeouts: chat = 60s, webhooks = 30s
+- Function timeouts: `api/chat` = 60s, `api/chat/async` = 60s, Stripe webhooks = 30s
 - Cron job: `GET /api/cron/purge-data` runs daily at 3 AM UTC
 
 ### Stripe Setup (Required for Subscriptions)
-Four pricing tiers:
-- **Free** — 10 messages/month
-- **Student** — $2.99/mo ($28.80/yr)
-- **Parent** — $19/mo ($182.40/yr)
-- **Family** — $29/mo ($278.40/yr)
+Three active paid tiers plus Free:
+- **Free** — unlimited messages; limited features (`hasLearningPath: false`, `hasTranscripts: false`)
+- **Student** — $2.99/mo or $32.29/yr, 1 student, learning path + journal
+- **Parent** — $9.99/mo or $107.89/yr, 5 students, parent dashboard + transcripts
+- **Teacher** — $29.99/mo or $323.89/yr, 40 students, full feature set
+- **Extra Student** add-on — $2.99/mo (additional students beyond tier limit)
+
+> **Note:** A `FAMILY` tier exists in the `SubscriptionTier` Prisma enum but is **not currently active** in the billing or webhook code. Do not implement features gated on `FAMILY` without first activating it in `src/lib/stripe.ts` and the webhook handler.
+
+The tier limits are defined in `TIER_LIMITS` in `src/lib/stripe.ts`. The webhook handler (`src/app/api/stripe/webhook/route.ts`) uses `getTierFromPriceId()` to map Stripe price IDs to `STUDENT | PARENT | TEACHER` on both checkout and subscription updates.
 
 Webhook events to configure: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`
 
