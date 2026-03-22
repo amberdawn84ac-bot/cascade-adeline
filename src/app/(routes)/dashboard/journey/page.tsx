@@ -69,6 +69,9 @@ export default function JourneyPage() {
   const [switching, setSwitching] = useState(false);
   const [lessonBlocks, setLessonBlocks] = useState<LessonBlock[]>([]);
   const [selectedGradeLevel, setSelectedGradeLevel] = useState<string>('');
+  const [quizAnswers, setQuizAnswers] = useState<Map<number, boolean>>(new Map());
+  const [completionResult, setCompletionResult] = useState<{ score: number; masteryAchieved: boolean; remediationTriggered: boolean; correct: number; total: number } | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
   const lessonChatEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading: isChatLoading } = useChat({
@@ -150,12 +153,47 @@ export default function JourneyPage() {
     setShowChangeRoute(true);
   };
 
-  const openLesson = async (credit: Credit, regenerate = false) => {
+  const handleQuizAnswer = (blockIndex: number, isCorrect: boolean) => {
+    setQuizAnswers(prev => new Map(prev).set(blockIndex, isCorrect));
+  };
+
+  const handleCompleteLesson = async () => {
+    if (!lessonCredit) return;
+    setIsCompleting(true);
+    const quizResults = Array.from(quizAnswers.entries()).map(([blockIndex, isCorrect]) => ({ blockIndex, isCorrect }));
+    try {
+      const res = await fetch('/api/lesson-stream/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creditId: lessonCredit.id,
+          subject: lessonCredit.subject,
+          title: lessonCredit.title,
+          quizResults,
+        }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setCompletionResult(result);
+        if (result.remediationTriggered) {
+          setTimeout(() => openLesson(lessonCredit, true, result.score), 2500);
+        }
+      }
+    } catch (err) {
+      console.error('[lesson-complete] Failed:', err);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const openLesson = async (credit: Credit, regenerate = false, quizScore?: number) => {
     setLessonCredit(credit);
     setLesson(null);
     setLessonBlocks([]);
     setLessonError(null);
     setLessonLoading(true);
+    setQuizAnswers(new Map());
+    setCompletionResult(null);
     try {
       const url = regenerate ? '/api/lesson-stream?regenerate=true' : '/api/lesson-stream';
       const res = await fetch(url, {
@@ -167,6 +205,7 @@ export default function JourneyPage() {
           description: credit.description,
           creditId: credit.id,
           gradeLevel: selectedGradeLevel,
+          ...(quizScore !== undefined ? { quizScore } : {}),
         }),
       });
       if (!res.ok || !res.body) {
@@ -694,7 +733,7 @@ export default function JourneyPage() {
                     Refresh
                   </button>
                 )}
-                <button onClick={() => { setLessonCredit(null); setLesson(null); setLessonBlocks([]); setShowLessonChat(false); setLessonMessages([]); }} className="text-white/60 hover:text-white">
+                <button onClick={() => { setLessonCredit(null); setLesson(null); setLessonBlocks([]); setShowLessonChat(false); setLessonMessages([]); setQuizAnswers(new Map()); setCompletionResult(null); }} className="text-white/60 hover:text-white">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -720,7 +759,58 @@ export default function JourneyPage() {
               {/* Dynamic lesson blocks (new swarm system) */}
               {lessonBlocks.length > 0 && (
                 <>
-                  <LessonBlockList blocks={lessonBlocks} />
+                  <LessonBlockList blocks={lessonBlocks} onQuizAnswer={handleQuizAnswer} />
+
+                  {/* ── Completion Panel ── */}
+                  {!lessonLoading && !completionResult && (() => {
+                    const quizIndices = lessonBlocks
+                      .map((b, i) => b.type === 'quiz' ? i : -1)
+                      .filter(i => i !== -1);
+                    const allAnswered = quizIndices.length === 0 || quizIndices.every(i => quizAnswers.has(i));
+                    return (
+                      <div className="mt-6 pt-4 border-t-2 border-dashed border-[#2F4731]/20">
+                        {quizIndices.length > 0 && !allAnswered && (
+                          <p className="text-xs text-center text-[#2F4731]/50 mb-3 italic">
+                            Answer all {quizIndices.length} check-in question{quizIndices.length > 1 ? 's' : ''} to complete this lesson
+                          </p>
+                        )}
+                        <button
+                          onClick={handleCompleteLesson}
+                          disabled={isCompleting || !allAnswered}
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all disabled:opacity-40"
+                          style={{ backgroundColor: allAnswered ? '#2F4731' : '#E7DAC3', color: allAnswered ? '#FFFEF7' : '#2F4731' }}
+                        >
+                          {isCompleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
+                          {isCompleting ? 'Recording...' : 'Complete Lesson'}
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Score result */}
+                  {completionResult && (
+                    <div className={`mt-4 p-5 rounded-2xl border-2 text-center ${
+                      completionResult.masteryAchieved
+                        ? 'border-emerald-400 bg-emerald-50'
+                        : 'border-[#BD6809] bg-amber-50'
+                    }`}>
+                      <div className="text-4xl font-black mb-1" style={{ color: completionResult.masteryAchieved ? '#166534' : '#BD6809' }}>
+                        {completionResult.score}%
+                      </div>
+                      <p className="font-bold text-sm" style={{ color: '#2F4731' }}>
+                        {completionResult.total > 0
+                          ? `${completionResult.correct} of ${completionResult.total} correct`
+                          : 'Lesson complete'}
+                      </p>
+                      {completionResult.masteryAchieved ? (
+                        <p className="mt-2 text-emerald-700 text-sm">🎉 Great work — mastery achieved!</p>
+                      ) : (
+                        <p className="mt-2 text-[#BD6809] text-sm">
+                          📚 Adeline is building a different approach just for you...
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
 

@@ -9,13 +9,14 @@ export interface QuizCardProps {
   options: string[];
   correctIndex: number;
   explanation?: string;
+  onAnswer?: (isCorrect: boolean) => void;
 }
 
 const CREAM = '#FFFEF7';
 const PALM = '#2F4731';
 const PAPAYA = '#BD6809';
 
-export function QuizCard({ question, options, correctIndex, explanation }: QuizCardProps) {
+export function QuizCard({ question, options, correctIndex, explanation, onAnswer }: QuizCardProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
 
@@ -23,6 +24,7 @@ export function QuizCard({ question, options, correctIndex, explanation }: QuizC
     if (showResult) return;
     setSelectedIndex(index);
     setShowResult(true);
+    onAnswer?.(index === correctIndex);
   };
 
   const isCorrect = selectedIndex === correctIndex;

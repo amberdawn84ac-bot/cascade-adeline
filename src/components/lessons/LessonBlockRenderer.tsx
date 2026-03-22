@@ -15,10 +15,12 @@ const CREAM = '#FFFEF7';
 
 interface LessonBlockRendererProps {
   block: LessonBlock;
+  blockIndex?: number;
   userId?: string;
+  onQuizAnswer?: (blockIndex: number, isCorrect: boolean) => void;
 }
 
-export function LessonBlockRenderer({ block }: LessonBlockRendererProps) {
+export function LessonBlockRenderer({ block, blockIndex = 0, onQuizAnswer }: LessonBlockRendererProps) {
   const { type, content, interactive, metadata } = block;
 
   switch (type) {
@@ -68,6 +70,7 @@ export function LessonBlockRenderer({ block }: LessonBlockRendererProps) {
             options={interactive.options}
             correctIndex={interactive.correctIndex}
             explanation={interactive.explanation}
+            onAnswer={(isCorrect) => onQuizAnswer?.(blockIndex, isCorrect)}
           />
         </div>
       );
@@ -212,13 +215,14 @@ export function LessonBlockRenderer({ block }: LessonBlockRendererProps) {
 interface LessonBlockListProps {
   blocks: LessonBlock[];
   userId?: string;
+  onQuizAnswer?: (blockIndex: number, isCorrect: boolean) => void;
 }
 
-export function LessonBlockList({ blocks, userId }: LessonBlockListProps) {
+export function LessonBlockList({ blocks, userId, onQuizAnswer }: LessonBlockListProps) {
   return (
     <div className="space-y-2">
       {blocks.map((block, index) => (
-        <LessonBlockRenderer key={index} block={block} userId={userId} />
+        <LessonBlockRenderer key={index} block={block} blockIndex={index} userId={userId} onQuizAnswer={onQuizAnswer} />
       ))}
     </div>
   );
