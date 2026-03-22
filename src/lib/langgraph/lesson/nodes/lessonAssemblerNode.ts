@@ -46,7 +46,7 @@ export async function lessonAssemblerNode(state: LessonAssemblerState): Promise<
     const adaptedBlocks = await adaptLessonBlocks(
       selectedLesson.lessonJson as LessonBlock[],
       environment,
-      studentCtx.zpdLevel || 'on-level'
+      (studentCtx as any).zpdLevel || 'on-level'
     );
     
     // 5. Prepare GenUI payload
