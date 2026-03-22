@@ -165,7 +165,7 @@ async function emitSourceGapBlock(
 ): Promise<LessonBlock> {
   // Persist for parent notification (non-fatal if DB write fails)
   try {
-    await prisma.sourceGapRequest.create({
+    await (prisma as any).sourceGapRequest.create({
       data: { userId, topic, subject, missingRole },
     });
     console.log(`[sourceRetriever] SourceGapRequest created — topic: "${topic}", missing: ${missingRole}`);

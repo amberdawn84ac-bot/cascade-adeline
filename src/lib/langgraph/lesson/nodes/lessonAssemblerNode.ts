@@ -62,7 +62,7 @@ export async function lessonAssemblerNode(state: LessonAssemblerState): Promise<
       adaptedBlocks,
       genUIPayload,
       standardsGaps: [], // TODO: Get from student context
-      zpdLevel: 'on-level' // TODO: Get from student context
+      zpdLevel: (studentCtx as any).zpdLevel || 'on-level' // TODO: Get from student context
     };
     
   } catch (error) {

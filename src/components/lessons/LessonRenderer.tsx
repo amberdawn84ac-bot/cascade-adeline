@@ -414,7 +414,7 @@ function InvestigationBlock({
   onUpdate: (blockId: string, updates: any) => void;
 }) {
   const [responses, setResponses] = useState<Record<number, string>>(
-    progress?.response?.responses || {}
+    (progress?.response as any)?.responses || {}
   );
   const [isCompleted, setIsCompleted] = useState(progress?.completed || false);
 
