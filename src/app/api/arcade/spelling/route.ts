@@ -23,17 +23,13 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const seenWords: string[] = Array.isArray(body?.seenWords) ? body.seenWords : [];
 
-    const studentCtx = await getStudentContext(user.userId);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'English Language Arts' });
     const grade = parseInt((studentCtx.gradeLevel || '5').replace(/\D/g, '')) || 5;
     let difficulty: 'easy' | 'medium' | 'hard' = 'medium';
     if (grade <= 3) difficulty = 'easy';
     else if (grade <= 6) difficulty = 'medium';
     else difficulty = 'hard';
 
-    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
-    const interestsContext = studentCtx.interests.length
-      ? `Their interests include: ${studentCtx.interests.join(', ')}. Try to pick words relevant to their world.`
-      : '';
     const avoidContext = seenWords.length > 0
       ? `\nDO NOT use any of these words that have already been given this session: ${seenWords.join(', ')}.`
       : '';
@@ -47,7 +43,7 @@ export async function POST(req: Request) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a spelling bee tutor. ${gradeContext} ${interestsContext}
+        content: `You are Adeline, a spelling bee tutor.${studentCtx.systemPromptAddendum}
 Generate a single spelling word appropriate for this grade level at ${difficulty} difficulty.
 - Easy (K-3): Common everyday words (3-6 letters)
 - Medium (4-6): More complex vocabulary (6-9 letters)  

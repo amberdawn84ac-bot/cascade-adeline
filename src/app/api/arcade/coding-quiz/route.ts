@@ -23,14 +23,12 @@ export async function POST(req: Request) {
 
     const { language = 'Python' } = await req.json().catch(() => ({}));
 
-    const studentCtx = await getStudentContext(user.userId);
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Technology' });
     const grade = parseInt((studentCtx.gradeLevel || '6').replace(/\D/g, '')) || 6;
     let difficulty: 'beginner' | 'intermediate' | 'advanced' = 'beginner';
     if (grade <= 4) difficulty = 'beginner';
     else if (grade <= 8) difficulty = 'intermediate';
     else difficulty = 'advanced';
-
-    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
 
     const concepts = {
       beginner: ['variables', 'print statements', 'basic arithmetic', 'if/else', 'simple loops'],
@@ -50,7 +48,7 @@ export async function POST(req: Request) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a coding tutor creating a quiz question. ${gradeContext}
+        content: `You are Adeline, a coding tutor creating a quiz question.${studentCtx.systemPromptAddendum}
 Create a ${difficulty} ${language} coding quiz about "${randomConcept}".
 - The code snippet must be SHORT (4-10 lines), clean, and runnable.
 - The question should ask what the code outputs, what it does, or what value a variable holds.

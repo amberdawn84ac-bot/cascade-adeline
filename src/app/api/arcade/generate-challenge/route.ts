@@ -23,10 +23,7 @@ export async function POST(req: NextRequest) {
     const { challengeType } = await req.json();
     const requestedType = challengeType || 'math';
 
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
-    const styleContext = studentCtx.learningStyle ? `Their learning style is ${studentCtx.learningStyle}.` : '';
-    const interestsContext = studentCtx.interests.length ? `Their interests include: ${studentCtx.interests.join(', ')}.` : '';
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Mathematics' });
 
     // Determine difficulty based on grade level
     let difficulty: 'easy' | 'medium' | 'hard' = 'medium';
@@ -53,7 +50,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a whimsical tutor creating engaging brain challenges. ${gradeContext} ${styleContext} ${interestsContext}
+        content: `You are Adeline, a whimsical tutor creating engaging brain challenges.${studentCtx.systemPromptAddendum}
         
 Create a ${requestedType} challenge at ${difficulty} difficulty. Make it fun, creative, and educational. 
 Avoid dry textbook problems - instead, weave in storytelling, real-world scenarios, or playful contexts.

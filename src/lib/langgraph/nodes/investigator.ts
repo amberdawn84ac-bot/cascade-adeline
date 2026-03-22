@@ -3,6 +3,7 @@ import { AdelineStateType } from "../state";
 import { ChatOpenAI } from "@langchain/openai";
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import { hippocampusTool } from '../tools/hippocampusTool';
+import { getStudentContext } from '@/lib/learning/student-context';
 import { z } from 'zod';
 
 export async function investigator(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
@@ -12,6 +13,7 @@ export async function investigator(state: AdelineStateType): Promise<Partial<Ade
   try {
     // Load Adeline's configuration
     const config = loadConfig();
+    const studentCtx = await getStudentContext(state.userId);
     
     // Initialize LangChain ChatOpenAI model with tools
     const model = new ChatOpenAI({
@@ -21,7 +23,7 @@ export async function investigator(state: AdelineStateType): Promise<Partial<Ade
     }).bindTools([hippocampusTool]);
 
     // Build the system prompt with Adeline's voice and investigation focus
-    const systemPrompt = `${buildSystemPrompt(config, `Student is investigating: "${content}"`)}
+    const systemPrompt = `${buildSystemPrompt(config, `Student is investigating: "${content}"${studentCtx.systemPromptAddendum}`)}
 
 REASONING APPROACH (Chain of Thought):
 You must never use rigid templates, bulleted lists, or academic boilerplate. Instead, think through your answer step by step out loud.

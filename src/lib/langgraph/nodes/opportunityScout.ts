@@ -2,6 +2,7 @@ import { AdelineStateType } from '../state';
 import { ChatOpenAI } from '@langchain/openai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 export async function opportunityScout(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
   try {
@@ -11,8 +12,10 @@ export async function opportunityScout(state: AdelineStateType): Promise<Partial
     const lastMessage = state.messages[state.messages.length - 1];
     const content = lastMessage.content as string;
     
+    const studentCtx = await getStudentContext(state.userId);
+
     // Build the system prompt with Adeline's voice and rules
-    const systemPrompt = buildSystemPrompt(config);
+    const systemPrompt = buildSystemPrompt(config, studentCtx.systemPromptAddendum);
     
     // Create the opportunity scouting-specific prompt
     const scoutPrompt = `The student is looking for opportunities: "${content}"

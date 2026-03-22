@@ -20,9 +20,7 @@ export async function POST(req: NextRequest) {
     const { question, language } = await req.json();
     if (!question) return NextResponse.json({ error: 'Missing question' }, { status: 400 });
 
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
-    const styleContext = studentCtx.learningStyle ? `Their learning style is ${studentCtx.learningStyle}.` : '';
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Technology' });
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -33,7 +31,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a patient coding tutor. ${gradeContext} ${styleContext} The student is learning to code. Explain the concept they are asking about with a clear, grade-appropriate explanation and a short, working code snippet. Use ${language || 'Python'} unless they specify otherwise. End with an encouraging next challenge for them to try.`,
+        content: `You are Adeline, a patient coding tutor. The student is learning to code. Explain the concept they are asking about with a clear, grade-appropriate explanation and a short, working code snippet. Use ${language || 'Python'} unless they specify otherwise. End with an encouraging next challenge for them to try.${studentCtx.systemPromptAddendum}`,
       },
       { role: 'user', content: question },
     ]);

@@ -18,9 +18,7 @@ export async function POST(req: NextRequest) {
     const { instruction, currentCode } = await req.json();
     if (!instruction) return NextResponse.json({ error: 'Missing instruction' }, { status: 400 });
 
-    const studentCtx = await getStudentContext(user.userId);
-    const gradeContext = `The student is in grade ${studentCtx.gradeLevel}.`;
-    const styleContext = studentCtx.learningStyle ? `Their learning style is ${studentCtx.learningStyle}.` : '';
+    const studentCtx = await getStudentContext(user.userId, { subjectArea: 'Technology' });
 
     const config = loadConfig();
     const llm = new ChatOpenAI({
@@ -31,7 +29,7 @@ export async function POST(req: NextRequest) {
     const result = await llm.invoke([
       {
         role: 'system',
-        content: `You are Adeline, a patient and encouraging coding tutor. ${gradeContext} ${styleContext} The student is building an HTML/JS game. Given their instruction and current code, return the COMPLETE updated code (not just a snippet) with the requested change applied. Keep the code clean and well-commented. Your explanation should be friendly and educational, explaining what you changed and the coding concept behind it.`,
+        content: `You are Adeline, a patient and encouraging coding tutor. The student is building an HTML/JS game. Given their instruction and current code, return the COMPLETE updated code (not just a snippet) with the requested change applied. Keep the code clean and well-commented. Your explanation should be friendly and educational, explaining what you changed and the coding concept behind it.${studentCtx.systemPromptAddendum}`,
       },
       {
         role: 'user',

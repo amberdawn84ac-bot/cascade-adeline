@@ -2,6 +2,7 @@ import { AdelineStateType } from '../state';
 import { ChatOpenAI } from '@langchain/openai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
+import { getStudentContext } from '@/lib/learning/student-context';
 
 export async function projectBrainstormer(state: AdelineStateType): Promise<Partial<AdelineStateType>> {
   try {
@@ -11,11 +12,33 @@ export async function projectBrainstormer(state: AdelineStateType): Promise<Part
     const lastMessage = state.messages[state.messages.length - 1];
     const content = lastMessage.content as string;
     
+    const studentCtx = await getStudentContext(state.userId);
+
+    // Derive learning mode from learningStyle: EXPEDITION style → expedition mode, else classic
+    const isExpedition = (studentCtx.learningStyle || '').toUpperCase().includes('EXPEDITION');
+    const learningMode: 'classic' | 'expedition' = isExpedition ? 'expedition' : 'classic';
+
     // Build the system prompt with Adeline's voice and rules
-    const systemPrompt = buildSystemPrompt(config);
+    const systemPrompt = buildSystemPrompt(config, studentCtx.systemPromptAddendum);
     
     // Create the project brainstorming-specific prompt
+    const modeInstructions = learningMode === 'expedition'
+      ? `
+LEARNING MODE: EXPEDITION
+MANDATORY: Every project idea MUST be cross-curricular — combining 2 or more subjects in a single integrated project. Examples of the kind of thinking required:
+- Building a raised garden bed: calculate lumber and soil volume (Math), test soil pH and nitrogen levels (Science), research the history of the crop you're growing (History/Social Studies), write a planting plan with timeline (ELA).
+- Raising chickens: calculate feed ratios and egg-to-cost math (Math), study biology of the egg cycle (Science), write a care manual (ELA), research historical farming practices (History).
+Each project must explicitly name WHICH subjects are woven together and HOW each subject is applied in practice. Single-subject projects are NOT acceptable in Expedition mode.`
+      : `
+LEARNING MODE: CLASSIC
+Projects should be focused and single-subject — one clear academic discipline per project. Examples:
+- A focused math problem set applying a specific concept (e.g., budgeting a $500 purchase with tax and savings plan)
+- A standalone ELA essay or structured writing assignment (e.g., persuasive letter to a local official)
+- A targeted science experiment with hypothesis, method, and recorded results
+Avoid cross-subject mixing. Each project should have one primary academic objective with clear mastery criteria.`;
+
     const brainstormPrompt = `The student is interested in: "${content}"
+${modeInstructions}
 
 As Adeline the project guide, I need to help them brainstorm meaningful projects that:
 1. Have a PURPOSE - help someone, solve a real problem, or beautify the world
