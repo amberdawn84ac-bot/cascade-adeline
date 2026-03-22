@@ -250,7 +250,7 @@ function ScriptureBlock({
   progress?: StudentLessonProgress; 
   onUpdate: (blockId: string, updates: any) => void;
 }) {
-  const [reflection, setReflection] = useState(progress?.response?.reflection || '');
+  const [reflection, setReflection] = useState((progress?.response as any)?.reflection || '');
   const [isCompleted, setIsCompleted] = useState(progress?.completed || false);
 
   const interactive = block.interactive || {};
@@ -258,12 +258,12 @@ function ScriptureBlock({
   const passage = typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
 
   const handleSubmit = () => {
-    if (reflection.trim()) {
+    if (reflection.trim?.()) {
       setIsCompleted(true);
       onUpdate(block.id, {
         completed: true,
         timeSpent: 300, // 5 minutes for reflection
-        response: { reflection }
+        response: { reflection } as any
       });
     }
   };
@@ -332,19 +332,19 @@ function PrimarySourceBlock({
   progress?: StudentLessonProgress; 
   onUpdate: (blockId: string, updates: any) => void;
 }) {
-  const [analysis, setAnalysis] = useState(progress?.response?.analysis || '');
+  const [analysis, setAnalysis] = useState((progress?.response as any)?.analysis || '');
   const [isCompleted, setIsCompleted] = useState(progress?.completed || false);
 
   const metadata = block.metadata || {};
   const interactive = block.interactive || {};
 
   const handleSubmit = () => {
-    if (analysis.trim()) {
+    if (analysis.trim?.()) {
       setIsCompleted(true);
       onUpdate(block.id, {
         completed: true,
         timeSpent: 600, // 10 minutes for analysis
-        response: { analysis }
+        response: { analysis } as any
       });
     }
   };
@@ -352,7 +352,7 @@ function PrimarySourceBlock({
   return (
     <div className="primary-source-block">
       <div className="source-header">
-        <h4>{metadata.title || 'Primary Source'}</h4>
+        <h4>{(metadata as any)?.title || 'Primary Source'}</h4>
         {metadata.creator && <p className="source-creator">By {metadata.creator}</p>}
         {metadata.date && <p className="source-date">{metadata.date}</p>}
         {metadata.collection && <p className="source-collection">{metadata.collection}</p>}
@@ -435,7 +435,7 @@ function InvestigationBlock({
       onUpdate(block.id, {
         completed: true,
         timeSpent: 900, // 15 minutes for investigation
-        response: { responses }
+        response: { responses } as any
       });
     }
   };
@@ -501,7 +501,7 @@ function QuizBlock({
   onUpdate: (blockId: string, updates: any) => void;
 }) {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(
-    progress?.response?.selectedAnswer || null
+    (progress?.response as any)?.selectedAnswer || null
   );
   const [showResult, setShowResult] = useState(progress?.completed || false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -521,7 +521,7 @@ function QuizBlock({
         completed: true,
         timeSpent: 120, // 2 minutes
         score: correct ? 100 : 0,
-        response: { selectedAnswer }
+        response: { selectedAnswer } as any
       });
     }
   };
@@ -590,16 +590,16 @@ function HandsOnBlock({
   progress?: StudentLessonProgress; 
   onUpdate: (blockId: string, updates: any) => void;
 }) {
-  const [notes, setNotes] = useState(progress?.response?.notes || '');
+  const [notes, setNotes] = useState((progress?.response as any)?.notes || '');
   const [isCompleted, setIsCompleted] = useState(progress?.completed || false);
 
   const handleSubmit = () => {
-    if (notes.trim()) {
+    if (notes.trim?.()) {
       setIsCompleted(true);
       onUpdate(block.id, {
         completed: true,
         timeSpent: 1800, // 30 minutes for hands-on activity
-        response: { notes }
+        response: { notes } as any
       });
     }
   };

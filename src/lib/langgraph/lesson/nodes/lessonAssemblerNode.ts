@@ -116,7 +116,7 @@ async function findRelevantLessons(
     take: 5
   });
   
-  return lessons.map(lesson => ({
+  return lessons.map((lesson: any) => ({
     ...lesson,
     lessonJson: lesson.lessonJson as LessonBlock[]
   }));
@@ -234,7 +234,7 @@ async function getStudentEnvironment(userId: string): Promise<StudentEnvironment
     const defaultEnv = await prisma.studentEnvironment.create({
       data: {
         userId,
-        location: 'apartment',
+        location: 'apartment' as any,
         resources: ['books', 'internet'],
         interests: [],
         constraints: [],
@@ -247,12 +247,14 @@ async function getStudentEnvironment(userId: string): Promise<StudentEnvironment
     
     return {
       ...defaultEnv,
-      preferences: defaultEnv.preferences as any
+      preferences: defaultEnv.preferences as any,
+      location: defaultEnv.location as any
     };
   }
   
   return {
     ...env,
-    preferences: env.preferences as any
+    preferences: env.preferences as any,
+    location: env.location as any
   };
 }

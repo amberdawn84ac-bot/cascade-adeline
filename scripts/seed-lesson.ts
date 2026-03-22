@@ -4,16 +4,36 @@
  * Creates a sample Dawes Act lesson to test the lesson system.
  */
 
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import type { LessonBlock } from '../src/types/lesson';
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
+function createClient(): PrismaClient {
+  const connectionString = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not set');
   }
-});
+
+  const pgPool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
+
+  const adapter = new PrismaPg(pgPool);
+
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+}
+
+const prisma = createClient();
 
 const dawesActLesson: LessonBlock[] = [
   {
@@ -58,8 +78,7 @@ SEC. 1. Be it enacted by the Senate and House of Representatives of the United S
 
 SEC. 5. That upon the approval of the allotments... the United States shall declare to the Indian to whom such allotments have been made that the United States does and will hold the land thus allotted, for the period of twenty-five years, in trust for the sole use and benefit of the Indian to whom such allotment shall have been made...`,
     interactive: {
-      sourceType: 'document',
-      narrativeRole: 'government_record',
+      narrativeRole: 'official_claim',
       investigationPrompts: [
         'What does "allotment" mean in this context?',
         'Why does the government hold the land "in trust" for 25 years?',
@@ -86,7 +105,6 @@ How can we choose? The land belongs to all of us, not to one person. The river f
 
 They speak of "progress" and "civilization." We ask: Whose civilization? Whose progress?`,
     interactive: {
-      sourceType: 'document',
       narrativeRole: 'eyewitness',
       investigationPrompts: [
         'How does this view of land differ from the Dawes Act?',
@@ -143,8 +161,7 @@ Railroad Land Grants:
 • Given to railroad companies: Often free or at nominal cost
 • Sold by railroads: $5 - $100+ per acre`,
     interactive: {
-      sourceType: 'document',
-      narrativeRole: 'investigative_data',
+      narrativeRole: 'official_claim',
       investigationPrompts: [
         'What story do these numbers tell?',
         'Who profited from the difference in land prices?',
@@ -218,13 +235,15 @@ async function seedLesson() {
     console.log('🌱 Seeding Dawes Act lesson...');
 
     // Create the lesson
-    const lesson = await prisma.lesson.create({
-      data: {
+    const lesson = await prisma.lesson.upsert({
+      where: { lessonId: 'dawes-act-1887' },
+      update: {},
+      create: {
         lessonId: 'dawes-act-1887',
         title: 'The Dawes Act: Land, Power, and Biblical Justice',
         subject: 'US History',
         gradeLevel: '5th',
-        lessonJson: dawesActLesson,
+        lessonJson: dawesActLesson as any,
         standardsCodes: [
           'CCSS.ELA-LITERACY.RH.6-8.1',
           'CCSS.ELA-LITERACY.RH.6-8.2',
@@ -277,31 +296,14 @@ async function seedLesson() {
     ];
 
     for (const source of primarySources) {
-      await prisma.primarySource.create({
-        data: source
+      await prisma.primarySource.upsert({
+        where: { sourceId: source.sourceId },
+        update: {},
+        create: source
       });
     }
 
     console.log('✅ Primary sources created');
-
-    // Create a sample student environment
-    const sampleEnvironment = await prisma.studentEnvironment.upsert({
-      where: { userId: 'sample-student' },
-      update: {},
-      create: {
-        userId: 'sample-student',
-        location: 'farm',
-        resources: ['garden', 'chickens', 'greenhouse', 'kitchen'],
-        interests: ['history', 'animals', 'cooking'],
-        constraints: [],
-        preferences: {
-          learningStyle: 'hands-on',
-          pace: 'thorough'
-        }
-      }
-    });
-
-    console.log('✅ Sample student environment created');
 
     console.log('\n🎉 Lesson system seeded successfully!');
     console.log('\nTo test the lesson:');

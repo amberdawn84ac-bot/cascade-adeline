@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
     const completedBlocks = allBlocks.filter(b => b.completed).length;
     const lessonCompleted = completedBlocks === totalBlocks && totalBlocks > 0;
 
-    let creditsAwarded = [];
-    let transcriptEntries = [];
+    let creditsAwarded: any[] = [];
+    let transcriptEntries: any[] = [];
 
     // Award credits when lesson is completed
     if (lessonCompleted) {
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
                 },
                 metadata: { 
                   source: 'lesson-system',
-                  lessonType: 'structured_lesson'
+                  lessonType: 'structured_lesson' as const
                 }
               }
             });
