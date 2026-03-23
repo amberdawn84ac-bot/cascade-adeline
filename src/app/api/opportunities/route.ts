@@ -31,9 +31,10 @@ export async function GET(req: NextRequest) {
     // Build query filters
     const where: any = {
       isActive: true,
-      deadline: {
-        gte: new Date() // Only show opportunities with future deadlines
-      }
+      OR: [
+        { deadline: { gte: new Date() } }, // Future deadlines
+        { deadline: null } // Ongoing programs
+      ]
     };
 
     if (category) {

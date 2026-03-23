@@ -33,7 +33,7 @@ const NAV_ITEMS = [
   { label: 'My Learning Tree', href: '/tree', icon: TreePine },
   { label: 'Community Board', href: '/dashboard/community-board', icon: Users },
   { label: 'Future Prep', href: '/dashboard/college-prep', icon: GraduationCap },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {

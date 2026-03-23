@@ -27,7 +27,7 @@ const ROLE_LABELS: Record<Role, { title: string; subtitle: string; icon: typeof 
 export function ConversationalLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard/journey';
+  const redirectTo = searchParams.get('redirectTo') || '/tree';
 
   const [mode, setMode] = useState<Mode>('login');
   const [loginStep, setLoginStep] = useState<LoginStep>('role');
