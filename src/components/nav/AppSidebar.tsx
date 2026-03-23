@@ -21,7 +21,8 @@ import {
   BookOpen,
   Mountain,
   FlaskConical,
-  ScrollText
+  ScrollText,
+  TreePine
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createServerClient } from '@supabase/ssr';
@@ -39,6 +40,11 @@ const NAV_ITEMS = [
     label: 'Daily Journal', 
     href: '/dashboard/journal', 
     icon: ScrollText,
+  },
+  { 
+    label: 'My Learning Tree', 
+    href: '/tree', 
+    icon: TreePine,
   },
   
   // Core Subjects (grouped)
