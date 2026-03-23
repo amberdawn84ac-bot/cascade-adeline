@@ -60,6 +60,45 @@ function isHistorySubject(subject: string): boolean {
   return HISTORY_SUBJECTS.some(h => s.includes(h));
 }
 
+// Developmental Evidence Requirements
+function getEvidenceRequirement(gradeLevel: string): 'sensory-wonder' | 'documentation' | 'systemic-analysis' {
+  const grade = gradeLevel.toLowerCase();
+  if (grade.includes('k') || grade.includes('1') || grade.includes('2') || grade.includes('kindergarten')) {
+    return 'sensory-wonder'; // K-2 Sprouts
+  }
+  if (grade.includes('3') || grade.includes('4') || grade.includes('5') || grade.includes('6') || grade.includes('7') || grade.includes('8')) {
+    return 'documentation'; // 3-8 Trees
+  }
+  return 'systemic-analysis'; // 9-12 Oaks (0.85 Primary Source + "Follow the Money")
+}
+
+// Developmental Blueprints
+const SPROUT_BLUEPRINT = [
+  'title',
+  'primary_text',
+  'diagram_viewer',
+  'vocab_tooltip',
+  'activity', // Sensory: drawings/audio
+];
+
+const TREE_BLUEPRINT = [
+  'title',
+  'concept_text',
+  'diagram_viewer',
+  'vocab_tooltip',
+  'quiz',
+  'activity', // Documentation: data tables/summaries
+];
+
+const OAK_BLUEPRINT = [
+  'title',
+  'primary_source', // 0.85 Primary Source rule
+  'investigation',  // "Follow the Money"
+  'critical_thinking',
+  'quiz',
+  'activity',
+];
+
 export async function architectAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
   const model = new ChatOpenAI({
     model: 'gpt-4o-mini',
@@ -69,11 +108,27 @@ export async function architectAgent(state: LessonStateType): Promise<Partial<Le
   const mode = state.learningMode ?? 'classic';
   const interests = state.interests?.join(', ') || 'general';
   const isHistory = isHistorySubject(state.subject);
+  const evidenceLevel = getEvidenceRequirement(state.gradeLevel);
+
+  console.log(`[architectAgent] Developmental level: ${evidenceLevel} for grade ${state.gradeLevel}`);
 
   if (isHistory) {
     const standardsCodes = getAllCodesForSubject(state.subject);
-    console.log(`[architectAgent] History subject — Narrative Gap blueprint, ${standardsCodes.length} standards for "${state.topic}"`);
-    return { blueprint: [...HISTORY_NARRATIVE_GAP_EXAMPLE], standardsCodes };
+    // For History, use evidence-appropriate blueprint
+    let blueprint: string[];
+    switch (evidenceLevel) {
+      case 'sensory-wonder':
+        blueprint = [...SPROUT_BLUEPRINT];
+        break;
+      case 'documentation':
+        blueprint = [...TREE_BLUEPRINT];
+        break;
+      case 'systemic-analysis':
+        blueprint = [...OAK_BLUEPRINT];
+        break;
+    }
+    console.log(`[architectAgent] History (${evidenceLevel}) — Evidence-based blueprint, ${standardsCodes.length} standards for "${state.topic}"`);
+    return { blueprint, standardsCodes };
   }
 
   const systemPrompt = `You are a Curriculum Architect for a homeschool AI tutor named Adeline.
@@ -84,6 +139,13 @@ LEARNING MODE: "${mode}"
 ${mode === 'classic'
   ? `CLASSIC MODE: Prioritize direct instruction, structured vocabulary, and formal assessment. Sequence should be: introduce concept → define vocabulary → check understanding → practice. Emphasis on mastery verification.`
   : `EXPEDITION MODE: Prioritize narrative, exploration, and open-ended discovery. Sequence should be: hook with story → explore visually → wrestle with ideas → optional practice. Emphasis on curiosity and connection.`}
+
+DEVELOPMENTAL EVIDENCE REQUIREMENT: "${evidenceLevel}"
+${evidenceLevel === 'sensory-wonder'
+  ? `K-2 SPROUTS: Prioritize sensory wonder and hands-on discovery. Evidence requirement: drawings, audio recordings, sensory observations. Keep activities concrete and visible.`
+  : evidenceLevel === 'documentation'
+  ? `3-8 TREES: Prioritize structured documentation and data collection. Evidence requirement: data tables, summaries, written observations, measurements. Build systematic thinking skills.`
+  : `9-12 OAKS: Prioritize systemic analysis and critical investigation. Evidence requirement: 0.85+ primary source verification, "Follow the Money" analysis, systemic thinking. Challenge assumptions and trace consequences.`}
 
 SUBJECT: ${state.subject}
 TOPIC: ${state.topic}

@@ -184,17 +184,17 @@ no_invented_projects = "NEVER fabricate a project scenario. The homestead IS the
 
 [grade_expectations]
   [grade_expectations.K-2]
-  subjects = ["Reading", "Writing", "Math", "Science", "Bible", "Art", "Physical Education"]
+  subjects = ["gods-creation-science", "health-naturopathy", "homesteading", "discipleship-cultural-discernment", "english-language-literature"]
   min_credits_per_year = 1.0
 
   [grade_expectations.3-5]
-  subjects = ["Reading", "Writing", "Math", "Science", "History", "Bible", "Art", "Physical Education", "Music"]
+  subjects = ["gods-creation-science", "health-naturopathy", "homesteading", "government-economics", "justice-change-making", "discipleship-cultural-discernment", "truth-based-history", "english-language-literature"]
   min_credits_per_year = 1.5
 
   [grade_expectations.6-8]
-  subjects = ["English Language Arts", "Math", "Science", "History", "Bible", "Foreign Language", "Art", "Physical Education", "Life Skills"]
+  subjects = ["gods-creation-science", "health-naturopathy", "homesteading", "government-economics", "justice-change-making", "discipleship-cultural-discernment", "truth-based-history", "english-language-literature"]
   min_credits_per_year = 2.0
 
   [grade_expectations.9-12]
-  subjects = ["English", "Algebra", "Geometry", "Biology", "Chemistry", "Physics", "US History", "World History", "Government", "Economics", "Bible", "Foreign Language", "Art", "Physical Education", "Life Skills"]
+  subjects = ["gods-creation-science", "health-naturopathy", "homesteading", "government-economics", "justice-change-making", "discipleship-cultural-discernment", "truth-based-history", "english-language-literature"]
   min_credits_per_year = 3.0

@@ -51,6 +51,45 @@ const HISTORY_DOMAINS: Record<string, string> = {
   SS:  'Social Studies',
 };
 
+// 8 Integrated Tracks Domain Maps
+const TRACK_DOMAINS: Record<string, Record<string, string>> = {
+  'gods-creation-science': SCIENCE_DOMAINS,
+  'health-naturopathy': {
+    HN: 'Health & Nutrition',
+    AN: 'Anatomy & Physiology',
+    WB: 'Wellness & Botany',
+    NP: 'Naturopathy Principles',
+  },
+  'homesteading': {
+    AG: 'Agriculture & Gardening',
+    AN: 'Animal Husbandry',
+    BL: 'Building & Logistics',
+    PS: 'Preservation & Storage',
+    EC: 'Economics & Commerce',
+  },
+  'government-economics': {
+    GOV: 'Government Structure',
+    ECON: 'Economic Principles',
+    LAW: 'Law & Rights',
+    CIV: 'Civic Participation',
+  },
+  'justice-change-making': {
+    JUST: 'Justice Systems',
+    ADV: 'Advocacy & Activism',
+    REFORM: 'Reform Movements',
+    ETHICS: 'Ethics & Morality',
+  },
+  'discipleship-cultural-discernment': {
+    DISC: 'Discipleship',
+    CULT: 'Cultural Analysis',
+    MEDIA: 'Media Literacy',
+    FAITH: 'Faith Integration',
+  },
+  'truth-based-history': HISTORY_DOMAINS,
+  'english-language-literature': ELA_DOMAINS,
+};
+
+// Legacy mapping for backward compatibility
 const DOMAIN_MAPS: Record<string, Record<string, string>> = {
   'Mathematics':            MATH_DOMAINS,
   'Math':                   MATH_DOMAINS,
@@ -60,6 +99,8 @@ const DOMAIN_MAPS: Record<string, Record<string, string>> = {
   'Social Studies':         HISTORY_DOMAINS,
   'History':                HISTORY_DOMAINS,
   'Practical Arts':         {},
+  // Add 8 tracks mappings
+  ...TRACK_DOMAINS,
 };
 
 /**
@@ -128,14 +169,28 @@ const MASTERY_PCT: Record<string, number> = {
   NOT_STARTED:   0,
 };
 
-// ─── Subject → DB field mapping ───────────────────────────────────────────────
+// ─── 8 Integrated Tracks → DB field mapping ───────────────────────────────────
 
+const TRACK_LEVEL_FIELDS = [
+  { subject: 'gods-creation-science',           dbField: 'scienceLevel' as const },
+  { subject: 'health-naturopathy',               dbField: 'scienceLevel' as const },
+  { subject: 'homesteading',                     dbField: null },
+  { subject: 'government-economics',             dbField: 'historyLevel' as const },
+  { subject: 'justice-change-making',            dbField: 'historyLevel' as const },
+  { subject: 'discipleship-cultural-discernment', dbField: 'elaLevel'     as const },
+  { subject: 'truth-based-history',              dbField: 'historyLevel' as const },
+  { subject: 'english-language-literature',      dbField: 'elaLevel'     as const },
+];
+
+// Legacy mapping for backward compatibility
 const SUBJECT_LEVEL_FIELDS = [
   { subject: 'Mathematics',           dbField: 'mathLevel'    as const },
   { subject: 'English Language Arts', dbField: 'elaLevel'     as const },
   { subject: 'Science',               dbField: 'scienceLevel' as const },
   { subject: 'Social Studies',        dbField: 'historyLevel' as const },
   { subject: 'Practical Arts',        dbField: null },
+  // Add 8 tracks mappings
+  ...TRACK_LEVEL_FIELDS,
 ];
 
 // ─── Main export ──────────────────────────────────────────────────────────────

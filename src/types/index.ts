@@ -44,8 +44,16 @@ export interface LearningPlan {
   weeks: LearningWeek[];
 }
 
-// Microcredits & Standards
-export type SubjectArea = 'English' | 'Math' | 'Science' | 'Social Studies' | 'Arts' | 'Elective';
+// Microcredits & Standards - 8 Integrated Tracks
+export type SubjectArea = 
+  | 'gods-creation-science'
+  | 'health-naturopathy' 
+  | 'homesteading'
+  | 'government-economics'
+  | 'justice-change-making'
+  | 'discipleship-cultural-discernment'
+  | 'truth-based-history'
+  | 'english-language-literature';
 
 export interface ProposedCredit {
   id: string;

@@ -23,6 +23,7 @@ import { StepList } from './patterns/StepList';
 import { CompareTable } from './patterns/CompareTable';
 import { MathDisplay } from './patterns/MathDisplay';
 import { ProgressRing } from './patterns/ProgressRing';
+import { TrackBloom } from './patterns/TrackBloom';
 
 type GenUIPayload = {
   component: string;
@@ -52,6 +53,7 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   CompareTable,
   MathDisplay,
   ProgressRing,
+  TrackBloom,
 };
 
 const INTENT_BORDER_COLORS: Record<string, string> = {

@@ -12,6 +12,18 @@ const personalizerSchema = z.object({
   })).optional(),
 });
 
+// Voice Scaling: Nurturing Guide (K-2) to Challenging Mentor (9-12)
+function getAdelineVoice(gradeLevel: string): string {
+  const grade = gradeLevel.toLowerCase();
+  if (grade.includes('k') || grade.includes('1') || grade.includes('2') || grade.includes('kindergarten')) {
+    return `K-2 NURTURING GUIDE: Warm, encouraging, gentle. Use phrases like "Isn't it wonderful how...", "You're doing such a great job...", "Let's discover together...". Focus on wonder and confidence building. Keep sentences short and simple.`;
+  }
+  if (grade.includes('3') || grade.includes('4') || grade.includes('5') || grade.includes('6') || grade.includes('7') || grade.includes('8')) {
+    return `3-8 GROWING MENTOR: Balanced mix of encouragement and challenge. Use phrases like "Now let's think about this...", "What would happen if...", "How can we test this idea...". Build independence while providing support.`;
+  }
+  return `9-12 CHALLENGING MENTOR: Respectful, challenging, expects excellence. Use phrases like "Defend your position...", "What evidence supports this...", "Consider the implications...", "Trace the consequences...". Treat them as capable scholars and critical thinkers.`;
+}
+
 export async function personalizerAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
   const config = loadConfig();
   const model = new ChatOpenAI({
@@ -20,6 +32,7 @@ export async function personalizerAgent(state: LessonStateType): Promise<Partial
   }).withStructuredOutput(personalizerSchema);
 
   const interests = state.interests.join(', ') || 'learning';
+  const adelineVoice = getAdelineVoice(state.gradeLevel);
   const allBlockSummary = state.blocks
     .filter(b => b.type === 'text' || b.type === 'hands-on')
     .map(b => typeof b.content === 'string' ? b.content.slice(0, 200) : JSON.stringify(b.content).slice(0, 200))
@@ -28,7 +41,9 @@ export async function personalizerAgent(state: LessonStateType): Promise<Partial
   const result = await model.invoke([
     {
       role: 'system',
-      content: `You are personalizing the final reflection for a homeschool student (grade ${state.gradeLevel}).
+      content: `You are Adeline, personalizing the final reflection for a homeschool student (grade ${state.gradeLevel}).
+
+${adelineVoice}
 
 REFLECTION PROMPT RULES:
 - Connect the lesson topic to the student's actual interests: ${interests}
