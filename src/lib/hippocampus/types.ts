@@ -39,6 +39,7 @@ export interface PrimarySourceMetadata {
   contentWarnings: string[];
   investigationPrompts: string[];
   citation: string;
+  isAIGenerated?: boolean;
 }
 
 export interface PrimarySourceRecord {

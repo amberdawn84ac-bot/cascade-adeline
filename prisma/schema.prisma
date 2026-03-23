@@ -1135,11 +1135,16 @@ model PrimarySource {
   rights        String   // public_domain, fair_use, cc_by
   metadata      Json     // additional context, era, subjects
   isActive      Boolean  @default(true) @map("is_active")
+  isVerified    Boolean  @default(true) @map("is_verified")
+  subjectTrack  String   @default("general") @map("subject_track")
+  isAIGenerated Boolean  @default(false) @map("is_ai_generated")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@index([sourceType])
   @@index([isActive])
+  @@index([subjectTrack])
+  @@index([isAIGenerated])
   @@map("primary_sources")
 }
 

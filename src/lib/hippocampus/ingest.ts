@@ -27,6 +27,24 @@ function buildSearchText(input: IngestPrimarySourceInput): string {
 }
 
 export async function ingestPrimarySource(input: IngestPrimarySourceInput): Promise<string> {
+  console.log(`[hippocampus] Attempting to ingest: "${input.title}"`);
+  
+  // STRICT INGESTION RULES
+  
+  // Rule 1: Must have a subjectTrack
+  if (!input.metadata.subjectTracks || input.metadata.subjectTracks.length === 0) {
+    console.log(`[hippocampus] REJECTED: Source "${input.title}" has no subjectTracks`);
+    throw new Error(`[hippocampus] REJECTED: Source "${input.title}" must have at least one subjectTrack`);
+  }
+  
+  // Rule 2: AI-generated sources cannot be saved to Hippocampus
+  if (input.metadata.isAIGenerated) {
+    console.log(`[hippocampus] REJECTED: Source "${input.title}" is AI-generated — blocking from Hippocampus`);
+    throw new Error(`[hippocampus] AI-generated sources cannot be saved to Hippocampus: "${input.title}"`);
+  }
+  
+  console.log(`[hippocampus] PASSED validation for: "${input.title}" (tracks: ${input.metadata.subjectTracks.join(', ')})`);
+
   const existing = await prisma.hippocampusDocument.findFirst({
     where: {
       metadata: {
