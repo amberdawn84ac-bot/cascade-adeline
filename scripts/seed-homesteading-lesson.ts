@@ -117,7 +117,7 @@ Ideal ratio: 40% sand, 40% silt, 20% clay`,
     title: 'Plan Your Garden Space',
     content: 'Every homestead starts with a garden plan. Let\'s investigate what works for YOUR space.',
     interactive: {
-      investigationType: 'space-planning',
+      investigationType: 'timeline',
       guidingQuestions: [
         'How much sunlight does your space get? (6+ hours = full sun, 4-6 = part sun, <4 = shade)',
         'What growing zone are you in? (Check USDA plant hardiness map)',
