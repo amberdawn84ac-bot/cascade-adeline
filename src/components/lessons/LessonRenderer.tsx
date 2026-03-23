@@ -125,7 +125,7 @@ export default function LessonRenderer({
         return <InvestigationBlock block={block} progress={blockProgress} onUpdate={updateProgress} />;
       case 'quiz':
         return <QuizBlock block={block} progress={blockProgress} onUpdate={updateProgress} />;
-      case 'hands_on':
+      case 'hands-on':
         return <HandsOnBlock block={block} progress={blockProgress} onUpdate={updateProgress} />;
       default:
         return <div className="text-gray-600">Unknown block type: {block.type}</div>;
