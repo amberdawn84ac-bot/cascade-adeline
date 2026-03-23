@@ -9,6 +9,13 @@ import { assessmentAgent } from './nodes/assessmentAgent';
 import { activityAgent } from './nodes/activityAgent';
 import { personalizerAgent } from './nodes/personalizerAgent';
 
+function routeAfterOrchestrator(state: LessonStateType): string {
+  if (state._skipTo === 'personalizerAgent') {
+    return 'personalizerAgent';
+  }
+  return 'architectAgent';
+}
+
 function routeAfterAssessment(state: LessonStateType): string {
   if (state.phase === 'remediation' && state.loopCount < 3) {
     return 'orchestrator';
@@ -28,7 +35,10 @@ export const lessonBrain = new StateGraph(LessonState)
   .addNode('personalizerAgent', personalizerAgent)
 
   .addEdge(START, 'orchestrator')
-  .addEdge('orchestrator', 'architectAgent')
+  .addConditionalEdges('orchestrator', routeAfterOrchestrator, {
+    architectAgent: 'architectAgent',
+    personalizerAgent: 'personalizerAgent',
+  })
   .addEdge('architectAgent', 'sourceRetrieverAgent')
   .addEdge('sourceRetrieverAgent', 'contentAgent')
   .addEdge('contentAgent', 'mediaAgent')

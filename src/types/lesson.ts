@@ -20,7 +20,7 @@ export interface LessonData {
 
 export interface LessonBlock {
   id: string;
-  type: 'text' | 'scripture' | 'primary_source' | 'investigation' | 'quiz' | 'hands_on' | 'photo' | 'video' | 'infographic';
+  type: 'text' | 'scripture' | 'primary_source' | 'investigation' | 'quiz' | 'hands-on' | 'photo' | 'video' | 'infographic';
   title?: string;
   content: string | Record<string, unknown>;
   interactive?: {

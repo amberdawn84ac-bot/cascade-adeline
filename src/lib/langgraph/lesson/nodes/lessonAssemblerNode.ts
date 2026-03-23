@@ -42,11 +42,12 @@ export async function lessonAssemblerNode(state: LessonAssemblerState): Promise<
     const selectedLesson = relevantLessons[0];
     console.log(`[lessonAssembler] Selected lesson: ${selectedLesson.title}`);
     
-    // 4. Adapt blocks to student environment and ZPD
+    // 4. Determine ZPD level based on subject-specific vs overall grade
+    const zpdLevel = (studentCtx as any).zpdLevel || 'on-level';
     const adaptedBlocks = await adaptLessonBlocks(
       selectedLesson.lessonJson as LessonBlock[],
       environment,
-      (studentCtx as any).zpdLevel || 'on-level'
+      zpdLevel
     );
     
     // 5. Prepare GenUI payload
@@ -158,7 +159,7 @@ function adaptBlockForEnvironment(block: LessonBlock, environment: StudentEnviro
   // Add environment-specific examples
   if (block.type === 'text' && environment.location === 'farm') {
     adapted.content = adaptContentForFarm(block.content as string);
-  } else if (block.type === 'hands_on' && environment.resources.includes('garden')) {
+  } else if (block.type === 'hands-on' && environment.resources.includes('garden')) {
     adapted.interactive = {
       ...adapted.interactive,
       // TODO: Add materials to interactive type definition

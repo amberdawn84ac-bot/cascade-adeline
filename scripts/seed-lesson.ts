@@ -214,7 +214,7 @@ but you shall fear your God: I am the LORD.`,
   },
   {
     id: 'hands-on',
-    type: 'hands_on',
+    type: 'hands-on',
     title: 'Land Mapping Activity',
     content: `Create a map showing land loss:
 

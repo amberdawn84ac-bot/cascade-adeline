@@ -152,6 +152,14 @@ export const LessonState = Annotation.Root({
     reducer: (l, r) => ({ ...l, ...r }),
     default: () => ({}),
   }),
+  _skipTo: Annotation<string | undefined>({
+    reducer: (_, r) => r,
+    default: () => undefined,
+  }),
+  genUIPayload: Annotation<Record<string, unknown> | undefined>({
+    reducer: (_, r) => r,
+    default: () => undefined,
+  }),
 });
 
 export type LessonStateType = typeof LessonState.State;
