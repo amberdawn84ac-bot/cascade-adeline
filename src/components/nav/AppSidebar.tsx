@@ -30,39 +30,9 @@ import { createServerClient } from '@supabase/ssr';
 const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
 
 const NAV_ITEMS = [
-  // Top-level: My Learning Path
-  { 
-    label: 'My Learning Path', 
-    href: '/dashboard/journey', 
-    icon: Mountain,
-  },
-  { 
-    label: 'Daily Journal', 
-    href: '/dashboard/journal', 
-    icon: ScrollText,
-  },
-  { 
-    label: 'My Learning Tree', 
-    href: '/tree', 
-    icon: TreePine,
-  },
-  
-  // Core Subjects (grouped)
-  { label: 'Math', href: '/dashboard/math', icon: Calculator },
-  { label: 'Reading Nook', href: '/dashboard/reading-nook', icon: Feather },
-  { label: 'Science Lab', href: '/dashboard/science', icon: FlaskConical },
-  { label: 'History Timeline', href: '/dashboard/history', icon: Clock },
-  { label: 'Homesteading', href: '/dashboard/domestic-arts', icon: ChefHat },
-  { label: 'Bible Study', href: '/dashboard/bible-study', icon: BookOpen },
-  
-  // Secondary Activities (grouped)
   { label: 'Community Board', href: '/dashboard/community-board', icon: Users },
-  { label: 'Arcade', href: '/dashboard/arcade', icon: Gamepad2 },
   { label: 'Future Prep', href: '/dashboard/college-prep', icon: GraduationCap },
-  { label: 'Expeditions', href: '/dashboard/expeditions', icon: MapPin },
-  
-  // Family Portal (role-based)
-  { label: 'Family Portal', href: '/dashboard/teacher', icon: Users },
+  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
