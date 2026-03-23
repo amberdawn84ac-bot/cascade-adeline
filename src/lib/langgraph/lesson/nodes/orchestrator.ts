@@ -52,7 +52,7 @@ export async function orchestrator(state: LessonStateType): Promise<Partial<Less
           gradeLevel: effectiveGrade,
           loopCount: state.loopCount,
           phase: 'structured_lesson',
-          blocks: assemblerResult.adaptedBlocks || [],
+          blocks: assemblerResult.adaptedBlocks as any || [],
           genUIPayload: assemblerResult.genUIPayload,
           // Skip to personalizer since we have complete lesson
           _skipTo: 'personalizerAgent'
