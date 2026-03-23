@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { SeedlingTree } from './trees/SeedlingTree';
-import { YoungTree } from './trees/YoungTree';
-import { GrowingTree } from './trees/GrowingTree';
-import { MatureOak } from './trees/MatureOak';
+import { SeedlingTree } from './SeedlingTree';
+import { YoungTree } from './YoungTree';
+import { GrowingTree } from './GrowingTree';
+import { MatureOak } from './MatureOak';
 
 interface TreeData {
   gradeBand: string;
