@@ -1,7 +1,12 @@
-import { redirect } from 'next/navigation';
+import JourneyMap from '@/components/dashboard/JourneyMap';
 
-export default async function DashboardPage() {
-  // Redirect to Learning Tree as the main landing page
-  redirect('/tree');
+export default function DashboardPage() {
+  return (
+    <div className="container mx-auto py-8">
+      <div className="max-w-2xl mx-auto">
+        <JourneyMap />
+      </div>
+    </div>
+  );
 }
 
