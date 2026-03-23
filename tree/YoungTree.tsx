@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { BotanicalFilters } from '../botanical/filters';
+import { LeafCluster, FlowerCluster, ScrollLabel, TreeTrunk, SketchedGrass, ScrollFlourish } from '../botanical/components';
 
 interface Branch {
   track: string;
@@ -20,190 +22,191 @@ interface YoungTreeProps {
 }
 
 export function YoungTree({ branches, config, onBranchClick, onLeafHover, selectedBranch }: YoungTreeProps) {
-  // 3-5: Actual small tree with trunk and 8 branches
-  // Each branch has 8-10 medium-sized leaves
-  
   const width = 900;
-  const height = 550;
+  const height = 650;
   const centerX = width / 2;
-  const groundY = height - 60;
-  const trunkTop = groundY - 180;
+  const groundY = height - 80;
+  const trunkTop = groundY - 220;
 
-  // 8 branches positioned around the tree
-  const branchConfigs = [
-    { startY: trunkTop + 120, angle: -60, length: 140, curve: 40 },  // Lower left
-    { startY: trunkTop + 100, angle: -40, length: 130, curve: 35 },
-    { startY: trunkTop + 70, angle: -20, length: 150, curve: 45 },   // Mid left
-    { startY: trunkTop + 40, angle: -10, length: 140, curve: 40 },
-    { startY: trunkTop + 40, angle: 10, length: 140, curve: 40 },
-    { startY: trunkTop + 70, angle: 20, length: 150, curve: 45 },    // Mid right
-    { startY: trunkTop + 100, angle: 40, length: 130, curve: 35 },
-    { startY: trunkTop + 120, angle: 60, length: 140, curve: 40 }    // Lower right
+  // 8 branch positions - arranged naturally like the reference image
+  const branchPositions = [
+    { x: -180, y: -180, angle: -45 },      // Upper left
+    { x: -120, y: -80, angle: -30 },       // Left
+    { x: -160, y: 20, angle: -20 },        // Lower left
+    { x: -80, y: 100, angle: 0 },          // Bottom left
+    { x: 0, y: -200, angle: 0 },           // Top center
+    { x: 80, y: 100, angle: 0 },           // Bottom right
+    { x: 160, y: 20, angle: 20 },          // Lower right
+    { x: 120, y: -80, angle: 30 }          // Right
   ];
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      {/* Ground with grass */}
-      <path
-        d={`M 0 ${groundY} Q ${width/2} ${groundY + 15} ${width} ${groundY}`}
-        fill="#D4A574"
-        stroke="#8B4513"
-        strokeWidth="2"
-      />
-      
-      {/* Grass patches */}
-      {[...Array(15)].map((_, i) => {
-        const x = i * 60 + 30;
-        return (
-          <g key={`grass-${i}`}>
-            <path
-              d={`M ${x} ${groundY} Q ${x + 3} ${groundY - 15} ${x + 6} ${groundY}`}
-              fill="none"
-              stroke="#7BA05B"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            <path
-              d={`M ${x + 8} ${groundY} Q ${x + 11} ${groundY - 12} ${x + 14} ${groundY}`}
-              fill="none"
-              stroke="#7BA05B"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </g>
-        );
-      })}
+      <BotanicalFilters />
 
-      {/* Tree trunk */}
-      <path
-        d={`
-          M ${centerX - 25} ${groundY}
-          L ${centerX - 20} ${trunkTop}
-          L ${centerX + 20} ${trunkTop}
-          L ${centerX + 25} ${groundY}
-          Z
-        `}
-        fill="#8B4513"
-        stroke="#654321"
-        strokeWidth="2"
-      />
+      {/* Parchment background */}
+      <rect width={width} height={height} fill="#F5F3ED" filter="url(#parchment)" />
 
-      {/* Trunk texture */}
-      <line x1={centerX - 15} y1={groundY - 40} x2={centerX - 12} y2={groundY - 70} stroke="#654321" strokeWidth="1.5" />
-      <line x1={centerX + 15} y1={groundY - 50} x2={centerX + 12} y2={groundY - 80} stroke="#654321" strokeWidth="1.5" />
-      <line x1={centerX - 10} y1={groundY - 100} x2={centerX - 8} y2={groundY - 120} stroke="#654321" strokeWidth="1.5" />
-
-      {/* 8 Branches */}
-      {branches.map((branch, index) => {
-        const config = branchConfigs[index];
-        const rad = (config.angle * Math.PI) / 180;
-        const endX = centerX + Math.sin(rad) * config.length;
-        const endY = config.startY - Math.cos(rad) * config.length * 0.5;
-        const controlX = centerX + Math.sin(rad) * (config.length * 0.6);
-        const controlY = config.startY - config.curve;
-
-        const isSelected = selectedBranch === branch.track;
-
-        return (
-          <g key={branch.track}>
-            {/* Branch */}
-            <path
-              d={`M ${centerX} ${config.startY} Q ${controlX} ${controlY} ${endX} ${endY}`}
-              fill="none"
-              stroke={isSelected ? branch.color : '#8B4513'}
-              strokeWidth={isSelected ? 7 : 5}
-              strokeLinecap="round"
-              style={{ cursor: 'pointer', transition: 'all 0.3s' }}
-              onClick={() => onBranchClick(branch.track)}
-            />
-
-            {/* Branch icon label */}
-            <g 
-              transform={`translate(${endX}, ${endY - 30})`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => onBranchClick(branch.track)}
-            >
-              <circle r="22" fill={branch.color} opacity="0.95" />
-              <text
-                textAnchor="middle"
-                dy="0.35em"
-                fontSize="18"
-                fill="white"
-              >
-                {branch.icon}
-              </text>
-            </g>
-
-            {/* Leaves on branch (8-10 medium leaves) */}
-            {branch.leaves.slice(0, 10).map((leaf, leafIndex) => {
-              const t = (leafIndex + 1) / 11;
-              const leafX = centerX + (endX - centerX) * t + (Math.random() - 0.5) * 30;
-              const leafY = config.startY + (endY - config.startY) * t - Math.random() * 20;
-
-              const masteryColor = getLeafColor(leaf.mastery);
-
-              return (
-                <g
-                  key={leaf.id}
-                  transform={`translate(${leafX}, ${leafY}) rotate(${Math.random() * 60 - 30})`}
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => onLeafHover(leaf)}
-                  onMouseLeave={() => onLeafHover(null)}
-                >
-                  {/* Medium leaf shape */}
-                  <path
-                    d="M 0 0 Q -8 -6 -12 -10 Q -8 -14 0 -16 Q 8 -14 12 -10 Q 8 -6 0 0 Z"
-                    fill={masteryColor}
-                    stroke="#2d5016"
-                    strokeWidth="1.2"
-                  />
-                  <line x1="0" y1="0" x2="0" y2="-16" stroke="#2d5016" strokeWidth="0.8" />
-                </g>
-              );
-            })}
-          </g>
-        );
-      })}
-
-      {/* Progress indicator in trunk */}
-      <text
-        x={centerX}
-        y={groundY - 90}
-        textAnchor="middle"
-        fontSize="16"
-        fontFamily="Kalam, cursive"
-        fill="white"
-        fontWeight="bold"
-      >
-        {Math.round(branches.reduce((sum, b) => sum + b.progress.percent, 0) / branches.length)}%
-      </text>
+      {/* Decorative corner flourishes */}
+      <ScrollFlourish x={40} y={40} direction="left" />
+      <ScrollFlourish x={width - 40} y={40} direction="right" />
+      <ScrollFlourish x={40} y={height - 40} direction="left" />
+      <ScrollFlourish x={width - 40} y={height - 40} direction="right" />
 
       {/* Title */}
       <text
         x={width / 2}
         y={35}
         textAnchor="middle"
+        fontFamily="'Amatic SC', cursive"
         fontSize="32"
-        fontFamily="Permanent Marker, cursive"
-        fill="#6A4C93"
+        fontWeight="bold"
+        fill="#4a5d3a"
+        letterSpacing="2"
       >
-        🌳 My Learning Tree
+        My Learning Tree
+      </text>
+
+      {/* Subtitle */}
+      <text
+        x={width / 2}
+        y={58}
+        textAnchor="middle"
+        fontFamily="'Kalam', cursive"
+        fontSize="14"
+        fill="#7B6B8F"
+        fontStyle="italic"
+      >
+        3rd - 5th Grade Journey
+      </text>
+
+      {/* Ground and grass */}
+      <SketchedGrass centerX={centerX} groundY={groundY} width={500} />
+
+      {/* Tree trunk */}
+      <TreeTrunk centerX={centerX} groundY={groundY} trunkTop={trunkTop} width={45} />
+
+      {/* Branches with leaf clusters */}
+      {branchPositions.map((pos, index) => {
+        const branch = branches[index];
+        if (!branch) return null;
+
+        const endX = centerX + pos.x;
+        const endY = trunkTop + pos.y;
+        const controlX = centerX + pos.x * 0.5;
+        const controlY = trunkTop + pos.y * 0.6;
+
+        const isSelected = selectedBranch === branch.track;
+        const masteryPercent = branch.progress.percent / 100;
+        const hasFlowers = branch.progress.mastered > 0;
+
+        return (
+          <g key={branch.track}>
+            {/* Branch stem */}
+            <path
+              d={`M ${centerX} ${trunkTop} Q ${controlX} ${controlY} ${endX} ${endY}`}
+              fill="none"
+              stroke={isSelected ? '#6B5845' : '#8B7355'}
+              strokeWidth={isSelected ? 4 : 3}
+              strokeLinecap="round"
+              filter="url(#pencilSketch)"
+              style={{ cursor: 'pointer', transition: 'all 0.3s' }}
+              onClick={() => onBranchClick(branch.track)}
+            />
+
+            {/* Leaf cluster */}
+            <g onClick={() => onBranchClick(branch.track)} style={{ cursor: 'pointer' }}>
+              <LeafCluster
+                x={endX}
+                y={endY}
+                track={branch.track}
+                size="medium"
+                rotation={pos.angle}
+                leafCount={8}
+                mastery={masteryPercent}
+              />
+            </g>
+
+            {/* Flowers on mastered branches */}
+            {hasFlowers && (
+              <FlowerCluster 
+                x={endX} 
+                y={endY} 
+                count={Math.min(branch.progress.mastered, 8)} 
+              />
+            )}
+
+            {/* Label */}
+            <ScrollLabel
+              x={endX}
+              y={endY - 60}
+              text={branch.displayName}
+              width={140}
+              onClick={() => onBranchClick(branch.track)}
+            />
+
+            {/* Progress when selected */}
+            {isSelected && (
+              <g transform={`translate(${endX}, ${endY + 50})`}>
+                <circle r="18" fill="#FFFEF7" stroke="#8B7355" strokeWidth="1.5" />
+                <text
+                  textAnchor="middle"
+                  dy="0.35em"
+                  fontFamily="'Kalam', cursive"
+                  fontSize="13"
+                  fontWeight="bold"
+                  fill="#4a5d3a"
+                >
+                  {branch.progress.percent}%
+                </text>
+              </g>
+            )}
+          </g>
+        );
+      })}
+
+      {/* Overall progress */}
+      <g transform={`translate(${centerX}, ${groundY - 110})`}>
+        <ellipse
+          rx="30"
+          ry="25"
+          fill="#FFFEF7"
+          stroke="#8B7355"
+          strokeWidth="2"
+          filter="url(#labelShadow)"
+        />
+        <text
+          textAnchor="middle"
+          dy="-0.1em"
+          fontFamily="'Permanent Marker', cursive"
+          fontSize="18"
+          fill="#7FA663"
+        >
+          {Math.round(branches.reduce((sum, b) => sum + b.progress.percent, 0) / branches.length)}%
+        </text>
+        <text
+          textAnchor="middle"
+          y="15"
+          fontFamily="'Kalam', cursive"
+          fontSize="10"
+          fill="#6B5845"
+        >
+          growing
+        </text>
+      </g>
+
+      {/* Signature */}
+      <text
+        x={width - 20}
+        y={height - 15}
+        textAnchor="end"
+        fontFamily="'Amatic SC', cursive"
+        fontSize="12"
+        fill="#9B8B7E"
+        fontStyle="italic"
+      >
+        Dear Adeline
       </text>
     </svg>
   );
-}
-
-function getLeafColor(mastery: string): string {
-  switch (mastery) {
-    case 'MASTERED':
-      return '#7BA05B';
-    case 'PROFICIENT':
-      return '#98FB98';
-    case 'PRACTICING':
-      return '#FFDAB9';
-    case 'INTRODUCED':
-      return '#FFE5B4';
-    default:
-      return '#e0e0e0';
-  }
 }
