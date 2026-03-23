@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
-import { db } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get student data
-    const student = await db.user.findUnique({
+    const student = await prisma.user.findUnique({
       where: { id: user.userId },
       include: {
         standardsProgress: {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     const gradeBand = getGradeBand(student.gradeLevel);
 
     // Get all standards for this grade level (the "leaves")
-    const allStandards = await db.stateStandard.findMany({
+    const allStandards = await prisma.stateStandard.findMany({
       where: {
         gradeLevel: student.gradeLevel || '5th'
       },
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     // Calculate overall progress
     const totalLeaves = allStandards.length;
     const masteredLeaves = student.standardsProgress.filter(
-      sp => sp.mastery === 'MASTERED'
+      (sp: any) => sp.mastery === 'MASTERED'
     ).length;
     const progressPercent = totalLeaves > 0 
       ? Math.round((masteredLeaves / totalLeaves) * 100)
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
     const recentGrowth = student.standardsProgress.filter(
-      sp => sp.demonstratedAt >= thirtyDaysAgo
+      (sp: any) => sp.demonstratedAt >= thirtyDaysAgo
     ).length;
 
     return NextResponse.json({

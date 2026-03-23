@@ -143,7 +143,10 @@ async function seedOpportunities() {
 
     for (const opportunity of sampleOpportunities) {
       await prisma.opportunity.create({
-        data: opportunity
+        data: {
+          ...opportunity,
+          isActive: true
+        }
       });
     }
 
