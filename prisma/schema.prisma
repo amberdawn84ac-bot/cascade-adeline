@@ -208,10 +208,10 @@ model Opportunity {
   ageRange         String?         @map("age_range")
   matchedInterests String[]        @map("matched_interests")
   isActive         Boolean         @map("is_active")
-  createdById      String          @db.Uuid
+  createdById      String?         @db.Uuid
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
-  createdBy        User            @relation("OpportunityCreator", fields: [createdById], references: [id])
+  createdBy        User?           @relation("OpportunityCreator", fields: [createdById], references: [id])
 
   @@index([createdById])
 }
@@ -879,6 +879,9 @@ enum OpportunityType {
   APPRENTICESHIP
   SERVICE_PROJECT
   SCHOLARSHIP
+  SPELLING_BEE
+  COMPETITION
+  EVENT
 }
 
 model SourceGapRequest {
