@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BotanicalFilters } from '../botanical/filters';
+import { BotanicalFilters, getTrackColors } from '../botanical/filters';
 import { LeafCluster, FlowerCluster, ScrollLabel, TreeTrunk, SketchedGrass, ScrollFlourish } from '../botanical/components';
 
 interface Branch {
