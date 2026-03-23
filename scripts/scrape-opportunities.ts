@@ -242,6 +242,26 @@ async function scrapeAllOpportunities() {
     // Also add some manually curated real opportunities
     const curatedOpportunities: ScrapedOpportunity[] = [
       {
+        title: "Braum's Book Buddy Reading Program",
+        type: "CONTEST",
+        description: "Read 6 books and earn a free ice cream treat! Braum's Book Buddy program encourages reading for children ages 4-12. Available at participating Braum's stores.",
+        url: "https://www.braums.com/book-buddy/",
+        deadline: undefined, // Ongoing program
+        ageRange: "4-12 years",
+        matchedInterests: ["Reading", "Language Arts", "Rewards"],
+        sourceUrl: "https://www.braums.com/"
+      },
+      {
+        title: "Pizza Hut BOOK IT! Program",
+        type: "CONTEST", 
+        description: "Read books and earn free personal pan pizzas! The BOOK IT! Program motivates children to read by rewarding them with pizza. Available for grades K-6.",
+        url: "https://www.bookitprogram.com/",
+        deadline: undefined, // Ongoing program
+        ageRange: "5-11 years",
+        matchedInterests: ["Reading", "Language Arts", "Rewards", "Food"],
+        sourceUrl: "https://www.bookitprogram.com/"
+      },
+      {
         title: "National Spelling Bee 2024",
         type: "SPELLING_BEE",
         description: "The nation's most prestigious spelling competition for students in grades 4-8. Local competitions lead to regional and national championships.",
@@ -290,6 +310,36 @@ async function scrapeAllOpportunities() {
         ageRange: "12-18 years",
         matchedInterests: ["Art", "Writing", "Creative", "Portfolio"],
         sourceUrl: "https://www.artandwriting.org/"
+      },
+      {
+        title: "Chuck E. Cheese Reading Rewards",
+        type: "CONTEST",
+        description: "Kids can earn 10 free Chuck E. Cheese tokens for reading every day for 2 weeks. Download the reading calendar and bring it in for rewards!",
+        url: "https://www.chuckecheese.com/rewards-calendar",
+        deadline: undefined, // Ongoing program
+        ageRange: "3-12 years",
+        matchedInterests: ["Reading", "Language Arts", "Rewards", "Fun"],
+        sourceUrl: "https://www.chuckecheese.com/"
+      },
+      {
+        title: "Half Price Books Summer Reading Program",
+        type: "CONTEST",
+        description: "Kids can earn Bookworm Bucks for reading during summer break. Read for 300 minutes to earn $5 in Bookworm Bucks to spend at Half Price Books.",
+        url: "https://www.hpb.com/summer-reading",
+        deadline: new Date("2024-07-31"),
+        ageRange: "6-14 years",
+        matchedInterests: ["Reading", "Language Arts", "Summer", "Books"],
+        sourceUrl: "https://www.hpb.com/"
+      },
+      {
+        title: "TD Bank Summer Reading Program",
+        type: "CONTEST",
+        description: "Read 10 books this summer and get $10 deposited into a new or existing TD Simple Savings account. Great way to encourage reading and saving!",
+        url: "https://www.td.com/us/en/personal-banking/td-bank-reading",
+        deadline: new Date("2024-08-31"),
+        ageRange: "5-18 years",
+        matchedInterests: ["Reading", "Language Arts", "Financial", "Summer"],
+        sourceUrl: "https://www.td.com/"
       }
     ];
 

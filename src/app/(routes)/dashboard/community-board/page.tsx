@@ -76,14 +76,17 @@ export default function CommunityBoardPage() {
               {/* Opportunity Header */}
               <div className="p-4 flex items-center gap-3 border-b border-[#E7DAC3] bg-white">
                 <div className="w-10 h-10 rounded-full bg-[#BD6809] text-white flex items-center justify-center font-bold">
-                  {opportunity.type === 'SPELLING_BEE' && '📝'}
-                  {opportunity.type === 'CONTEST' && '🏆'}
-                  {opportunity.type === 'GRANT' && '💰'}
-                  {opportunity.type === 'SCHOLARSHIP' && '🎓'}
-                  {opportunity.type === 'APPRENTICESHIP' && '🔧'}
-                  {opportunity.type === 'SERVICE_PROJECT' && '🤝'}
-                  {opportunity.type === 'COMPETITION' && '⚡'}
-                  {opportunity.type === 'EVENT' && '📅'}
+                  {opportunity.title.includes('Reading') || opportunity.title.includes('BOOK IT') || opportunity.title.includes('Book Buddy') ? '📚' :
+                   opportunity.type === 'SPELLING_BEE' ? '📝' :
+                   opportunity.type === 'CONTEST' && opportunity.title.includes('Pizza') ? '🍕' :
+                   opportunity.type === 'CONTEST' && opportunity.title.includes('Ice Cream') ? '🍦' :
+                   opportunity.type === 'CONTEST' ? '🏆' :
+                   opportunity.type === 'GRANT' ? '💰' :
+                   opportunity.type === 'SCHOLARSHIP' ? '🎓' :
+                   opportunity.type === 'APPRENTICESHIP' ? '🔧' :
+                   opportunity.type === 'SERVICE_PROJECT' ? '🤝' :
+                   opportunity.type === 'COMPETITION' ? '⚡' :
+                   opportunity.type === 'EVENT' ? '📅' : '📚'}
                 </div>
                 <div>
                   <p className="font-bold text-[#2F4731]">{opportunity.title}</p>
@@ -93,8 +96,15 @@ export default function CommunityBoardPage() {
                   </p>
                 </div>
                 <div className="ml-auto">
-                  <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold">
-                    {opportunity.type.replace('_', ' ')}
+                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    opportunity.title.includes('Reading') || opportunity.title.includes('BOOK IT') || opportunity.title.includes('Book Buddy')
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {opportunity.title.includes('Reading') || opportunity.title.includes('BOOK IT') || opportunity.title.includes('Book Buddy')
+                      ? 'Reading Program'
+                      : opportunity.type.replace('_', ' ')
+                    }
                   </div>
                 </div>
               </div>
