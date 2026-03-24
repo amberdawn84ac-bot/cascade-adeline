@@ -242,6 +242,8 @@ model TranscriptEntry {
   @@index([userId])
   @@index([mappedSubject])
   @@index([planStandardId])
+  @@index([dateCompleted])
+  @@index([userId, dateCompleted])
 }
 
 model Concept {

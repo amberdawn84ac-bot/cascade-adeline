@@ -94,57 +94,108 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Create transcript entry for each subject credit award
-        for (const award of creditAwards) {
-          let planStandardId: string | null = null;
+        // Create transcript entries in a transaction to ensure data consistency
+        transcriptEntries = await prisma.$transaction(async (tx) => {
+          const entries = [];
           
-          // Try to match to learning plan standard
-          if (plan) {
-            const subjectLower = award.subject.toLowerCase();
-            const matched = plan.planStandards.find(ps =>
-              ps.standard.subject.toLowerCase().includes(subjectLower) ||
-              subjectLower.includes(ps.standard.subject.toLowerCase())
-            );
-            if (matched) {
-              planStandardId = matched.id;
-              // Update StudentStandardProgress
-              await prisma.studentStandardProgress.upsert({
-                where: { userId_standardId: { userId: user.userId, standardId: matched.standardId } },
-                update: { 
-                  microcreditsEarned: { increment: award.hours }, 
-                  lastActivityAt: new Date(), 
-                  mastery: 'DEVELOPING' 
-                },
-                create: { 
-                  userId: user.userId, 
-                  standardId: matched.standardId, 
-                  microcreditsEarned: award.hours, 
-                  lastActivityAt: new Date(), 
-                  mastery: 'DEVELOPING', 
-                  evidence: {} 
-                },
-              });
+          for (const award of creditAwards) {
+            let planStandardId: string | null = null;
+            
+            // Try to match to learning plan standard
+            if (plan) {
+              const subjectLower = award.subject.toLowerCase();
+              const matched = plan.planStandards.find(ps =>
+                ps.standard.subject.toLowerCase().includes(subjectLower) ||
+                subjectLower.includes(ps.standard.subject.toLowerCase())
+              );
+              if (matched) {
+                planStandardId = matched.id;
+                // Update StudentStandardProgress
+                await tx.studentStandardProgress.upsert({
+                  where: { userId_standardId: { userId: user.userId, standardId: matched.standardId } },
+                  update: { 
+                    microcreditsEarned: { increment: award.hours }, 
+                    lastActivityAt: new Date(), 
+                    mastery: 'DEVELOPING' 
+                  },
+                  create: { 
+                    userId: user.userId, 
+                    standardId: matched.standardId, 
+                    microcreditsEarned: award.hours, 
+                    lastActivityAt: new Date(), 
+                    mastery: 'DEVELOPING', 
+                    evidence: {} 
+                  },
+                });
+              }
             }
+            
+            const entry = await tx.transcriptEntry.create({
+              data: {
+                userId: user.userId,
+                activityName: `${title} - ${award.subject}`,
+                mappedSubject: award.subject,
+                creditsEarned: award.hours,
+                dateCompleted: new Date(),
+                notes: `Lesson completed with ${score}% mastery (${award.standards.length} standards)`,
+                planStandardId,
+                masteryEvidence: { score, correct, total, quizResults, standards: award.standards },
+                metadata: { creditId, gradeLevel, source: 'lesson-stream', primarySubject: subject },
+              },
+            });
+            
+            entries.push(entry);
           }
           
-          const entry = await prisma.transcriptEntry.create({
-            data: {
-              userId: user.userId,
-              activityName: `${title} - ${award.subject}`,
-              mappedSubject: award.subject,
-              creditsEarned: award.hours,
-              dateCompleted: new Date(),
-              notes: `Lesson completed with ${score}% mastery (${award.standards.length} standards)`,
-              planStandardId,
-              masteryEvidence: { score, correct, total, quizResults, standards: award.standards },
-              metadata: { creditId, gradeLevel, source: 'lesson-stream', primarySubject: subject },
-            },
-          });
-          
-          transcriptEntries.push(entry);
-        }
+          return entries;
+        });
 
         console.log(`[lesson-complete] ${transcriptEntries.length} transcript entries written — ${totalHours} total hours for "${title}"`);
+
+        // Note: Journey plan cache does NOT need invalidation - /api/journey/plan already
+        // merges live credit data with cached plan structure (see route.ts:124)
+
+        // ── Persist quiz results to StudentLessonProgress for historical tracking ────────
+        if (results.length > 0 && creditId) {
+          try {
+            const quizProgressRecords = await Promise.allSettled(
+              results.map(async (result) => {
+                const block = blocks[result.blockIndex];
+                if (block?.type === 'quiz') {
+                  return prisma.studentLessonProgress.upsert({
+                    where: {
+                      userId_lessonId_blockId: {
+                        userId: user.userId,
+                        lessonId: creditId,
+                        blockId: `block-${result.blockIndex}`,
+                      },
+                    },
+                    update: {
+                      completed: true,
+                      response: { isCorrect: result.isCorrect, timestamp: new Date().toISOString() },
+                      score: result.isCorrect ? 100 : 0,
+                      completedAt: new Date(),
+                    },
+                    create: {
+                      userId: user.userId,
+                      lessonId: creditId,
+                      blockId: `block-${result.blockIndex}`,
+                      completed: true,
+                      response: { isCorrect: result.isCorrect, timestamp: new Date().toISOString() },
+                      score: result.isCorrect ? 100 : 0,
+                      timeSpent: 0,
+                      completedAt: new Date(),
+                    },
+                  });
+                }
+              })
+            );
+            const savedQuizzes = quizProgressRecords.filter(r => r.status === 'fulfilled').length;
+            console.log(`[lesson-complete] Saved ${savedQuizzes}/${results.length} quiz results to StudentLessonProgress`);
+          } catch (quizErr) {
+            console.error('[lesson-complete] Quiz persistence failed (non-fatal):', quizErr);
+          }
+        }
 
         // ── Record StudentStandardProgress for all standards across all subjects ────────
         const allStandards = new Set<string>();
