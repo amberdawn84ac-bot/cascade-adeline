@@ -29,6 +29,7 @@ import { createServerClient } from '@supabase/ssr';
 const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
 
 const NAV_ITEMS = [
+  { label: 'My Journey', href: '/dashboard/journey', icon: Mountain },
   { label: 'Community Board', href: '/dashboard/community-board', icon: Users },
   { label: 'Future Prep', href: '/dashboard/college-prep', icon: GraduationCap },
   { label: 'Settings', href: '/settings', icon: Settings },
