@@ -888,13 +888,34 @@ export default function JourneyPage() {
                     const handsOnBlock = lessonBlocks.find(b => b.type === 'hands-on');
                     const content = handsOnBlock?.content;
                     const isObject = content && typeof content === 'object' && !Array.isArray(content);
+                    
+                    // Type guard for ScienceVariable
+                    const validIcons = ['plus', 'minus', 'heat', 'cool', 'add', 'remove'] as const;
+                    const isScienceVariable = (v: unknown): v is { name: string; label: string; icon?: 'plus' | 'minus' | 'heat' | 'cool' | 'add' | 'remove'; effect: number } => {
+                      if (typeof v !== 'object' || v === null) return false;
+                      const obj = v as any;
+                      return (
+                        typeof obj.name === 'string' &&
+                        typeof obj.label === 'string' &&
+                        typeof obj.effect === 'number' &&
+                        (!('icon' in obj) || validIcons.includes(obj.icon))
+                      );
+                    };
+                    
+                    // Validate and filter variables array
+                    const rawVariables = isObject && 'variables' in content && Array.isArray(content.variables) 
+                      ? content.variables 
+                      : [];
+                    const validVariables = rawVariables.filter(isScienceVariable);
+                    const variables = validVariables.length > 0 
+                      ? validVariables 
+                      : [{ name: 'variable1', label: 'Adjust Variable', icon: 'plus' as const, effect: 0.5 }];
+                    
                     return (
                       <ScienceLab
-                        concept={isObject && 'concept' in content ? String(content.concept) : "Science Experiment"}
-                        description={isObject && 'description' in content ? String(content.description) : "Interactive science experiment"}
-                        variables={isObject && 'variables' in content && Array.isArray(content.variables) ? content.variables : [
-                          { name: 'variable1', label: 'Adjust Variable', icon: 'plus', effect: 0.5 },
-                        ]}
+                        concept={isObject && 'concept' in content && content.concept != null ? String(content.concept) : "Science Experiment"}
+                        description={isObject && 'description' in content && content.description != null ? String(content.description) : "Interactive science experiment"}
+                        variables={variables}
                         visualType="ph-scale"
                         initialValue={7}
                         minValue={0}
