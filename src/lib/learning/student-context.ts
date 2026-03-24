@@ -25,6 +25,14 @@ export interface SubjectLevels {
   history: number | null;
 }
 
+export interface RecentLesson {
+  activityName: string;
+  subject: string;
+  dateCompleted: Date;
+  creditsEarned: number;
+  masteryScore?: number;
+}
+
 export interface StudentContext {
   name: string;
   /** Overall grade level string (e.g. "5", "K") — kept as fallback display value */
@@ -41,6 +49,7 @@ export interface StudentContext {
   cognitiveProfile: string | null;
   bktSummary: string;
   targetStandards: TargetStandard[];
+  recentLessons: RecentLesson[];
   systemPromptAddendum: string;
 }
 
@@ -105,6 +114,36 @@ function levelToGradeString(level: number): string {
   if (level >= 11) return '11-12';
   if (level >= 9) return '9-10';
   return String(level);
+}
+
+/** Fetch recent completed lessons from transcript */
+async function fetchRecentLessons(userId: string, limit: number = 10): Promise<RecentLesson[]> {
+  try {
+    const entries = await prisma.transcriptEntry.findMany({
+      where: { userId },
+      orderBy: { dateCompleted: 'desc' },
+      take: limit,
+      select: {
+        activityName: true,
+        mappedSubject: true,
+        dateCompleted: true,
+        creditsEarned: true,
+        masteryEvidence: true,
+      },
+    });
+
+    return entries.map(e => ({
+      activityName: e.activityName,
+      subject: e.mappedSubject,
+      dateCompleted: e.dateCompleted,
+      creditsEarned: Number(e.creditsEarned),
+      masteryScore: e.masteryEvidence && typeof e.masteryEvidence === 'object' && 'score' in e.masteryEvidence 
+        ? Number(e.masteryEvidence.score) 
+        : undefined,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /** Fetch the top 3 standards this student hasn't mastered yet for their grade. */
@@ -238,10 +277,11 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     }
   }
 
-  // Step 2: fetch ZPD summary + target standards for the ACTIVE grade level, in parallel
-  const [bktSummary, targetStandards] = await Promise.all([
+  // Step 2: fetch ZPD summary + target standards + recent lessons for the ACTIVE grade level, in parallel
+  const [bktSummary, targetStandards, recentLessons] = await Promise.all([
     getZPDSummaryForPrompt(userId, { subjectArea: opts?.subjectArea, limit: 5 }).catch(() => ''),
     fetchTargetStandards(userId, activeGradeLevel),
+    fetchRecentLessons(userId, 10),
   ]);
 
   const name = user?.name ?? 'Explorer';
@@ -307,6 +347,21 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     );
   }
 
+  // Add recent lesson completion history
+  if (recentLessons.length > 0) {
+    const lessonLines = recentLessons
+      .slice(0, 5) // Show last 5 lessons
+      .map((l, i) => {
+        const date = new Date(l.dateCompleted).toLocaleDateString();
+        const score = l.masteryScore ? ` (${l.masteryScore}% mastery)` : '';
+        return `  ${i + 1}. ${l.activityName} - ${l.subject}${score} - ${date}`;
+      })
+      .join('\n');
+    parts.push(
+      `RECENT COMPLETED LESSONS:\nThe student has recently completed these lessons. You can reference their progress and build on what they've learned:\n${lessonLines}\n\nYou MAY acknowledge their progress naturally in conversation (e.g., "I see you just finished that Trail of Tears lesson yesterday"). Use this to inform what to teach next and avoid repeating recently covered material.`
+    );
+  }
+
   // Inject approved reading list based on ELA level (or overall grade)
   const elaGradeNum = subjectLevels.ela !== null ? subjectLevels.ela : (() => {
     const g = gradeLevel.trim();
@@ -351,6 +406,7 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     cognitiveProfile,
     bktSummary,
     targetStandards,
+    recentLessons,
     systemPromptAddendum,
   };
 
