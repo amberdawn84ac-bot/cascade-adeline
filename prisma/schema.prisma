@@ -1086,6 +1086,7 @@ model Lesson {
   subject           String
   gradeLevel        String    @map("grade_level")
   lessonJson        Json      @map("lesson_json")
+  contentBlocks     Json?     @map("content_blocks")
   standardsCodes    String[]  @map("standards_codes")
   estimatedDuration Int       @map("estimated_duration") // minutes
   isActive          Boolean   @default(true) @map("is_active")
