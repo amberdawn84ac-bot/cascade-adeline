@@ -2,6 +2,15 @@ import prisma from '@/lib/db';
 import { getZPDSummaryForPrompt } from '@/lib/zpd-engine';
 import { getRecommendedBooks } from '@/lib/learning/curated-library';
 
+async function getRedis() {
+  try {
+    const { default: redis } = await import('@/lib/redis');
+    return redis;
+  } catch {
+    return null;
+  }
+}
+
 export interface TargetStandard {
   code: string;
   subject: string;
@@ -42,11 +51,26 @@ interface CacheEntry {
 }
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const REDIS_CACHE_TTL_SEC = 30 * 60; // 30 minutes
 
-export function invalidateStudentContext(userId: string): void {
-  // Invalidate all subject variants for this user
+export async function invalidateStudentContext(userId: string): Promise<void> {
+  // Invalidate all subject variants for this user in memory cache
   for (const key of cache.keys()) {
     if (key.startsWith(`${userId}:`)) cache.delete(key);
+  }
+  
+  // Invalidate in Redis cache
+  const redis = await getRedis();
+  if (redis) {
+    try {
+      const pattern = `student-context:${userId}:*`;
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    } catch (err) {
+      console.error('[student-context] Redis invalidation failed:', err);
+    }
   }
 }
 
@@ -151,9 +175,28 @@ async function fetchTargetStandards(userId: string, gradeLevel: string): Promise
 export async function getStudentContext(userId: string, opts?: { subjectArea?: string }): Promise<StudentContext> {
   const cacheKey = `${userId}:${opts?.subjectArea ?? 'all'}`;
   const now = Date.now();
+  
+  // Layer 1: In-memory cache (fastest)
   const cached = cache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
     return cached.data;
+  }
+  
+  // Layer 2: Redis cache (fast, shared across instances)
+  const redis = await getRedis();
+  if (redis) {
+    try {
+      const redisKey = `student-context:${cacheKey}`;
+      const redisData = await redis.get(redisKey);
+      if (redisData && typeof redisData === 'string') {
+        const data = JSON.parse(redisData) as StudentContext;
+        // Populate in-memory cache
+        cache.set(cacheKey, { data, expiresAt: now + CACHE_TTL_MS });
+        return data;
+      }
+    } catch (err) {
+      console.error('[student-context] Redis read failed:', err);
+    }
   }
 
   // Step 1: fetch user profile including all subject-specific levels
@@ -299,7 +342,17 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     systemPromptAddendum,
   };
 
+  // Store in both cache layers
   cache.set(cacheKey, { data, expiresAt: now + CACHE_TTL_MS });
+  
+  // Store in Redis (non-blocking)
+  if (redis) {
+    const redisKey = `student-context:${cacheKey}`;
+    redis.setex(redisKey, REDIS_CACHE_TTL_SEC, JSON.stringify(data)).catch(err => {
+      console.error('[student-context] Redis write failed:', err);
+    });
+  }
+  
   return data;
 }
 

@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
   const subject = searchParams.get('subject') || undefined;
   const startDate = parseDate(searchParams.get('startDate') || undefined);
   const endDate = parseDate(searchParams.get('endDate') || undefined);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100); // Max 100 per page
 
   const requesterId = sessionUser.userId;
   const requesterRole = sessionUser.role; // always from session, never query params
@@ -54,11 +56,30 @@ export async function GET(req: NextRequest) {
     if (endDate) where.dateCompleted.lte = endDate;
   }
 
-  const entries = await prisma.transcriptEntry.findMany({
-    where,
-    orderBy: { dateCompleted: 'desc' },
-  });
+  const skip = (page - 1) * limit;
 
-  return Response.json({ entries });
+  const [entries, totalCount] = await Promise.all([
+    prisma.transcriptEntry.findMany({
+      where,
+      orderBy: { dateCompleted: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.transcriptEntry.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return Response.json({ 
+    entries,
+    pagination: {
+      page,
+      limit,
+      totalCount,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
+  });
 }
 
