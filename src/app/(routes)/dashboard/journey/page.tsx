@@ -884,21 +884,26 @@ export default function JourneyPage() {
                     />
                   )}
 
-                  {lessonCredit?.subject.toLowerCase().includes('science') && lessonBlocks?.some(b => b.type === 'hands-on') && (
-                    <ScienceLab
-                      concept={lessonBlocks.find(b => b.type === 'hands-on')?.content?.concept || "Science Experiment"}
-                      description={lessonBlocks.find(b => b.type === 'hands-on')?.content?.description || "Interactive science experiment"}
-                      variables={lessonBlocks.find(b => b.type === 'hands-on')?.content?.variables || [
-                        { name: 'variable1', label: 'Adjust Variable', icon: 'plus', effect: 0.5 },
-                      ]}
-                      visualType="ph-scale"
-                      initialValue={7}
-                      minValue={0}
-                      maxValue={14}
-                      optimalRange={[6, 7]}
-                      labels={{ 0: 'Very Acidic', 7: 'Neutral', 14: 'Very Basic' }}
-                    />
-                  )}
+                  {lessonCredit?.subject.toLowerCase().includes('science') && lessonBlocks?.some(b => b.type === 'hands-on') && (() => {
+                    const handsOnBlock = lessonBlocks.find(b => b.type === 'hands-on');
+                    const content = handsOnBlock?.content;
+                    const isObject = content && typeof content === 'object' && !Array.isArray(content);
+                    return (
+                      <ScienceLab
+                        concept={isObject && 'concept' in content ? String(content.concept) : "Science Experiment"}
+                        description={isObject && 'description' in content ? String(content.description) : "Interactive science experiment"}
+                        variables={isObject && 'variables' in content && Array.isArray(content.variables) ? content.variables : [
+                          { name: 'variable1', label: 'Adjust Variable', icon: 'plus', effect: 0.5 },
+                        ]}
+                        visualType="ph-scale"
+                        initialValue={7}
+                        minValue={0}
+                        maxValue={14}
+                        optimalRange={[6, 7]}
+                        labels={{ 0: 'Very Acidic', 7: 'Neutral', 14: 'Very Basic' }}
+                      />
+                    );
+                  })()}
 
                   {/* Hands-On Activity */}
                   <div className="border-2 border-[#2F4731] rounded-2xl overflow-hidden">
