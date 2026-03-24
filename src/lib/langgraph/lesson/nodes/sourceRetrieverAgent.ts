@@ -3,7 +3,21 @@ import { ingestPrimarySource } from '@/lib/hippocampus/ingest';
 import prisma from '@/lib/db';
 import type { LessonBlock, LessonStateType, RetrievedSourceSummary } from '../lessonState';
 
-const HISTORY_SUBJECTS = ['history', 'social studies', 'civics', 'government', 'economics', 'american history', 'world history', 'oklahoma history', 'world history'];
+const HISTORY_SUBJECTS = [
+  'history', 
+  'social studies', 
+  'civics', 
+  'government', 
+  'economics', 
+  'american history', 
+  'world history', 
+  'oklahoma history',
+  'u.s. history',
+  'us history',
+  'truth-based history',
+  'historical',
+  'social',
+];
 const SCIENCE_SUBJECTS = ['science', 'biology', 'chemistry', 'physics', 'earth science', 'environmental science', 'botany', 'zoology', 'ecology', 'astronomy', 'geology'];
 
 /** Trusted primary-source archives — results from these domains are authoritative. */

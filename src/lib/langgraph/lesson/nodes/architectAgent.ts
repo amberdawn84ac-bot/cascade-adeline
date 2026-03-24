@@ -53,7 +53,21 @@ const HISTORY_NARRATIVE_GAP_EXAMPLE = [
   'activity',
 ];
 
-const HISTORY_SUBJECTS = ['history', 'social studies', 'civics', 'government', 'economics', 'american history', 'world history'];
+const HISTORY_SUBJECTS = [
+  'history', 
+  'social studies', 
+  'civics', 
+  'government', 
+  'economics', 
+  'american history', 
+  'world history', 
+  'oklahoma history',
+  'u.s. history',
+  'us history',
+  'truth-based history',
+  'historical',
+  'social',
+];
 
 function isHistorySubject(subject: string): boolean {
   const s = subject.toLowerCase();
