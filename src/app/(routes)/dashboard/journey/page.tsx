@@ -218,6 +218,7 @@ export default function JourneyPage() {
         });
         if (!fallback.ok) throw new Error('Failed to generate lesson');
         setLesson(await fallback.json());
+        setLessonLoading(false);
         return;
       }
       setLessonLoading(false);

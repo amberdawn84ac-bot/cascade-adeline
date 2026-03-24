@@ -5,6 +5,7 @@ import prisma from '@/lib/db';
 import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/contentCache';
 import { lessonBrain } from '@/lib/langgraph/lesson/lessonGraph';
 import { LessonBlock } from '@/lib/langgraph/lesson/lessonState';
+import { safeValidateLessonBlocks } from '@/lib/validation/lessonBlockSchema';
 
 export const maxDuration = 120;
 
@@ -72,7 +73,9 @@ export async function POST(req: NextRequest) {
       if (globalCached?.blocks) {
         console.log('[lesson-stream] GlobalContentCache HIT');
         const blocks = globalCached.blocks as LessonBlock[];
-        void saveToRedis(redisKey, blocks);
+        saveToRedis(redisKey, blocks).catch(err => 
+          console.warn('[lesson-stream] Redis save failed (non-fatal):', err)
+        );
         return streamBlocks(blocks);
       }
 
@@ -87,7 +90,9 @@ export async function POST(req: NextRequest) {
           if (data.blocks) {
             console.log('[lesson-stream] CachedLesson HIT');
             const blocks = data.blocks as LessonBlock[];
-            void saveToRedis(redisKey, blocks);
+            saveToRedis(redisKey, blocks).catch(err => 
+              console.warn('[lesson-stream] Redis save failed (non-fatal):', err)
+            );
             return streamBlocks(blocks);
           }
         }
@@ -121,10 +126,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Graph produced no blocks' }, { status: 500 });
     }
 
-    // Persist to all cache layers (non-blocking)
-    void persistLesson(user.userId, creditId, gradeLevel, gradeBracket, topicKey, redisKey, subject, title, allBlocks);
+    // Validate blocks before streaming to prevent malformed data from crashing frontend
+    const { valid: validatedBlocks, invalid: invalidBlocks } = safeValidateLessonBlocks(allBlocks);
+    
+    if (invalidBlocks.length > 0) {
+      console.warn(`[lesson-stream] Filtered out ${invalidBlocks.length} invalid blocks:`, invalidBlocks);
+    }
+    
+    if (validatedBlocks.length === 0) {
+      console.error('[lesson-stream] All blocks failed validation');
+      return NextResponse.json({ error: 'Generated lesson blocks are invalid' }, { status: 500 });
+    }
+    
+    console.log(`[lesson-stream] Validated ${validatedBlocks.length} blocks (${invalidBlocks.length} filtered)`);
 
-    return streamBlocks(allBlocks);
+    // Persist to all cache layers (non-blocking with error handling)
+    persistLesson(user.userId, creditId, gradeLevel, gradeBracket, topicKey, redisKey, subject, title, validatedBlocks as LessonBlock[]).catch(err => {
+      console.error('[lesson-stream] Cache persistence failed (non-fatal):', err);
+    });
+
+    return streamBlocks(validatedBlocks as LessonBlock[]);
 
   } catch (error) {
     console.error('[lesson-stream] Error:', error);

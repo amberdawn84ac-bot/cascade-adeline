@@ -9,6 +9,7 @@ import {
   Swanky_and_Moo_Moo,
 } from "next/font/google";
 import localFont from 'next/font/local';
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -86,7 +87,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${emilysCandy.variable} ${kalam.variable} ${kranky.variable} ${permanentMarker.variable} ${swankyAndMooMoo.variable} antialiased`}
       >
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );

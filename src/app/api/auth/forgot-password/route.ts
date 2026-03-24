@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { sendPasswordResetEmail } from '@/lib/email/email-service';
+import { withRateLimit, RATE_LIMITS } from '@/lib/middleware/rateLimiter';
 
 export async function POST(req: NextRequest) {
+  return withRateLimit(req, RATE_LIMITS.AUTH, async () => {
   const { email } = await req.json().catch(() => ({}));
 
   if (!email || typeof email !== 'string') {
@@ -34,4 +36,5 @@ export async function POST(req: NextRequest) {
   );
 
   return NextResponse.json({ ok: true });
+  });
 }

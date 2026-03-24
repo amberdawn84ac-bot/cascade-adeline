@@ -42,7 +42,24 @@ Return ONLY this JSON object with no other text:
     ]);
 
     const text = typeof response.content === 'string' ? response.content : JSON.stringify(response.content);
-    const data = JSON.parse(text.trim());
+    
+    let data;
+    try {
+      data = JSON.parse(text.trim());
+    } catch (parseError) {
+      console.error('[DailyBread] JSON parse error:', parseError);
+      console.error('[DailyBread] Raw response:', text.substring(0, 200));
+      
+      // Fallback to a meaningful default verse
+      data = {
+        verse: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.",
+        reference: "Proverbs 3:5-6",
+        original: "בָּטַח (batach) - to trust, to be confident",
+        originalMeaning: "To lean on, to feel safe and secure, to have confidence in",
+        translationNote: "The Hebrew conveys a sense of throwing your full weight onto something, complete reliance rather than partial trust",
+        context: "Written by Solomon as wisdom for living, emphasizing complete dependence on God rather than human wisdom"
+      };
+    }
 
     // Cache for 24 hours
     try {
@@ -52,7 +69,16 @@ Return ONLY this JSON object with no other text:
     return NextResponse.json(data);
   } catch (error) {
     console.error('[DailyBread] Generation error:', error);
-    return NextResponse.json({ error: 'Failed to generate daily bread' }, { status: 500 });
+    
+    // Return fallback verse instead of error
+    return NextResponse.json({
+      verse: "This is the day that the Lord has made; let us rejoice and be glad in it.",
+      reference: "Psalm 118:24",
+      original: "יוֹם (yom) - day, time, period",
+      originalMeaning: "A specific point in time, this present moment",
+      translationNote: null,
+      context: "Part of the Hallel psalms sung during Jewish festivals, celebrating God's faithfulness"
+    });
   }
 }
 

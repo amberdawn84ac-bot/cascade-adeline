@@ -294,8 +294,8 @@ List the next 4-8 individual 1-credit courses as trailAhead. Every creditsNeeded
       adelineMessage: result.adelineMessage,
     };
 
-    // Persist snapshot to User.metadata (fire-and-forget)
-    prisma.user.update({
+    // Persist snapshot to User.metadata (fire-and-forget with error handling)
+    void prisma.user.update({
       where: { id: user.userId },
       data: {
         metadata: {
@@ -304,7 +304,10 @@ List the next 4-8 individual 1-credit courses as trailAhead. Every creditsNeeded
           journeyPlanCachedAt: new Date().toISOString(),
         },
       },
-    }).catch(err => console.error('[journey/plan] Cache write failed:', err));
+    }).catch(err => {
+      console.error('[journey/plan] Cache write failed:', err);
+      // Non-fatal - journey plan still returned successfully
+    });
 
     return NextResponse.json({
       ...snapshot,
