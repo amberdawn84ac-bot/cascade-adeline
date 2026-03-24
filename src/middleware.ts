@@ -1,10 +1,14 @@
 // src/middleware.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { randomUUID } from 'crypto';
 
 const PROTECTED_PATHS = ['/dashboard', '/chat', '/parent', '/library', '/api/clubs', '/api/transcript'];
 
 export async function middleware(request: NextRequest) {
+  // Generate request ID for distributed tracing
+  const requestId = request.headers.get('x-request-id') || randomUUID();
+  
   let supabaseResponse = NextResponse.next({ request });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,7 +45,8 @@ export async function middleware(request: NextRequest) {
   // IMPORTANT: Do not write logic between createServerClient and auth.getUser().
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Edge timing header for observability
+  // Add request ID and timing headers for observability
+  supabaseResponse.headers.set('x-request-id', requestId);
   supabaseResponse.headers.set('x-edge-ts', Date.now().toString());
 
   const { pathname } = request.nextUrl;

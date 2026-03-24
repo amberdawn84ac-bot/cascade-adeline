@@ -6,8 +6,19 @@ import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/cont
 import { lessonBrain } from '@/lib/langgraph/lesson/lessonGraph';
 import { LessonBlock } from '@/lib/langgraph/lesson/lessonState';
 import { safeValidateLessonBlocks } from '@/lib/validation/lessonBlockSchema';
+import { z } from 'zod';
 
 export const maxDuration = 120;
+
+const LessonStreamRequestSchema = z.object({
+  subject: z.string().min(1, 'Subject is required').max(100),
+  title: z.string().min(1, 'Title is required').max(200),
+  description: z.string().max(1000).optional(),
+  creditId: z.string().uuid().optional(),
+  gradeLevel: z.string().max(20).optional(),
+  quizScore: z.number().min(0).max(100).optional(),
+  learningMode: z.enum(['expedition', 'classic']).optional(),
+});
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -27,10 +38,17 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { subject, title, description, creditId, gradeLevel: gradeLevelParam, quizScore, learningMode } = await req.json();
-    if (!subject || !title) {
-      return NextResponse.json({ error: 'subject and title required' }, { status: 400 });
+    const body = await req.json();
+    const validation = LessonStreamRequestSchema.safeParse(body);
+    
+    if (!validation.success) {
+      return NextResponse.json({ 
+        error: 'Invalid request body', 
+        details: validation.error.errors 
+      }, { status: 400 });
     }
+
+    const { subject, title, description, creditId, gradeLevel: gradeLevelParam, quizScore, learningMode } = validation.data;
 
     const regenerate = req.nextUrl.searchParams.get('regenerate') === 'true';
 
