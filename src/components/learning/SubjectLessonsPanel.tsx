@@ -378,13 +378,12 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
                     />
                   )}
 
-                  {subject.toLowerCase().includes('science') && (
+                  {subject.toLowerCase().includes('science') && false && (
                     <ScienceLab
-                      concept="Soil pH"
-                      description="Experiment with soil pH by adding lime (raises pH) or sulfur (lowers pH). Most plants prefer slightly acidic to neutral soil (pH 6-7)."
+                      concept="Science Experiment"
+                      description="Interactive science experiment"
                       variables={[
-                        { name: 'lime', label: 'Add Lime', icon: 'plus', effect: 0.5 },
-                        { name: 'sulfur', label: 'Add Sulfur', icon: 'minus', effect: -0.5 },
+                        { name: 'variable1', label: 'Adjust Variable', icon: 'plus', effect: 0.5 },
                       ]}
                       visualType="ph-scale"
                       initialValue={7}

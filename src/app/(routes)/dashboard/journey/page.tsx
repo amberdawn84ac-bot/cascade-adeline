@@ -884,13 +884,12 @@ export default function JourneyPage() {
                     />
                   )}
 
-                  {lessonCredit?.subject.toLowerCase().includes('science') && (
+                  {lessonCredit?.subject.toLowerCase().includes('science') && lessonBlocks?.some(b => b.type === 'hands-on') && (
                     <ScienceLab
-                      concept="Soil pH"
-                      description="Experiment with soil pH by adding lime (raises pH) or sulfur (lowers pH). Most plants prefer slightly acidic to neutral soil (pH 6-7)."
-                      variables={[
-                        { name: 'lime', label: 'Add Lime', icon: 'plus', effect: 0.5 },
-                        { name: 'sulfur', label: 'Add Sulfur', icon: 'minus', effect: -0.5 },
+                      concept={lessonBlocks.find(b => b.type === 'hands-on')?.content?.concept || "Science Experiment"}
+                      description={lessonBlocks.find(b => b.type === 'hands-on')?.content?.description || "Interactive science experiment"}
+                      variables={lessonBlocks.find(b => b.type === 'hands-on')?.content?.variables || [
+                        { name: 'variable1', label: 'Adjust Variable', icon: 'plus', effect: 0.5 },
                       ]}
                       visualType="ph-scale"
                       initialValue={7}
