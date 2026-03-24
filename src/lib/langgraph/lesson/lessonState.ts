@@ -32,7 +32,10 @@ export interface LessonBlock {
     | 'infographic'
     | 'primary_source'
     | 'investigation'
-    | 'source_gap';
+    | 'source_gap'
+    | 'choice'
+    | 'interactive_concept'
+    | 'branching_path';
   content: string | Record<string, unknown>;
   interactive?: {
     options?: string[];

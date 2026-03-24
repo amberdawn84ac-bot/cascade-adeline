@@ -5,11 +5,26 @@ import { LessonBlock, LessonStateType } from '../lessonState';
 
 const contentSchema = z.object({
   blocks: z.array(z.object({
-    type: z.enum(['text', 'scripture', 'prompt']),
+    type: z.enum(['text', 'scripture', 'prompt', 'choice', 'interactive_concept', 'branching_path']),
     content: z.string(),
     ok_standard: z.string().optional(),
     faith_tie: z.boolean().optional(),
-  })).min(2).max(5),
+    // Interactive fields for choice/branching blocks
+    choices: z.array(z.object({
+      label: z.string(),
+      description: z.string(),
+      nextPath: z.string().optional(),
+    })).optional(),
+    // Interactive concept fields
+    concept: z.string().optional(),
+    variables: z.array(z.object({
+      name: z.string(),
+      label: z.string(),
+      min: z.number().optional(),
+      max: z.number().optional(),
+      defaultValue: z.number().optional(),
+    })).optional(),
+  })).min(2).max(8),
 });
 
 const CONTENT_BLOCK_TYPES = ['primary_text', 'concept_text', 'critical_thinking', 'title'];
@@ -64,8 +79,8 @@ STUDENT PROFILE:
 ${isRemediation ? `\nREMEDIATION MODE: The student scored below 70% on the quiz. Reteach the SAME concept using a completely different approach — different analogy, different examples, different angle. Do NOT repeat what you already said.` : ''}${sourcesContext}
 
 CONTENT RULES:
-1. Create INTERACTIVE, BLOCK-BASED content — NOT narrative stories.
-2. Use RICH TYPOGRAPHY heavily:
+1. Create INTERACTIVE, DYNAMIC blocks with CHOICES and BRANCHING — NOT just text.
+2. Use RICH TYPOGRAPHY in text blocks:
    - ### Large headers for major sections
    - #### Smaller headers for subsections
    - **Bold** for key terms, vocabulary, important concepts
@@ -77,10 +92,13 @@ CONTENT RULES:
 4. Keep paragraphs SHORT (1–2 sentences max). Use visual spacing.
 5. History/Social Studies: Present facts and context. If real primary sources were provided above, reference them by title. NEVER invent document titles, dates, or quotations — only reference what is in the REAL PRIMARY SOURCES list above.
 6. Every lesson MUST include at least one faith tie connecting the concept to scripture or biblical worldview.
-7. Generate exactly:
-   - 1 or 2 "text" blocks (clear, visually formatted content with rich typography)
-   - 1 "scripture" block (a relevant verse with brief context — use original Hebrew/Greek name for God: Yahweh, Elohim, Yeshua — never the English translations "God" or "Jesus")
-   - 1 "prompt" block (a Socratic question to make them think — no right answer, makes them wrestle with the idea)
+7. Generate a MIX of block types:
+   - 1 "text" block (intro with rich typography)
+   - 1 "choice" block (student picks investigation path, topic focus, or learning approach - include 2-3 choices with labels and descriptions)
+   - 1 "interactive_concept" block (adjustable variables to explore the concept - include concept name and 2-3 variables with ranges)
+   - 1 "branching_path" block (student decision that affects what they learn next - include 2-3 paths with descriptions)
+   - 1 "scripture" block (relevant verse with brief context — use original Hebrew/Greek names: Yahweh, Elohim, Yeshua)
+   - 1 "prompt" block (Socratic question to make them think)
 
 ${mode === 'expedition' ? `
 EXPEDITION MODE CREATIVE FREEDOM (20-30%):
@@ -97,8 +115,14 @@ EXPEDITION MODE CREATIVE FREEDOM (20-30%):
   ]);
 
   const blocks: LessonBlock[] = result.blocks.map(b => ({
-    type: b.type,
+    type: b.type as any,
     content: b.content,
+    interactive: b.choices ? {
+      options: b.choices.map(c => c.label),
+      guidingQuestions: b.choices.map(c => c.description),
+    } : b.variables ? {
+      // Interactive concept with adjustable variables
+    } : undefined,
     metadata: {
       skills: [state.subject],
       ok_standard: b.ok_standard,
