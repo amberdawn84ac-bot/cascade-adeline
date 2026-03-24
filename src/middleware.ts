@@ -50,6 +50,15 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('x-edge-ts', Date.now().toString());
 
   const { pathname } = request.nextUrl;
+  
+  // Redirect old subject-specific rooms to unified journey page
+  const oldSubjectRooms = ['/dashboard/science', '/dashboard/math', '/dashboard/ela', '/dashboard/history'];
+  if (oldSubjectRooms.some(room => pathname.startsWith(room))) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard/journey';
+    return NextResponse.redirect(url);
+  }
+  
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
 
   if (!user && isProtected) {

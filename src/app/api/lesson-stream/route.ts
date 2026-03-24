@@ -6,6 +6,7 @@ import { getCachedContent, saveToCache, getGradeBracket } from '@/lib/cache/cont
 import { lessonBrain } from '@/lib/langgraph/lesson/lessonGraph';
 import { LessonBlock } from '@/lib/langgraph/lesson/lessonState';
 import { safeValidateLessonBlocks } from '@/lib/validation/lessonBlockSchema';
+import { withRetry, RetryPresets } from '@/lib/utils/retry';
 import { z } from 'zod';
 
 export const maxDuration = 120;
@@ -133,10 +134,17 @@ export async function POST(req: NextRequest) {
       ...(quizScore !== undefined ? { quizScore } : {}),
     };
 
-    // Run graph to completion — if it throws the outer catch returns 500
-    // which makes res.ok=false in the frontend, triggering fallback to /api/journey/lesson
-    console.log('[lesson-stream] Running lessonBrain.invoke()');
-    const finalState = await lessonBrain.invoke(initialState);
+    // Run graph to completion with retry logic for resilience
+    console.log('[lesson-stream] Running lessonBrain.invoke() with retry');
+    const finalState = await withRetry(
+      () => lessonBrain.invoke(initialState),
+      {
+        ...RetryPresets.STANDARD,
+        onRetry: (attempt, error) => {
+          console.warn(`[lesson-stream] Retry attempt ${attempt} after error:`, error instanceof Error ? error.message : String(error));
+        }
+      }
+    );
     const allBlocks: LessonBlock[] = finalState.blocks ?? [];
     console.log(`[lesson-stream] Graph complete — ${allBlocks.length} blocks`);
 

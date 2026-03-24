@@ -50,7 +50,7 @@ export function DynamicLessonViewer({
 
     quizBlocks.forEach((quiz, index) => {
       const userAnswer = quizAnswers.get(index);
-      const isCorrect = userAnswer === quiz.answer;
+      const isCorrect = quiz.answer && userAnswer === quiz.answer;
       
       if (isCorrect) {
         results.correctAnswers++;
@@ -76,8 +76,23 @@ export function DynamicLessonViewer({
 
   if (contentBlocks.length === 0) {
     return (
-      <div className={`text-center py-8 ${className}`}>
-        <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+      <div className={`space-y-6 ${className}`}>
+        {/* Loading skeleton */}
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+          <div className="space-y-3">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+          </div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="space-y-3">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+          </div>
+        </div>
+        <div className="text-center py-4">
+          <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-4 animate-pulse" />
         <p className="text-gray-600">No content available for this lesson.</p>
       </div>
     );

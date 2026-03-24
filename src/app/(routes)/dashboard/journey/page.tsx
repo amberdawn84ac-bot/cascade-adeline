@@ -13,6 +13,7 @@ import { ScienceLab } from '@/components/lessons/ScienceLab';
 import ReactMarkdown from 'react-markdown';
 import { LessonBlockList } from '@/components/lessons/LessonBlockRenderer';
 import type { LessonBlock } from '@/lib/langgraph/lesson/lessonState';
+import { GuidedTourModal } from '@/components/onboarding/GuidedTourModal';
 
 interface Credit {
   id: string;
@@ -287,6 +288,8 @@ export default function JourneyPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFEF7]">
+      {/* Guided Tour Modal */}
+      <GuidedTourModal />
 
       {/* ═══════════════════════════════════════════════════
           ZONE 1 — THE SUMMIT (Hero)

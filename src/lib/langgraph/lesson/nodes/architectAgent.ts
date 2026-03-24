@@ -100,12 +100,15 @@ const OAK_BLUEPRINT = [
 ];
 
 export async function architectAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
+  const mode = state.learningMode ?? 'classic';
+  // Expedition mode gets higher temperature for creative freedom (20-30% variability)
+  const temperature = mode === 'expedition' ? 0.65 : 0.3;
+  
   const model = new ChatOpenAI({
     model: 'gpt-4o-mini',
-    temperature: 0.3,
+    temperature,
   });
 
-  const mode = state.learningMode ?? 'classic';
   const interests = state.interests?.join(', ') || 'general';
   const isHistory = isHistorySubject(state.subject);
   const evidenceLevel = getEvidenceRequirement(state.gradeLevel);
@@ -138,7 +141,14 @@ Your ONLY job is to output a JSON array of strings that defines the ideal sequen
 LEARNING MODE: "${mode}"
 ${mode === 'classic'
   ? `CLASSIC MODE: Prioritize direct instruction, structured vocabulary, and formal assessment. Sequence should be: introduce concept → define vocabulary → check understanding → practice. Emphasis on mastery verification.`
-  : `EXPEDITION MODE: Prioritize narrative, exploration, and open-ended discovery. Sequence should be: hook with story → explore visually → wrestle with ideas → optional practice. Emphasis on curiosity and connection.`}
+  : `EXPEDITION MODE: Prioritize narrative, exploration, and open-ended discovery. Sequence should be: hook with story → explore visually → wrestle with ideas → optional practice. Emphasis on curiosity and connection.
+
+CREATIVE FREEDOM (20-30%): In Expedition mode, you have permission to:
+- Add unexpected twists or teen-choice branches
+- Suggest photo challenges or "pause & try this" prompts
+- Weave in surprising connections to student interests
+- Break the expected pattern if it serves engagement
+- Use humor, mystery, or dramatic tension to hook attention`}
 
 DEVELOPMENTAL EVIDENCE REQUIREMENT: "${evidenceLevel}"
 ${evidenceLevel === 'sensory-wonder'

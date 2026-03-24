@@ -324,6 +324,18 @@ export async function getStudentContext(userId: string, opts?: { subjectArea?: s
     );
   }
 
+  // Add dynamism instructions for Expedition mode
+  if (learningStyle && learningStyle.toUpperCase().includes('EXPEDITION')) {
+    parts.push(
+      `EXPEDITION MODE DYNAMISM (20-30% CREATIVE FREEDOM):\nYou have permission to break the expected pattern to maintain engagement:\n  • Add unexpected twists, cliffhangers, or plot turns\n  • Include "pause & try this" micro-challenges\n  • Suggest photo documentation opportunities\n  • Offer teen-choice branches ("Would you rather investigate X or Y?")\n  • Use humor, mystery, or dramatic tension\n  • Weave surprising connections to student interests\n  • Don't be predictable — surprise them while teaching`
+    );
+  }
+
+  // Add 8-track integration context
+  parts.push(
+    `8-TRACK INTEGRATED LEARNING SYSTEM:\nDear Adeline uses 8 integrated tracks that weave together multiple subjects. When generating lessons or projects, explicitly identify which tracks are touched:\n  1. God's Creation Science — Biology, Chemistry, Physics, Earth Science (faith-integrated)\n  2. Truth-Based History — Primary source investigation, "Follow the Money," narrative gap analysis\n  3. Mathematical Thinking — Real-world problem solving, data analysis, business math\n  4. Literary Arts — Reading, writing, rhetoric, public speaking\n  5. Domestic Arts — Cooking, sewing, homesteading, household management\n  6. Health & Naturopathy — Nutrition, herbalism, fitness, natural remedies\n  7. Trades & Entrepreneurship — Business, skilled trades, apprenticeships\n  8. Civic Engagement & Justice — Government, economics, social justice, community service\n\nWhen suggesting activities or projects, ALWAYS identify which tracks are integrated and HOW they connect. Example: "This project touches Track 1 (Science - soil testing), Track 3 (Math - calculating fertilizer ratios), and Track 5 (Domestic Arts - garden planning)."`
+  );
+
   const systemPromptAddendum = `\n\nCRITICAL STUDENT ADAPTATION RULES — THESE OVERRIDE ALL OTHER DEFAULTS:\n${parts.join('\n')}`;
 
   const data: StudentContext = {

@@ -25,10 +25,24 @@ export async function projectBrainstormer(state: AdelineStateType): Promise<Part
     const modeInstructions = learningMode === 'expedition'
       ? `
 LEARNING MODE: EXPEDITION
-MANDATORY: Every project idea MUST be cross-curricular — combining 2 or more subjects in a single integrated project. Examples of the kind of thinking required:
-- Building a raised garden bed: calculate lumber and soil volume (Math), test soil pH and nitrogen levels (Science), research the history of the crop you're growing (History/Social Studies), write a planting plan with timeline (ELA).
-- Raising chickens: calculate feed ratios and egg-to-cost math (Math), study biology of the egg cycle (Science), write a care manual (ELA), research historical farming practices (History).
-Each project must explicitly name WHICH subjects are woven together and HOW each subject is applied in practice. Single-subject projects are NOT acceptable in Expedition mode.`
+MANDATORY: Every project idea MUST be cross-curricular — combining 2 or more of the 8 INTEGRATED TRACKS in a single project.
+
+THE 8 TRACKS:
+1. God's Creation Science — Biology, Chemistry, Physics, Earth Science
+2. Truth-Based History — Primary source investigation, narrative gap analysis
+3. Mathematical Thinking — Real-world problem solving, data analysis, business math
+4. Literary Arts — Reading, writing, rhetoric, public speaking
+5. Domestic Arts — Cooking, sewing, homesteading, household management
+6. Health & Naturopathy — Nutrition, herbalism, fitness, natural remedies
+7. Trades & Entrepreneurship — Business, skilled trades, apprenticeships
+8. Civic Engagement & Justice — Government, economics, social justice, community service
+
+CROSS-TRACK PROJECT EXAMPLES:
+- Building a raised garden bed: Track 1 (Science - soil testing), Track 3 (Math - calculate lumber/volume), Track 2 (History - research crop origins), Track 4 (ELA - write planting plan), Track 5 (Domestic Arts - garden design)
+- Starting a baking business: Track 5 (Domestic Arts - baking), Track 3 (Math - pricing/profit), Track 7 (Entrepreneurship - business plan), Track 4 (ELA - marketing copy), Track 6 (Health - nutrition analysis)
+- Community justice project: Track 8 (Civic Engagement - identify issue), Track 2 (History - research precedents), Track 4 (ELA - write proposal), Track 3 (Math - budget analysis)
+
+Each project MUST explicitly state: "This project integrates Track X (how), Track Y (how), and Track Z (how)." Single-track projects are NOT acceptable in Expedition mode.`
       : `
 LEARNING MODE: CLASSIC
 Projects should be focused and single-subject — one clear academic discipline per project. Examples:

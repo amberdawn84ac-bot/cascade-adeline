@@ -20,9 +20,13 @@ export async function contentAgent(state: LessonStateType): Promise<Partial<Less
     return {};
   }
   const config = loadConfig();
+  const mode = state.learningMode ?? 'classic';
+  // Expedition mode gets higher temperature for creative freedom
+  const temperature = mode === 'expedition' ? 0.75 : 0.6;
+  
   const model = new ChatOpenAI({
     model: config.models.default || 'gpt-4o',
-    temperature: 0.7,
+    temperature,
   }).withStructuredOutput(contentSchema);
 
   const isRemediation = state.phase === 'remediation';
@@ -69,7 +73,16 @@ CONTENT RULES:
 7. Generate exactly:
    - 1 or 2 "text" blocks (the actual lesson narrative)
    - 1 "scripture" block (a relevant verse with brief context — use original Hebrew/Greek name for God: Yahweh, Elohim, Yeshua — never the English translations "God" or "Jesus")
-   - 1 "prompt" block (a Socratic question to make them think — no right answer, makes them wrestle with the idea)`;
+   - 1 "prompt" block (a Socratic question to make them think — no right answer, makes them wrestle with the idea)
+
+${mode === 'expedition' ? `
+EXPEDITION MODE CREATIVE FREEDOM (20-30%):
+- Add unexpected plot twists or cliffhangers
+- Include "pause & try this" micro-challenges
+- Suggest photo documentation opportunities
+- Offer teen-choice branches ("Would you rather investigate X or Y?")
+- Use humor, mystery, or dramatic tension to maintain engagement
+- Don't be afraid to break the expected pattern if it serves curiosity` : ''}`;
 
   const result = await model.invoke([
     { role: 'system', content: systemPrompt },
