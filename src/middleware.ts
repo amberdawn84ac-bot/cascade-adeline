@@ -1,13 +1,12 @@
 // src/middleware.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { randomUUID } from 'crypto';
 
 const PROTECTED_PATHS = ['/dashboard', '/chat', '/parent', '/library', '/api/clubs', '/api/transcript'];
 
 export async function middleware(request: NextRequest) {
   // Generate request ID for distributed tracing
-  const requestId = request.headers.get('x-request-id') || randomUUID();
+  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
   
   let supabaseResponse = NextResponse.next({ request });
 

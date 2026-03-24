@@ -1,16 +1,37 @@
 {
   "ci": {
     "collect": {
-      "url": ["http://localhost:3000", "http://localhost:3000/playground"],
+      "url": [
+        "http://localhost:3000",
+        "http://localhost:3000/dashboard/journey",
+        "http://localhost:3000/playground"
+      ],
       "numberOfRuns": 3,
-      "settings": {
-        "preset": "desktop",
-        "throttling": {
-          "rttMs": 40,
-          "throughputKbps": 10240,
-          "cpuSlowdownMultiplier": 1
+      "settings": [
+        {
+          "preset": "desktop",
+          "throttling": {
+            "rttMs": 40,
+            "throughputKbps": 10240,
+            "cpuSlowdownMultiplier": 1
+          }
+        },
+        {
+          "preset": "mobile",
+          "throttling": {
+            "rttMs": 150,
+            "throughputKbps": 1638,
+            "cpuSlowdownMultiplier": 4
+          },
+          "emulatedFormFactor": "mobile",
+          "screenEmulation": {
+            "mobile": true,
+            "width": 375,
+            "height": 667,
+            "deviceScaleFactor": 2
+          }
         }
-      }
+      ]
     },
     "assert": {
       "assertions": {

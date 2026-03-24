@@ -50,7 +50,7 @@ export function DynamicLessonViewer({
 
     quizBlocks.forEach((quiz, index) => {
       const userAnswer = quizAnswers.get(index);
-      const isCorrect = quiz.answer && userAnswer === quiz.answer;
+      const isCorrect = !!(quiz.answer && userAnswer === quiz.answer);
       
       if (isCorrect) {
         results.correctAnswers++;
@@ -93,7 +93,8 @@ export function DynamicLessonViewer({
         </div>
         <div className="text-center py-4">
           <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-4 animate-pulse" />
-        <p className="text-gray-600">No content available for this lesson.</p>
+          <p className="text-gray-600">Generating your lesson...</p>
+        </div>
       </div>
     );
   }

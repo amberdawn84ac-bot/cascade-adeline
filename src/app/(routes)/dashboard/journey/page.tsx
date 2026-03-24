@@ -14,6 +14,7 @@ import ReactMarkdown from 'react-markdown';
 import { LessonBlockList } from '@/components/lessons/LessonBlockRenderer';
 import type { LessonBlock } from '@/lib/langgraph/lesson/lessonState';
 import { GuidedTourModal } from '@/components/onboarding/GuidedTourModal';
+import { CreditHeaderWidget } from '@/components/dashboard/CreditHeaderWidget';
 
 interface Credit {
   id: string;
@@ -317,7 +318,7 @@ export default function JourneyPage() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Left: title + progress */}
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
                 <p className="text-[#BD6809] font-bold uppercase tracking-widest text-xs">
                   Graduation Ascent
                 </p>
@@ -331,6 +332,7 @@ export default function JourneyPage() {
                   {switching ? <Loader2 className="w-3 h-3 animate-spin" /> : <BookMarked className="w-3 h-3" />}
                   Classic Mode
                 </Button>
+                <CreditHeaderWidget />
               </div>
               <h1 className="text-5xl font-bold leading-tight mb-4" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                 The Summit
