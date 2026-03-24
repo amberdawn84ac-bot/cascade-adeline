@@ -39,6 +39,15 @@ export async function POST(req: NextRequest) {
     const topicKey = `${slugify(subject)}:${slugify(title)}`;
     const redisKey = `lesson:${user.userId}:${creditId || topicKey}:${gradeLevel}`;
 
+    console.log('[lesson-stream] Cache key details:', {
+      userId: user.userId,
+      creditId,
+      topicKey,
+      gradeLevel,
+      redisKey,
+      regenerate
+    });
+
     // ── Layer 1: Redis cache ───────────────────────────────────────────────
     if (!regenerate) {
       const redis = await getRedis();
@@ -46,12 +55,16 @@ export async function POST(req: NextRequest) {
         try {
           const cached = await redis.get<LessonBlock[]>(redisKey);
           if (cached) {
-            console.log('[lesson-stream] Redis HIT');
+            console.log('[lesson-stream] Redis HIT - returning', cached.length, 'blocks');
             return streamBlocks(cached);
+          } else {
+            console.log('[lesson-stream] Redis MISS - no cached data found');
           }
         } catch (e) {
           console.warn('[lesson-stream] Redis get failed (non-fatal):', e);
         }
+      } else {
+        console.log('[lesson-stream] Redis not available');
       }
 
       // ── Layer 2: GlobalContentCache (Postgres — grade-level keyed) ────────
@@ -144,9 +157,14 @@ function streamBlocks(blocks: LessonBlock[]): Response {
 async function saveToRedis(key: string, blocks: LessonBlock[]): Promise<void> {
   try {
     const redis = await getRedis();
-    if (redis) await redis.set(key, blocks, { ex: 3600 });
-  } catch {
-    // non-fatal
+    if (redis) {
+      await redis.set(key, blocks, { ex: 3600 });
+      console.log('[lesson-stream] Saved to Redis:', key, 'with', blocks.length, 'blocks');
+    } else {
+      console.log('[lesson-stream] Redis not available for saving');
+    }
+  } catch (e) {
+    console.warn('[lesson-stream] Redis save failed (non-fatal):', e);
   }
 }
 
