@@ -15,7 +15,7 @@ interface TourStep {
 const TOUR_STEPS: TourStep[] = [
   {
     title: 'Welcome to Dear Adeline! 🎉',
-    description: 'I\'m Adeline, your AI learning guide. I\'m here to help you discover what you love, build real skills, and earn high school credits along the way. This quick tour will show you how everything works.',
+    description: 'I\'m Adeline, your AI learning guide. I\'m here to help you discover what you love, build real skills, and track your learning progress along the way. This quick tour will show you how everything works.',
     illustration: '🏔️',
     highlight: 'Let\'s get started!'
   },
@@ -26,14 +26,14 @@ const TOUR_STEPS: TourStep[] = [
     highlight: 'Cross-curricular learning'
   },
   {
-    title: 'Credits & Graduation Ascent',
-    description: 'Every activity you complete earns you high school credits. Your journey page shows your progress toward graduation — it\'s like climbing a mountain, one step at a time.\n\nNo busywork. No fake assignments. Everything you do matters.',
+    title: 'Learning Progress & Growth',
+    description: 'Every activity you complete earns you learning credits. Your journey page shows your progress — it\'s like climbing a mountain, one step at a time.\n\nNo busywork. No fake assignments. Everything you do matters.',
     illustration: '⛰️',
-    highlight: 'Real credits for real work'
+    highlight: 'Real learning for real growth'
   },
   {
     title: 'Your Journey Page',
-    description: 'This is your home base. You\'ll see:\n\n• Active Expeditions (courses you\'re working on)\n• The Trail Ahead (your next courses)\n• Daily Bread (scripture study)\n• Your progress to graduation\n\nClick any course card to get today\'s lesson!',
+    description: 'This is your home base. You\'ll see:\n\n• Active Expeditions (courses you\'re working on)\n• The Trail Ahead (your next courses)\n• Daily Bread (scripture study)\n• Your learning progress\n\nClick any course card to get today\'s lesson!',
     illustration: '🗺️',
     highlight: 'One clean entry point'
   },
