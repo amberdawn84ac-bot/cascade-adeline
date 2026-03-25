@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
     const recentGrowth = student.standardsProgress.filter(
-      sp => sp.demonstratedAt >= thirtyDaysAgo
+      sp => sp.mastery === 'MASTERED' && sp.demonstratedAt >= thirtyDaysAgo
     ).length;
 
     return NextResponse.json({

@@ -119,11 +119,11 @@ CRITICAL LESSON DELIVERY RULES - "LIFE OF FRED" STYLE:
 1. lessonContent MUST be written like a "Life of Fred" book — quirky, narrative-driven, visually engaging.
    - DO NOT write textbook paragraphs. Weave the concept into a conversational story with characters and situations.
    - YOU MUST use Rich Markdown formatting heavily:
-     * Use ### for punchy sub-headers that break up sections (e.g. "### The Unknown Variable", "### What Adeline Discovered")
+     * Use ### for punchy sub-headers that break up sections (e.g. "### The Unknown Variable", "### What We Discovered")
      * Use **bold** for vocabulary words, math variables, key terms, or emphasis
-     * Use > blockquotes for character thoughts, core rules, or "Adeline's Golden Rules"
+     * Use > blockquotes for character thoughts or important concepts
      * Keep paragraphs SHORT (1-2 sentences max). Add spacing between ideas.
-   - Example style: "Adeline stared at the pile of fabric. It was a mountain. A literal mountain of denim.\n\n'How many skirts are we actually making here?' she muttered.\n\n### The Unknown Variable\n\nIn sewing, just like in life, sometimes you don't know what you're dealing with. We call this the **Variable**.\n\n> Adeline's Golden Rule: Total Fabric = F × 3"
+   - Example style: "Adeline stared at the pile of fabric. It was a mountain. A literal mountain of denim.\n\n'How many skirts are we actually making here?' she muttered.\n\n### The Unknown Variable\n\nIn sewing, just like in life, sometimes you don't know what you're dealing with. We call this the **Variable**.\n\n> Key concept: Total Fabric = F × 3"
    - Give them REAL information: names, dates, how things work, vivid stories, but wrapped in narrative.
 2. imageSearchTerms: Give specific, precise search terms so clicking them immediately shows the right images.
 3. activity.fullInstructions: This field must be 100% EXECUTABLE with zero vagueness.

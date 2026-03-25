@@ -35,7 +35,7 @@ export async function rateLimit(
   const windowStart = now - windowMs;
 
   try {
-    // Add current request timestamp
+does i    // Add current request timestamp
     await redis.zadd(key, { score: now, member: `${now}` });
     
     // Remove old entries outside the window

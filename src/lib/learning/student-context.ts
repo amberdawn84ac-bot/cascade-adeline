@@ -27,7 +27,7 @@ export interface SubjectLevels {
 
 export interface RecentLesson {
   activityName: string;
-  subject: string;
+  subject: string | null;
   dateCompleted: Date;
   creditsEarned: number;
   masteryScore?: number;

@@ -105,6 +105,8 @@ export function ScienceLab({
         return <Droplet style={{ width: 16, height: 16 }} />;
       case 'add':
         return <Beaker style={{ width: 16, height: 16 }} />;
+      case 'remove':
+        return <Minus style={{ width: 16, height: 16 }} />;
       default:
         return <Plus style={{ width: 16, height: 16 }} />;
     }

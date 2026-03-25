@@ -54,19 +54,17 @@ const HISTORY_NARRATIVE_GAP_EXAMPLE = [
 ];
 
 const HISTORY_SUBJECTS = [
-  'history', 
-  'social studies', 
-  'civics', 
-  'government', 
-  'economics', 
-  'american history', 
-  'world history', 
+  'history',
+  'social studies',
+  'civics',
+  'government',
+  'economics',
+  'american history',
+  'world history',
   'oklahoma history',
   'u.s. history',
   'us history',
   'truth-based history',
-  'historical',
-  'social',
 ];
 
 function isHistorySubject(subject: string): boolean {
