@@ -24,6 +24,7 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
   const [lessonMetadata, setLessonMetadata] = useState<any>(null);
   const [studentResponses, setStudentResponses] = useState<Record<string, any>>({});
   const [visibleBlocks, setVisibleBlocks] = useState<string[]>([]);
+  const [lessonId, setLessonId] = useState<string | null>(null);
 
   // Block type to component mapping
   const blockComponents = {
@@ -61,7 +62,13 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
   // Expose addBlock function globally for FloatingBeeBubble
   useEffect(() => {
     (window as any).__addLessonBlock = addBlock;
-    (window as any).__setLessonMetadata = setLessonMetadata;
+    (window as any).__setLessonMetadata = (metadata: any) => {
+      setLessonMetadata(metadata);
+      // Extract lessonId from metadata if available
+      if (metadata?.lessonId) {
+        setLessonId(metadata.lessonId);
+      }
+    };
     
     return () => {
       delete (window as any).__addLessonBlock;
@@ -80,7 +87,17 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
       onBlockResponse(blockId, response);
     }
 
-    // Call server action to handle branching
+    // Handle branching from quiz response
+    if (response.newBlocks && response.newBlocks.length > 0) {
+      // Add new blocks from branching
+      console.log('[StreamingLessonRenderer] Adding branched blocks:', response.newBlocks);
+      setVisibleBlocks(prev => [...prev, ...response.newBlocks]);
+      
+      // Optionally fetch full block data if needed
+      // For now, assume blocks are already in the lesson or will be streamed
+    }
+
+    // Legacy branching API call (keeping for backwards compatibility)
     try {
       const result = await fetch('/api/lessons/branch', {
         method: 'POST',
@@ -104,7 +121,10 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
         result.newBlocks.forEach((block: any) => addBlock(block));
       }
     } catch (error) {
-      console.error('Branching error:', error);
+      // Don't log error if endpoint doesn't exist yet
+      if (error instanceof Error && !error.message.includes('404')) {
+        console.error('Branching error:', error);
+      }
     }
   };
 
@@ -120,14 +140,19 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
       return null;
     }
 
-    return (
-      <BlockComponent
-        key={block.block_id}
-        blockData={block}
-        onResponse={(response: any) => handleResponse(block.block_id, response)}
-        studentResponse={studentResponses[block.block_id]}
-      />
-    );
+    // Special handling for QuizBlock to pass lessonId
+    const props: any = {
+      key: block.block_id,
+      blockData: block,
+      onResponse: (response: any) => handleResponse(block.block_id, response),
+      studentResponse: studentResponses[block.block_id]
+    };
+
+    if (block.block_type === 'quiz' && lessonId) {
+      props.lessonId = lessonId;
+    }
+
+    return <BlockComponent {...props} />;
   };
 
   if (blocks.length === 0) {

@@ -1,43 +1,147 @@
 import React, { useState } from 'react';
+import { submitQuizAnswer, handleLessonBranching } from '@/app/actions/submitQuizAnswer';
 
 interface QuizBlockProps {
   blockData: {
     block_id: string;
     question: string;
+    questions?: Array<{
+      id: string;
+      question: string;
+      options: string[];
+      correct_answer: number;
+      explanation?: string;
+    }>;
     quiz_type?: 'multiple-choice' | 'true-false' | 'short-answer' | 'matching';
     options?: string[];
     answer: string;
     explanation?: string;
     passing_score?: number;
     branching?: any;
+    conceptId?: string;
   };
   onResponse?: (response: any) => void;
   studentResponse?: any;
+  lessonId?: string;
 }
 
-export default function QuizBlock({ blockData, onResponse, studentResponse }: QuizBlockProps) {
+export default function QuizBlock({ blockData, onResponse, studentResponse, lessonId }: QuizBlockProps) {
   const [selectedAnswer, setSelectedAnswer] = useState(studentResponse?.answer || '');
   const [showResult, setShowResult] = useState(studentResponse?.showResult || false);
   const [submitted, setSubmitted] = useState(studentResponse?.submitted || false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [startTime] = useState(Date.now());
 
-  const handleSubmit = () => {
-    if (!selectedAnswer.trim()) return;
+  const questions = blockData.questions || [];
+  const currentQuestion = questions[currentQuestionIndex];
+
+  const handleSubmit = async () => {
+    if (!selectedAnswer.trim() && !currentQuestion) return;
     
-    const isCorrect = selectedAnswer === blockData.answer;
-    const score = isCorrect ? 100 : 0;
+    setIsSubmitting(true);
     
-    setSubmitted(true);
-    setShowResult(true);
-    
-    if (onResponse) {
-      onResponse({
-        blockId: blockData.block_id,
-        answer: selectedAnswer,
-        score,
-        correct: isCorrect,
-        submitted: true,
-        showResult: true
-      });
+    try {
+      // For multi-question quiz
+      if (questions.length > 0 && currentQuestion) {
+        const selectedIndex = currentQuestion.options.findIndex(opt => opt === selectedAnswer);
+        const isCorrect = selectedIndex === currentQuestion.correct_answer;
+        
+        // Save answer to state
+        const newAnswers = { ...answers, [currentQuestion.id]: selectedIndex };
+        setAnswers(newAnswers);
+
+        // Submit to server
+        const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+        const result = await submitQuizAnswer({
+          lessonId: lessonId || 'unknown',
+          blockId: blockData.block_id,
+          questionId: currentQuestion.id,
+          selectedAnswer: selectedIndex,
+          correctAnswer: currentQuestion.correct_answer,
+          conceptId: blockData.conceptId,
+          timeSpent
+        });
+
+        if (result.success) {
+          // Move to next question or show results
+          if (currentQuestionIndex < questions.length - 1) {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+            setSelectedAnswer('');
+          } else {
+            // All questions answered - calculate final score
+            const totalQuestions = questions.length;
+            const correctCount = Object.values(newAnswers).filter((ans, idx) => 
+              ans === questions[idx].correct_answer
+            ).length;
+            const finalScore = (correctCount / totalQuestions) * 100;
+            
+            setSubmitted(true);
+            setShowResult(true);
+
+            // Handle branching if applicable
+            if (blockData.branching && lessonId) {
+              const branchResult = await handleLessonBranching(lessonId, blockData.block_id, finalScore);
+              
+              if (branchResult.success && onResponse) {
+                onResponse({
+                  blockId: blockData.block_id,
+                  score: finalScore,
+                  correct: finalScore >= (blockData.passing_score || 70),
+                  submitted: true,
+                  showResult: true,
+                  newBlocks: branchResult.newBlocks,
+                  branch: branchResult.branch
+                });
+              }
+            } else if (onResponse) {
+              onResponse({
+                blockId: blockData.block_id,
+                score: finalScore,
+                correct: finalScore >= (blockData.passing_score || 70),
+                submitted: true,
+                showResult: true
+              });
+            }
+          }
+        }
+      } else {
+        // Single question quiz (legacy format)
+        const isCorrect = selectedAnswer === blockData.answer;
+        const score = isCorrect ? 100 : 0;
+        
+        const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+        const result = await submitQuizAnswer({
+          lessonId: lessonId || 'unknown',
+          blockId: blockData.block_id,
+          questionId: 'single',
+          selectedAnswer: blockData.options?.indexOf(selectedAnswer) || 0,
+          correctAnswer: blockData.options?.indexOf(blockData.answer) || 0,
+          conceptId: blockData.conceptId,
+          timeSpent
+        });
+
+        if (result.success) {
+          setSubmitted(true);
+          setShowResult(true);
+
+          if (onResponse) {
+            onResponse({
+              blockId: blockData.block_id,
+              answer: selectedAnswer,
+              score,
+              correct: isCorrect,
+              submitted: true,
+              showResult: true
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
