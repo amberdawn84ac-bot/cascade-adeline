@@ -116,7 +116,13 @@ export function SettingsForm({ user, subscription }: Props) {
         }),
       });
       if (!res.ok) throw new Error('Save failed');
-      setMessage('Settings saved!');
+      
+      // Refresh journey plan cache to update graduation date
+      fetch('/api/journey/plan?refresh=true').catch(() => {
+        // Non-fatal - journey plan will refresh on next page load
+      });
+      
+      setMessage('Settings saved! Your journey plan will update with the new graduation date.');
     } catch {
       setMessage('Failed to save. Please try again.');
     } finally {
