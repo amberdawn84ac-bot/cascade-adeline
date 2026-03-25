@@ -21,18 +21,19 @@ import {
   BookOpen,
   Mountain,
   FlaskConical,
-  ScrollText
+  ScrollText,
+  Briefcase
 } from 'lucide-react';
+import { DailyBreadWidget } from '@/components/daily-bread/DailyBreadWidget';
 import { cn } from '@/lib/utils';
 import { createServerClient } from '@supabase/ssr';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
 
 const NAV_ITEMS = [
-  { label: 'My Journey', href: '/dashboard/journey', icon: Mountain },
-  { label: 'Community Board', href: '/dashboard/community-board', icon: Users },
-  { label: 'Future Prep', href: '/dashboard/college-prep', icon: GraduationCap },
-  { label: 'Settings', href: '/settings', icon: Settings },
+  { label: 'My Learning Plan', href: '/dashboard/journey', icon: BookOpen },
+  { label: 'Opportunities', href: '/dashboard/community-board', icon: Briefcase },
+  { label: 'Future Prep', href: '/dashboard/college-prep', icon: MapPin },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
@@ -134,7 +135,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Nav Links */}
-          <nav className="flex-1 space-y-1">
+          <nav className="space-y-1">
             {filteredNavItems.map((item, index) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -174,6 +175,14 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+
+          {/* Daily Bread Widget */}
+          <div className="mt-6 mb-6">
+            <DailyBreadWidget onStudy={(prompt) => {
+              // Handle study prompt - could navigate or trigger lesson
+              console.log('Daily Bread study:', prompt);
+            }} />
+          </div>
 
           {/* Bottom Actions - Pinned */}
           <div className="mt-auto pt-6 border-t border-[#E7DAC3] space-y-2">
