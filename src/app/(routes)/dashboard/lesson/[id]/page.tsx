@@ -77,9 +77,10 @@ export default async function LessonPage({ params }: { params: { id: string } })
   
   if (!lesson) return notFound();
   
-  const contentBlocks = lesson.lessonJson as any[];
+  const lessonData = lesson.lessonJson as Record<string, unknown>;
+  const contentBlocks = (lessonData.blocks as any[]) ?? [];
   const sessionState = lesson.studentProgress[0] || null;
-  
+
   // Extract metadata from lesson blocks
   const scriptureFoundation = extractScriptureFoundation(contentBlocks);
   const credits = calculateCredits(contentBlocks, lesson.subject);

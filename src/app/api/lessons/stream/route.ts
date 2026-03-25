@@ -94,7 +94,7 @@ export async function POST(req: Request) {
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({
                     type: 'lesson_metadata',
-                    data: metadata
+                    data: { ...metadata, lessonId: threadId }
                   })}\n\n`)
                 );
               }
