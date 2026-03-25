@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import { LessonSystemWrapper } from '@/components/LessonSystemWrapper';
 import { getSessionUser } from '@/lib/auth';
 
 export default async function RoutesLayout({
@@ -27,9 +26,6 @@ export default async function RoutesLayout({
       <div className="relative z-10">
         {children}
       </div>
-
-      {/* Lesson System with Floating Bee Bubble - ONLY chat interface */}
-      {user && <LessonSystemWrapper userId={user.userId} />}
     </div>
   );
 }
