@@ -29,12 +29,13 @@ Intent definitions:
 - OPPORTUNITY: User asks about opportunities, scholarships, competitions, or resources.
 - REFLECT: User is reflecting on their learning process, thinking about how they learned, or responding to a reflection question. Keywords: "I learned", "I realized", "I noticed", "what I found hard", "next time I would".
 - ASSESS: User wants to take a placement test, assess their level, or find out where they are in a subject. Keywords: "assess", "placement", "test my level", "where am I in", "what grade".
+- LESSON: User wants to start a lesson, learn about a topic, or be taught something. Keywords: "explain", "how does", "tell me about", "what is", "teach me", "lesson on", "I want to learn", "show me how", "can you explain", "help me understand", "walk me through".
 - CHAT: General conversation, greetings, or questions that don't fit above categories.
 - GEN_UI: Requests for specific UI components (rare).
 
 User message: "${prompt}"
 
-Return ONLY the single intent label (LIFE_LOG, BRAINSTORM, INVESTIGATE, OPPORTUNITY, REFLECT, ASSESS, CHAT, or GEN_UI):`,
+Return ONLY the single intent label (LIFE_LOG, BRAINSTORM, INVESTIGATE, OPPORTUNITY, REFLECT, ASSESS, LESSON, CHAT, or GEN_UI):`,
     });
     const normalized = text.trim().toUpperCase().replace(/[^A-Z_]/g, '');
     console.log('[Router] LLM classified as:', normalized);
@@ -54,8 +55,11 @@ function heuristicIntent(prompt: string): AdelineIntent {
   
   // LESSON intent - detect lesson/teaching requests
   const lessonPhrases = [
-    'start a lesson', 'teach me', 'learn about', 'lesson on', 
-    'study about', 'want to learn', 'show me a lesson', 'start lesson'
+    'start a lesson', 'teach me', 'learn about', 'lesson on',
+    'study about', 'want to learn', 'show me a lesson', 'start lesson',
+    'explain ', 'how does ', 'how do ', 'tell me about', 'what is ',
+    'what are ', 'walk me through', 'help me understand', 'show me how',
+    'can you explain', 'i want to study', 'give me a lesson',
   ];
   if (lessonPhrases.some((phrase) => lower.includes(phrase))) {
     console.log('[Router] Matched LESSON intent');

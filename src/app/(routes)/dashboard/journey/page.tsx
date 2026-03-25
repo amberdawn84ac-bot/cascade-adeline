@@ -49,7 +49,7 @@ export default function JourneyPage() {
           </button>
 
           <StreamingLessonRenderer
-            userId={activeLessonId}
+            userId=""
             onBlockResponse={(blockId, response) => {
               console.log('Block response:', blockId, response);
             }}
