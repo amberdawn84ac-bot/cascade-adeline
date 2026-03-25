@@ -46,7 +46,7 @@ export default function Home() {
               Log In
             </Link>
             <Link
-              href="/chat"
+              href="/dashboard/journey"
               className="px-8 py-3.5 rounded-full bg-[#6B1D2A] text-white text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 active:scale-95 transition-all"
             >
               Launch App
@@ -79,7 +79,7 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-6 pt-4">
               <Link
-                href="/chat"
+                href="/dashboard/journey"
                 className="px-12 py-6 rounded-full bg-[#6B1D2A] text-white font-black uppercase tracking-[0.2em] text-xs shadow-2xl hover:brightness-125 active:scale-95 transition-all flex items-center gap-4"
               >
                 Join the Academy
@@ -265,7 +265,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center relative z-10">
             <Link
-              href="/chat"
+              href="/dashboard/journey"
               className="px-16 py-7 rounded-full bg-white text-[#6B1D2A] font-black uppercase tracking-[0.2em] text-sm shadow-xl hover:scale-105 transition-all"
             >
               Get Started

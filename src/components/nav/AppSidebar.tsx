@@ -4,14 +4,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
-import { 
-  MessageCircle, 
-  Users, 
-  Calculator, 
-  Feather, 
-  Gamepad2, 
-  GraduationCap, 
-  ChefHat, 
+import {
+  Users,
+  Calculator,
+  Feather,
+  Gamepad2,
+  GraduationCap,
+  ChefHat,
   MapPin,
   Clock,
   X,
@@ -186,18 +185,6 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
 
           {/* Bottom Actions - Pinned */}
           <div className="mt-auto pt-6 border-t border-[#E7DAC3] space-y-2">
-            <Link
-              href="/chat"
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                pathname === '/chat'
-                  ? "bg-[#2F4731] text-white shadow-lg shadow-[#2F4731]/20 font-bold"
-                  : "text-[#2F4731]/70 hover:bg-[#2F4731]/5 hover:text-[#2F4731] font-medium"
-              )}
-            >
-              <MessageCircle size={20} />
-              Chat with Adeline
-            </Link>
             <Link
               href="/settings"
               className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-[#2F4731]/60 hover:text-[#2F4731] transition-colors"
