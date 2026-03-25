@@ -6,10 +6,11 @@ import { useChat } from '@ai-sdk/react';
 
 interface FloatingBeeBubbleProps {
   onLessonStream?: (blocks: any[]) => void;
+  onLessonRequest?: (topic: string) => void;
   userId: string;
 }
 
-export function FloatingBeeBubble({ onLessonStream, userId }: FloatingBeeBubbleProps) {
+export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: FloatingBeeBubbleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -178,8 +179,13 @@ export function FloatingBeeBubble({ onLessonStream, userId }: FloatingBeeBubbleP
                 <div className="mt-4 space-y-2">
                   <button
                     onClick={() => {
-                      handleInputChange({ target: { value: 'Start a lesson on butterflies' } } as any);
-                      setTimeout(() => handleSubmit({ preventDefault: () => {} } as any), 100);
+                      if (onLessonRequest) {
+                        onLessonRequest('Butterflies of North America');
+                        setIsOpen(false);
+                      } else {
+                        handleInputChange({ target: { value: 'Start a lesson on butterflies' } } as any);
+                        setTimeout(() => handleSubmit({ preventDefault: () => {} } as any), 100);
+                      }
                     }}
                     className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-amber-700 hover:bg-amber-50 transition-colors"
                   >
@@ -187,8 +193,13 @@ export function FloatingBeeBubble({ onLessonStream, userId }: FloatingBeeBubbleP
                   </button>
                   <button
                     onClick={() => {
-                      handleInputChange({ target: { value: 'Teach me about the American Revolution' } } as any);
-                      setTimeout(() => handleSubmit({ preventDefault: () => {} } as any), 100);
+                      if (onLessonRequest) {
+                        onLessonRequest('The American Revolution');
+                        setIsOpen(false);
+                      } else {
+                        handleInputChange({ target: { value: 'Teach me about the American Revolution' } } as any);
+                        setTimeout(() => handleSubmit({ preventDefault: () => {} } as any), 100);
+                      }
                     }}
                     className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-amber-700 hover:bg-amber-50 transition-colors"
                   >
