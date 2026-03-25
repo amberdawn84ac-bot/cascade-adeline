@@ -27,7 +27,7 @@ export function LessonSystemWrapper({ userId }: { userId?: string }) {
   const handleLessonStream = (blocks: any[]) => {
     // Called by FloatingBeeBubble when lesson blocks stream in
     if (window.__addLessonBlock) {
-      blocks.forEach(block => window.__addLessonBlock(block));
+      blocks.forEach(block => window.__addLessonBlock!(block));
     }
   };
 

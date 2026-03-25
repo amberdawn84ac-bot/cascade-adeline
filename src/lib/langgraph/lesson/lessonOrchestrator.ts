@@ -1,34 +1,62 @@
-import { StateGraph, END, START } from "@langchain/langgraph";
+import { StateGraph, END, START, Annotation } from "@langchain/langgraph";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import redis from '@/lib/redis';
 import prisma from '@/lib/db';
 
 const model = new ChatGoogleGenerativeAI({
-  modelName: "gemini-2.0-flash-exp",
+  model: "gemini-2.0-flash-exp",
   temperature: 0.7,
 });
 
-interface LessonState {
-  studentQuery: string;
-  userId: string;
-  studentProfile?: any;
-  routingDecision?: {
-    subject_track: string;
-    investigation_type: string;
-    keywords: string[];
-    depth: string;
-  };
-  sources?: any[];
-  scripture?: any;
-  lessonBlocks: any[];
-  currentBlockIndex: number;
-  lessonMetadata?: any;
-  error?: string;
-}
+// Define lesson state using Annotation pattern like existing code
+export const LessonState = Annotation.Root({
+  studentQuery: Annotation<string>({
+    reducer: (left: string, right: string) => right,
+    default: () => "",
+  }),
+  userId: Annotation<string>({
+    reducer: (left: string, right: string) => right,
+    default: () => "",
+  }),
+  studentProfile: Annotation<any>({
+    reducer: (left: any, right: any) => right,
+    default: () => null,
+  }),
+  routingDecision: Annotation<any>({
+    reducer: (left: any, right: any) => right,
+    default: () => null,
+  }),
+  sources: Annotation<any[]>({
+    reducer: (left: any[], right: any[]) => right,
+    default: () => [],
+  }),
+  scripture: Annotation<any>({
+    reducer: (left: any, right: any) => right,
+    default: () => null,
+  }),
+  lessonBlocks: Annotation<any[]>({
+    reducer: (left: any[], right: any[]) => right,
+    default: () => [],
+  }),
+  currentBlockIndex: Annotation<number>({
+    reducer: (left: number, right: number) => right,
+    default: () => 0,
+  }),
+  lessonMetadata: Annotation<any>({
+    reducer: (left: any, right: any) => right,
+    default: () => null,
+  }),
+  error: Annotation<string>({
+    reducer: (left: string, right: string) => right,
+    default: () => "",
+  }),
+});
+
+export type LessonStateType = typeof LessonState.State;
 
 // Router Agent - Analyzes query and determines lesson approach
-async function routerAgent(state: LessonState): Promise<Partial<LessonState>> {
+async function routerAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
   const prompt = `You are the Router Agent for Dear Adeline, analyzing student learning requests.
 
 CORE PHILOSOPHY (CRITICAL):
@@ -88,7 +116,7 @@ Return JSON only:
 }
 
 // Source Retriever Agent - Finds primary sources from database
-async function sourceRetrieverAgent(state: LessonState): Promise<Partial<LessonState>> {
+async function sourceRetrieverAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
   const { keywords, subject_track } = state.routingDecision!;
   
   try {
@@ -96,8 +124,7 @@ async function sourceRetrieverAgent(state: LessonState): Promise<Partial<LessonS
     const sources = await prisma.primarySource.findMany({
       where: {
         isActive: true,
-        isVerified: true,
-        OR: keywords.map(keyword => ({
+        OR: keywords.map((keyword: string) => ({
           OR: [
             { title: { contains: keyword, mode: 'insensitive' } },
             { content: { contains: keyword, mode: 'insensitive' } },
@@ -148,8 +175,8 @@ Return JSON array of sources.`;
 }
 
 // Scripture Connector Agent - Finds relevant biblical passages
-async function scriptureConnectorAgent(state: LessonState): Promise<Partial<LessonState>> {
-  const { ethical_dimensions = [] } = state.routingDecision || {};
+async function scriptureConnectorAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
+  const ethical_dimensions = (state.routingDecision as any)?.ethical_dimensions || [];
   
   const prompt = `You are the Scripture Connector Agent for Dear Adeline.
 
@@ -188,7 +215,7 @@ Return JSON:
 }
 
 // Lesson Assembler Agent - Combines sources and scripture into lesson blocks
-async function lessonAssemblerAgent(state: LessonState): Promise<Partial<LessonState>> {
+async function lessonAssemblerAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
   const prompt = `You are the Lesson Assembler Agent for Dear Adeline.
 
 Create a lesson structure using these materials:
@@ -266,54 +293,17 @@ Return JSON:
   }
 }
 
-// Create the workflow
-const workflow = new StateGraph<LessonState>({
-  channels: {
-    studentQuery: null,
-    userId: null,
-    studentProfile: null,
-    routingDecision: null,
-    sources: null,
-    scripture: null,
-    lessonBlocks: null,
-    currentBlockIndex: null,
-    lessonMetadata: null,
-    error: null
-  }
-});
 
-// Add nodes
-workflow.addNode("router", routerAgent);
-workflow.addNode("sourceRetriever", sourceRetrieverAgent);
-workflow.addNode("scriptureConnector", scriptureConnectorAgent);
-workflow.addNode("lessonAssembler", lessonAssemblerAgent);
-
-// Define edges
-workflow.addEdge(START, "router");
-workflow.addEdge("router", "sourceRetriever");
-workflow.addEdge("router", "scriptureConnector");
-workflow.addEdge("sourceRetriever", "lessonAssembler");
-workflow.addEdge("scriptureConnector", "lessonAssembler");
-workflow.addEdge("lessonAssembler", END);
-
-// Compile the graph
-export const lessonOrchestrator = workflow.compile({
-  checkpointer: {
-    // Use Redis for checkpointing
-    async get(config) {
-      const key = `lesson:checkpoint:${config.configurable?.thread_id}`;
-      const data = await redis.get(key);
-      return data ? JSON.parse(data as string) : null;
-    },
-    async put(config, checkpoint) {
-      const key = `lesson:checkpoint:${config.configurable?.thread_id}`;
-      await redis.set(key, JSON.stringify(checkpoint), { ex: 3600 }); // 1 hour expiry
-    },
-    async getTuple() {
-      return undefined;
-    },
-    async list() {
-      return [];
-    }
-  }
-});
+// Add nodes and edges using the same pattern as existing LangGraph
+export const lessonOrchestrator = new StateGraph(LessonState)
+  .addNode("router", routerAgent)
+  .addNode("sourceRetriever", sourceRetrieverAgent)
+  .addNode("scriptureConnector", scriptureConnectorAgent)
+  .addNode("lessonAssembler", lessonAssemblerAgent)
+  .addEdge(START, "router")
+  .addEdge("router", "sourceRetriever")
+  .addEdge("router", "scriptureConnector")
+  .addEdge("sourceRetriever", "lessonAssembler")
+  .addEdge("scriptureConnector", "lessonAssembler")
+  .addEdge("lessonAssembler", END)
+  .compile();

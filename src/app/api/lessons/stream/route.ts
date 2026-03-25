@@ -1,4 +1,3 @@
-import { StreamingTextResponse } from 'ai';
 import { getSessionUser } from '@/lib/auth';
 import { lessonOrchestrator } from '@/lib/langgraph/lesson/lessonOrchestrator';
 import prisma from '@/lib/db';
