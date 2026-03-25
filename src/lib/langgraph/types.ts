@@ -9,7 +9,8 @@ export type AdelineIntent =
   | 'IMAGE_LOG'
   | 'AUDIO_LOG'
   | 'ASSESS'
-  | 'ANALOGY';
+  | 'ANALOGY'
+  | 'LESSON';
 
 export interface LifeCreditMapping {
   activity: string;

@@ -13,6 +13,7 @@ const INTENT_LABELS: AdelineIntent[] = [
   'REFLECT',
   'ASSESS',
   'ANALOGY',
+  'LESSON',
 ];
 
 async function llmClassifyIntent(prompt: string, modelId: string): Promise<AdelineIntent | null> {
@@ -50,6 +51,16 @@ Return ONLY the single intent label (LIFE_LOG, BRAINSTORM, INVESTIGATE, OPPORTUN
 function heuristicIntent(prompt: string): AdelineIntent {
   const lower = prompt.toLowerCase();
   console.log('[Router] Heuristic checking prompt:', JSON.stringify(lower));
+  
+  // LESSON intent - detect lesson/teaching requests
+  const lessonPhrases = [
+    'start a lesson', 'teach me', 'learn about', 'lesson on', 
+    'study about', 'want to learn', 'show me a lesson', 'start lesson'
+  ];
+  if (lessonPhrases.some((phrase) => lower.includes(phrase))) {
+    console.log('[Router] Matched LESSON intent');
+    return 'LESSON';
+  }
   
   const lifeLogPhrases = ['i built', 'i made', 'i helped', 'i cooked', 'i baked', 'i read', 'i wrote', 'i finished', 'i completed', 'i sewed', 'i planted', 'i gardened', 'i volunteered', 'i served'];
   const matchedPhrase = lifeLogPhrases.find((phrase) => lower.includes(phrase));

@@ -147,6 +147,30 @@ export async function POST(req: NextRequest) {
     const intent = routedState.intent;
     const selectedModel = routedState.selectedModel || config.models.default;
 
+    // 1.5 LESSON intent: Delegate to lesson streaming system
+    if (intent === 'LESSON') {
+      const lessonStream = await fetch(new URL('/api/lessons/stream', req.url), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentQuery: maskedContent.masked,
+          lessonId: `lesson-${Date.now()}`
+        })
+      });
+
+      if (!lessonStream.ok) {
+        return staticStreamResponse('I had trouble creating that lesson. Please try again!');
+      }
+
+      return new Response(lessonStream.body, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        }
+      });
+    }
+
     // 2. LIFE_LOG / AUDIO_LOG: background transcript save — does not block the stream
     if (intent === 'LIFE_LOG' || intent === 'AUDIO_LOG') {
       lifeCreditLogger(routedState).catch(err =>

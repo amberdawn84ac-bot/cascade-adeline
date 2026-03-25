@@ -11,6 +11,8 @@ import {
 import localFont from 'next/font/local';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
+import "../styles/field-notes.css";
+import "../styles/blocks.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

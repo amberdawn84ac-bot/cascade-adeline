@@ -124,6 +124,7 @@ model User {
   bookClubPosts           BookClubPost[]
   lessonProgress          StudentLessonProgress[]
   environment             StudentEnvironment?
+  lessonSessions          LessonSession[]
 
   @@index([email])
   @@index([role])
@@ -1164,4 +1165,45 @@ model StudentEnvironment {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("student_environments")
+}
+
+model ScriptureLibrary {
+  id              String   @id @default(uuid()) @db.Uuid
+  reference       String   // e.g., "Genesis 1:1", "Leviticus 25:23"
+  translation     String   @default("ESV") // ESV, KJV, NASB, etc.
+  passage         String   @db.Text // Full text of the passage
+  hebrewGreekNotes String?  @map("hebrew_greek_notes") @db.Text
+  topics          String[] // For topical search
+  keywords        String[] // For semantic search
+  ethicalThemes   String[] @map("ethical_themes") // justice, stewardship, etc.
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([reference])
+  @@index([topics])
+  @@index([isActive])
+  @@map("scripture_library")
+}
+
+model LessonSession {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  lessonId        String   @map("lesson_id")
+  visibleBlocks   String[] @map("visible_blocks") // Current visible block IDs
+  completedBlocks String[] @map("completed_blocks")
+  currentBranch   String?  @map("current_branch") // Current branch path
+  studentResponses Json    @map("student_responses") @default("{}")
+  checkpointId    String?  @map("checkpoint_id") // Redis checkpoint key
+  isActive        Boolean  @default(true) @map("is_active")
+  startedAt       DateTime @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId, isActive])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("lesson_sessions")
 }

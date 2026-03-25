@@ -1,13 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, BookOpen, BrainCircuit, ChevronRight } from 'lucide-react';
-import type { ContentBlock } from '@/lib/services/LessonFormatterService';
+import TextBlock from '@/components/lessons/blocks/TextBlock';
+import ScriptureBlock from '@/components/lessons/blocks/ScriptureBlock';
+import PrimarySourceBlock from '@/components/lessons/blocks/PrimarySourceBlock';
+import InvestigationBlock from '@/components/lessons/blocks/InvestigationBlock';
+import QuizBlock from '@/components/lessons/blocks/QuizBlock';
+import HandsOnBlock from '@/components/lessons/blocks/HandsOnBlock';
+import PhotoBlock from '@/components/lessons/blocks/PhotoBlock';
+import VideoBlock from '@/components/lessons/blocks/VideoBlock';
+import FlashcardBlock from '@/components/lessons/blocks/FlashcardBlock';
+import InfographicBlock from '@/components/lessons/blocks/InfographicBlock';
+import GameBlock from '@/components/lessons/blocks/GameBlock';
+import WorksheetBlock from '@/components/lessons/blocks/WorksheetBlock';
 
 interface DynamicLessonViewerProps {
-  contentBlocks: ContentBlock[];
-  onComplete?: (results: QuizResults) => void;
+  contentBlocks: any[];
+  lessonTitle?: string;
+  subjectTrack?: string;
+  scriptureFoundation?: any;
+  credits?: any[];
+  onComplete?: (results: any) => void;
+  sessionState?: any;
+  lessonId?: string;
   className?: string;
 }
 
@@ -18,259 +33,215 @@ interface QuizResults {
 }
 
 /**
- * DynamicLessonViewer - Renders structured content blocks as interactive UI components
+ * DynamicLessonViewer - Master renderer for all lesson block types
  * 
- * This component takes the content_blocks JSON array from the LessonFormatterService
- * and maps over it to render distinct UI components based on the type property.
+ * Renders the full lesson with field notes aesthetic and branching logic
  */
 export function DynamicLessonViewer({ 
   contentBlocks, 
-  onComplete, 
+  lessonTitle,
+  subjectTrack,
+  scriptureFoundation,
+  credits,
+  onComplete,
+  sessionState,
+  lessonId,
   className = '' 
 }: DynamicLessonViewerProps) {
-  const [quizAnswers, setQuizAnswers] = useState<Map<number, string>>(new Map());
-  const [showResults, setShowResults] = useState(false);
-  const [quizResults, setQuizResults] = useState<QuizResults | null>(null);
+  const [studentResponses, setStudentResponses] = useState<Record<string, any>>({});
+  const [visibleBlocks, setVisibleBlocks] = useState<string[]>(
+    contentBlocks.map(b => b.block_id)
+  );
 
-  // Filter blocks by type
-  const titleBlocks = contentBlocks.filter(block => block.type === 'title');
-  const primaryTextBlocks = contentBlocks.filter(block => block.type === 'primary_text');
-  const quizBlocks = contentBlocks.filter(block => block.type === 'quiz');
-
-  const handleQuizAnswer = (quizIndex: number, answer: string) => {
-    setQuizAnswers(prev => new Map(prev.set(quizIndex, answer)));
+  // Block type to component mapping
+  const blockComponents = {
+    text: TextBlock,
+    scripture: ScriptureBlock,
+    primary_source: PrimarySourceBlock,
+    investigation: InvestigationBlock,
+    quiz: QuizBlock,
+    hands_on: HandsOnBlock,
+    photo: PhotoBlock,
+    video: VideoBlock,
+    flashcard: FlashcardBlock,
+    infographic: InfographicBlock,
+    game: GameBlock,
+    worksheet: WorksheetBlock,
   };
 
-  const submitQuiz = () => {
-    const results: QuizResults = {
-      totalQuestions: quizBlocks.length,
-      correctAnswers: 0,
-      quizAnswers: []
-    };
+  const handleResponse = (blockId: string, response: any) => {
+    setStudentResponses(prev => ({
+      ...prev,
+      [blockId]: response
+    }));
 
-    quizBlocks.forEach((quiz, index) => {
-      const userAnswer = quizAnswers.get(index);
-      const isCorrect = !!(quiz.answer && userAnswer === quiz.answer);
-      
-      if (isCorrect) {
-        results.correctAnswers++;
+    // Check for branching logic
+    const block = contentBlocks.find(b => b.block_id === blockId);
+    if (block?.branching) {
+      handleBranching(block, response);
+    }
+  };
+
+  const handleBranching = (block: any, response: any) => {
+    // Quiz score branching
+    if (response.score !== undefined && block.branching.on_score_above_80) {
+      if (response.score > 80) {
+        setVisibleBlocks(prev => [
+          ...prev,
+          ...(block.branching.on_score_above_80.show_blocks || [])
+        ]);
       }
-
-      results.quizAnswers.push({
-        question: quiz.question || '',
-        correct: isCorrect,
-        userAnswer
-      });
-    });
-
-    setQuizResults(results);
-    setShowResults(true);
-    onComplete?.(results);
+    }
+    
+    if (response.score !== undefined && block.branching.on_score_below_70) {
+      if (response.score < 70) {
+        setVisibleBlocks(prev => [
+          ...prev,
+          ...(block.branching.on_score_below_70.show_blocks || [])
+        ]);
+      }
+    }
+    
+    // Choice-based branching
+    if (response.choice && block.branching.branches) {
+      const chosenBranch = block.branching.branches[response.choice];
+      if (chosenBranch?.insert_blocks) {
+        setVisibleBlocks(prev => [...prev, ...chosenBranch.insert_blocks]);
+      }
+    }
   };
 
-  const resetQuiz = () => {
-    setQuizAnswers(new Map());
-    setShowResults(false);
-    setQuizResults(null);
-  };
+  const renderBlock = (block: any) => {
+    const BlockComponent = blockComponents[block.block_type as keyof typeof blockComponents];
+    
+    if (!BlockComponent) {
+      console.warn(`Unknown block type: ${block.block_type}`);
+      return null;
+    }
 
-  if (contentBlocks.length === 0) {
+    if (!visibleBlocks.includes(block.block_id)) {
+      return null;
+    }
+
     return (
-      <div className={`space-y-6 ${className}`}>
-        {/* Loading skeleton */}
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-            <div className="h-4 bg-gray-200 rounded w-4/6"></div>
-          </div>
-          <div className="h-32 bg-gray-200 rounded"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-          </div>
-        </div>
-        <div className="text-center py-4">
-          <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-4 animate-pulse" />
-          <p className="text-gray-600">Generating your lesson...</p>
-        </div>
-      </div>
+      <BlockComponent
+        key={block.block_id}
+        blockData={block}
+        onResponse={(response: any) => handleResponse(block.block_id, response)}
+        studentResponse={studentResponses[block.block_id]}
+      />
     );
-  }
+  };
 
   return (
-    <div className={`space-y-8 ${className}`}>
-      {/* Title Blocks */}
-      <AnimatePresence>
-        {titleBlocks.map((block, index) => (
-          <motion.div
-            key={`title-${index}`}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="text-center"
-          >
-            <h1 className="text-3xl md:text-4xl font-bold text-amber-900 mb-4" 
-                style={{ fontFamily: 'Swanky and Moo Moo, cursive' }}>
-              {block.content}
-            </h1>
-            <div className="w-24 h-1 bg-amber-600 mx-auto rounded-full"></div>
-          </motion.div>
-        ))}
-      </AnimatePresence>
-
-      {/* Primary Text Blocks */}
-      <div className="space-y-6">
-        {primaryTextBlocks.map((block, index) => (
-          <motion.div
-            key={`text-${index}`}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 + index * 0.1 }}
-            className="bg-amber-50 border-l-4 border-amber-600 p-6 rounded-r-lg shadow-sm"
-          >
-            <div className="flex items-start space-x-3">
-              <BookOpen className="w-5 h-5 text-amber-600 mt-1 flex-shrink-0" />
-              <div className="flex-1">
-                <div className="prose prose-amber max-w-none">
-                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                    {block.content}
-                  </p>
-                </div>
-              </div>
+    <div className="field-notes-wrapper">
+      <div className="paper-texture"></div>
+      <div className="field-notes-content">
+        {/* Scripture Banner */}
+        {scriptureFoundation && (
+          <div className="scripture-banner">
+            <div className="banner-decoration-left">
+              <svg viewBox="0 0 24 24" width="50" height="50">
+                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" fill="currentColor"/>
+              </svg>
             </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Quiz Blocks */}
-      {quizBlocks.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-white border-2 border-amber-200 rounded-xl p-6 shadow-lg"
-        >
-          <div className="flex items-center space-x-2 mb-6">
-            <BrainCircuit className="w-6 h-6 text-amber-600" />
-            <h2 className="text-xl font-bold text-amber-900">Check Your Understanding</h2>
+            <div className="scripture-text">
+              <span className="reference">{scriptureFoundation.primary_passage}</span>
+              <span className="divider">•</span>
+              <span>{scriptureFoundation.connection}</span>
+            </div>
+            <div className="banner-decoration-right">
+              <svg viewBox="0 0 24 24" width="50" height="50">
+                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" fill="currentColor"/>
+              </svg>
+            </div>
           </div>
+        )}
 
-          {!showResults ? (
-            <div className="space-y-6">
-              {quizBlocks.map((quiz, quizIndex) => (
-                <div key={`quiz-${quizIndex}`} className="space-y-3">
-                  <h3 className="font-semibold text-gray-800">{quiz.question}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {quiz.options?.map((option, optionIndex) => (
-                      <button
-                        key={optionIndex}
-                        onClick={() => handleQuizAnswer(quizIndex, option)}
-                        className={`p-3 text-left border-2 rounded-lg transition-all ${
-                          quizAnswers.get(quizIndex) === option
-                            ? 'border-amber-500 bg-amber-50 text-amber-900'
-                            : 'border-gray-200 hover:border-amber-300 hover:bg-amber-50'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-4 h-4 rounded-full border-2 ${
-                            quizAnswers.get(quizIndex) === option
-                              ? 'border-amber-500 bg-amber-500'
-                              : 'border-gray-300'
-                          }`}>
-                            {quizAnswers.get(quizIndex) === option && (
-                              <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
-                            )}
-                          </div>
-                          <span className="text-sm">{option}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+        {/* Lesson Header */}
+        {lessonTitle && (
+          <div className="lesson-header">
+            <div className="decorative-line-left"></div>
+            <h1 className="lesson-title">{lessonTitle}</h1>
+            <div className="decorative-line-right"></div>
+          </div>
+        )}
+
+        {/* Subject Badge */}
+        {subjectTrack && (
+          <div className="subject-badge">
+            {subjectTrack.replace(/-/g, ' ')}
+          </div>
+        )}
+
+        {/* Learning Objectives */}
+        {contentBlocks.some(b => b.block_type === 'text') && (
+          <div className="objectives-box">
+            <h3>Today's Investigation:</h3>
+            <ul>
+              {contentBlocks
+                .filter(b => b.block_type === 'text')
+                .slice(0, 3)
+                .map((block, i) => (
+                  <li key={i}>{block.content.slice(0, 100)}...</li>
+                ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Render all blocks */}
+        <div className="lesson-blocks">
+          {contentBlocks
+            .sort((a, b) => a.order - b.order)
+            .map(renderBlock)}
+        </div>
+
+        {/* Credits Footer */}
+        {credits && (
+          <div className="lesson-footer">
+            <div className="credits-earned">
+              <h4>Credits Earned:</h4>
+              {credits.map((credit: any, i: number) => (
+                <div key={i} className="credit-item">
+                  <span className="credit-subject">{credit.subject}</span>
+                  <span className="credit-hours">{credit.hours} hours</span>
                 </div>
               ))}
-
-              {quizBlocks.length > 0 && (
-                <div className="pt-4 border-t border-gray-200">
-                  <button
-                    onClick={submitQuiz}
-                    disabled={quizAnswers.size !== quizBlocks.length}
-                    className="w-full md:w-auto px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <span>Submit Answers</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="text-center p-4 bg-amber-50 rounded-lg">
-                <h3 className="text-lg font-semibold text-amber-900 mb-2">
-                  Quiz Results
-                </h3>
-                <div className="text-2xl font-bold text-amber-600">
-                  {quizResults?.correctAnswers} / {quizResults?.totalQuestions}
-                </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  {quizResults && Math.round((quizResults.correctAnswers / quizResults.totalQuestions) * 100)}% Correct
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {quizResults?.quizAnswers.map((result, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    {result.correct ? (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-500" />
-                    )}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-800">{result.question}</p>
-                      <p className="text-xs text-gray-600">
-                        Your answer: {result.userAnswer || 'Not answered'}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={resetQuiz}
-                className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
-              >
-                Try Again
-              </button>
+            
+            <div className="footer-decorations">
+              <svg className="wheat-icon" viewBox="0 0 24 24">
+                <path d="M12 2L8 6l4 4 4-4-4-4zm0 8l-4 4 4 4 4-4-4-4z"/>
+              </svg>
             </div>
-          )}
-        </motion.div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 // Quiz block renderer component (can be used standalone)
-export function QuizBlock({ 
+export function QuizBlockRenderer({ 
   quiz, 
   onAnswer, 
   showResult = false,
   selectedAnswer 
 }: {
-  quiz: ContentBlock;
+  quiz: any;
   onAnswer?: (answer: string) => void;
   showResult?: boolean;
   selectedAnswer?: string;
 }) {
-  if (quiz.type !== 'quiz') return null;
+  if (quiz.block_type !== 'quiz') return null;
 
   const isCorrect = selectedAnswer === quiz.answer;
 
   return (
-    <div className="bg-white border-2 border-amber-200 rounded-xl p-6 shadow-lg">
-      <h3 className="font-semibold text-gray-800 mb-4">{quiz.question}</h3>
+    <div className="quiz-block">
+      <h3 className="font-semibold text-gray-800">{quiz.question}</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {quiz.options?.map((option, index) => (
+        {quiz.options?.map((option: any, index: any) => (
           <button
             key={index}
             onClick={() => onAnswer?.(option)}

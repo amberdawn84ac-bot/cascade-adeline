@@ -1,12 +1,15 @@
 import { AppSidebar } from '@/components/nav/AppSidebar';
 import Image from 'next/image';
-import { AdelineOrb } from '@/components/chat/AdelineOrb';
+import { LessonSystemWrapper } from '@/components/LessonSystemWrapper';
+import { getSessionUser } from '@/lib/auth';
 
-export default function RoutesLayout({
+export default async function RoutesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const user = await getSessionUser();
+  
   return (
     <AppSidebar>
       <div className="relative min-h-screen">
@@ -22,13 +25,13 @@ export default function RoutesLayout({
           />
         </div>
         
-        {/* Content */}
+        {/* Content - Children pages render here */}
         <div className="relative z-10 p-6 md:p-8 max-w-7xl mx-auto">
           {children}
         </div>
 
-        {/* Floating Adeline Chat Orb — available on every dashboard page */}
-        <AdelineOrb />
+        {/* Lesson System with Floating Bee Bubble - ONLY chat interface */}
+        {user && <LessonSystemWrapper userId={user.userId} />}
       </div>
     </AppSidebar>
   );
