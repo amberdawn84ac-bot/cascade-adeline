@@ -107,7 +107,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
           aria-label="Chat with Adeline"
         >
           <Image
-            src="/bee-flower.png"
+            src="/bee-flower.jpg"
             alt="Adeline"
             fill
             className="object-cover rounded-full"
