@@ -6,6 +6,7 @@ import { moderateContent } from '@/lib/safety/content-moderator';
 import { shouldRefuse } from '@/lib/learning/scaffolding-guardian';
 import { recordInteraction, calculateCognitiveLoad } from '@/lib/cognitive-load';
 import { indexConversationMemory, shouldIndexConversation } from '@/lib/memex/memory-indexer';
+import { retrieveRelevantMemories, formatMemoriesForPrompt } from '@/lib/memex/memory-retriever';
 import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import { getModel, getTranscriptionModel } from '@/lib/ai-models';
 import { router as adelineRouter } from '@/lib/langgraph/router';
@@ -178,9 +179,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Build full system prompt: Adeline's soul + student adaptation + ZPD + intent mode
+    // 3. Build full system prompt: Adeline's soul + student adaptation + ZPD + memory + intent mode
+    const relevantMemories = await retrieveRelevantMemories(user.userId, maskedContent.masked, 3).catch(() => []);
+    const memoryContext = formatMemoriesForPrompt(relevantMemories);
     const fullSystemPrompt =
-      buildSystemPrompt(config) + studentCtx.systemPromptAddendum + getIntentContext(intent);
+      buildSystemPrompt(config) + studentCtx.systemPromptAddendum + memoryContext + getIntentContext(intent);
 
     // 4. GenUI payload (pure intent mapping — no LLM call needed)
     const genUIPayload = getGenUIPayload(intent, maskedContent.masked);

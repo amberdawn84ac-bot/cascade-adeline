@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { X, Send, Sparkles } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
 
@@ -102,33 +103,15 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
         <button
           onClick={() => setIsOpen(!isOpen)}
           onMouseDown={handleDragStart}
-          className="relative w-16 h-16 bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-500 rounded-full shadow-2xl hover:shadow-amber-500/50 transition-all duration-300 hover:scale-110 group"
+          className="relative w-16 h-16 bg-[#FFFEF7] border-2 border-[#2F4731] rounded-full shadow-2xl hover:shadow-[#2F4731]/30 transition-all duration-300 hover:scale-110 group overflow-hidden"
           aria-label="Chat with Adeline"
         >
-          {/* Bee Icon */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <svg viewBox="0 0 64 64" className="w-10 h-10">
-              {/* Bee body */}
-              <ellipse cx="32" cy="36" rx="14" ry="18" fill="#FFD700" />
-              {/* Black stripes */}
-              <rect x="18" y="28" width="28" height="3" fill="#000" opacity="0.8" />
-              <rect x="18" y="36" width="28" height="3" fill="#000" opacity="0.8" />
-              <rect x="18" y="44" width="28" height="3" fill="#000" opacity="0.8" />
-              {/* Head */}
-              <circle cx="32" cy="20" r="8" fill="#FFD700" />
-              {/* Eyes */}
-              <circle cx="28" cy="19" r="2" fill="#000" />
-              <circle cx="36" cy="19" r="2" fill="#000" />
-              {/* Antennae */}
-              <line x1="28" y1="14" x2="24" y2="8" stroke="#000" strokeWidth="1.5" />
-              <line x1="36" y1="14" x2="40" y2="8" stroke="#000" strokeWidth="1.5" />
-              <circle cx="24" cy="8" r="2" fill="#000" />
-              <circle cx="40" cy="8" r="2" fill="#000" />
-              {/* Wings */}
-              <ellipse cx="22" cy="26" rx="8" ry="12" fill="#fff" opacity="0.6" className="group-hover:animate-pulse" />
-              <ellipse cx="42" cy="26" rx="8" ry="12" fill="#fff" opacity="0.6" className="group-hover:animate-pulse" />
-            </svg>
-          </div>
+          <Image
+            src="/bee-flower.png"
+            alt="Adeline"
+            fill
+            className="object-cover rounded-full"
+          />
 
           {/* Notification badge */}
           {!isOpen && messages.length > 0 && (
@@ -136,27 +119,21 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
               !
             </div>
           )}
-
-          {/* Sparkle effect */}
-          <div className="absolute inset-0 rounded-full overflow-hidden">
-            <div className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full opacity-70 group-hover:animate-ping"></div>
-            <div className="absolute bottom-3 left-3 w-1.5 h-1.5 bg-white rounded-full opacity-60 animate-pulse"></div>
-          </div>
         </button>
       </div>
 
       {/* Chat Overlay */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl z-[9998] flex flex-col overflow-hidden border-4 border-amber-400">
+        <div className="fixed bottom-24 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl z-[9998] flex flex-col overflow-hidden border-4 border-[#2F4731]">
           {/* Header */}
-          <div className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 p-4 flex items-center justify-between">
+          <div className="bg-[#2F4731] p-4 flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-amber-600" />
+                <Sparkles className="w-6 h-6 text-[#BD6809]" />
               </div>
               <div>
                 <h3 className="font-bold text-white text-lg">Adeline</h3>
-                <p className="text-xs text-amber-100">Your Learning Companion</p>
+                <p className="text-xs text-white/70">Your Learning Companion</p>
               </div>
             </div>
             <button
@@ -170,7 +147,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
           {/* Messages Container */}
           <div
             ref={chatContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 bg-amber-50/30"
+            className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FFFEF7]"
           >
             {messages.length === 0 && (
               <div className="text-center text-gray-500 mt-8">
@@ -187,7 +164,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
                         setTimeout(() => handleSubmit({ preventDefault: () => {} } as any), 100);
                       }
                     }}
-                    className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-amber-700 hover:bg-amber-50 transition-colors"
+                    className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-[#2F4731] hover:bg-[#2F4731]/5 transition-colors border border-[#E7DAC3]"
                   >
                     🦋 Start a lesson on butterflies
                   </button>
@@ -201,7 +178,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
                         setTimeout(() => handleSubmit({ preventDefault: () => {} } as any), 100);
                       }
                     }}
-                    className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-amber-700 hover:bg-amber-50 transition-colors"
+                    className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-[#2F4731] hover:bg-[#2F4731]/5 transition-colors border border-[#E7DAC3]"
                   >
                     🏛️ American Revolution lesson
                   </button>
@@ -217,8 +194,8 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2 ${
                     message.role === 'user'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-white text-gray-800 shadow-sm border border-amber-200'
+                      ? 'bg-[#2F4731] text-white'
+                      : 'bg-white text-[#121B13] shadow-sm border border-[#E7DAC3]'
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -228,11 +205,11 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-amber-200">
+                <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-[#E7DAC3]">
                   <div className="flex space-x-2">
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
@@ -240,20 +217,20 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
           </div>
 
           {/* Input Area */}
-          <form onSubmit={handleSubmit} className="p-4 bg-white border-t border-amber-200">
+          <form onSubmit={handleSubmit} className="p-4 bg-white border-t border-[#E7DAC3]">
             <div className="flex space-x-2">
               <input
                 type="text"
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Ask Adeline anything..."
-                className="flex-1 px-4 py-2 border border-amber-300 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                className="flex-1 px-4 py-2 border border-[#E7DAC3] rounded-full focus:outline-none focus:ring-2 focus:ring-[#BD6809] focus:border-transparent"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="bg-amber-500 text-white rounded-full p-2 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="bg-[#BD6809] text-white rounded-full p-2 hover:bg-[#2F4731] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
                 <Send className="w-5 h-5" />
               </button>
