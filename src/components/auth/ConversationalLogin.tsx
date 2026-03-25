@@ -68,8 +68,9 @@ export function ConversationalLogin() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.refresh();
-      router.push(redirectTo);
+      // Hard redirect so the server receives fresh auth cookies in one shot,
+      // avoiding the double-login caused by router.refresh() + router.push().
+      window.location.href = redirectTo;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
       setLoading(false);

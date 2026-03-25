@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const PROTECTED_PATHS = ['/dashboard', '/chat', '/parent', '/library', '/api/clubs', '/api/transcript'];
+const PROTECTED_PATHS = ['/dashboard', '/parent', '/library', '/api/clubs', '/api/transcript'];
 
 export async function middleware(request: NextRequest) {
   // Generate request ID for distributed tracing
