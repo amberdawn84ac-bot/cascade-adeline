@@ -66,6 +66,7 @@ export interface LessonBlock {
     agent?: string;
     hippocampusId?: string;
     sourceSlug?: string;
+    conceptId?: string;
   };
   next_handoff?: string;
 }

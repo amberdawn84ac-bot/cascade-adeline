@@ -123,10 +123,16 @@ export function DynamicLessonViewer({
       return null;
     }
 
+    // For quiz blocks, promote metadata.conceptId to top-level and pass lessonId
+    const blockProps = block.block_type === 'quiz'
+      ? { ...block, conceptId: block.conceptId ?? block.metadata?.conceptId }
+      : block;
+
     return (
       <BlockComponent
         key={block.block_id}
-        blockData={block}
+        blockData={blockProps}
+        lessonId={lessonId}
         onResponse={(response: any) => handleResponse(block.block_id, response)}
         studentResponse={studentResponses[block.block_id]}
       />

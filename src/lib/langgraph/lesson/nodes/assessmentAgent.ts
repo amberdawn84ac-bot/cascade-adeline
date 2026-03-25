@@ -70,6 +70,7 @@ Rules:
       skills: [state.subject],
       zpd_level: state.gradeLevel,
       agent: 'assessmentAgent',
+      conceptId: `${state.subject}:${state.topic}`,
     },
   }));
 
