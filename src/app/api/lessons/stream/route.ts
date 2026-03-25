@@ -1,26 +1,22 @@
 import { getSessionUser } from '@/lib/auth';
-import { lessonOrchestrator } from '@/lib/langgraph/lesson/lessonOrchestrator';
+import { lessonBrain } from '@/lib/langgraph/lesson/lessonGraph';
 import prisma from '@/lib/db';
-import { MemorySaver } from '@langchain/langgraph';
-import redis from '@/lib/redis';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// Redis-based checkpoint saver for LangGraph
-class RedisCheckpointSaver extends MemorySaver {
-  async put(config: any, checkpoint: any, metadata: any) {
-    const key = `checkpoint:${config.configurable.thread_id}`;
-    await redis.set(key, JSON.stringify({ checkpoint, metadata }), { ex: 3600 });
-    return config;
-  }
-
-  async get(config: any) {
-    const key = `checkpoint:${config.configurable.thread_id}`;
-    const data = await redis.get(key);
-    return data ? JSON.parse(data as string) : null;
-  }
+/** Heuristic subject detection from free-text query — no LLM cost */
+function subjectFromQuery(query: string): string {
+  const q = query.toLowerCase();
+  if (/history|civil war|revolution|founding|war|empire|colonial|world war|slavery|amendment/.test(q)) return 'history';
+  if (/science|biology|chemistry|physics|earth|ecology|botany|astronomy|genetics|cell/.test(q)) return 'science';
+  if (/math|algebra|geometry|calculus|fraction|equation|arithmetic|statistics|number/.test(q)) return 'mathematics';
+  if (/bible|scripture|proverb|psalm|genesis|gospel|faith|jesus|god|verse|theology/.test(q)) return 'bible';
+  if (/english|writing|grammar|literature|reading|essay|poetry|novel|paragraph/.test(q)) return 'english';
+  if (/art|drawing|painting|music|creative|design|sketch|compose/.test(q)) return 'fine-arts';
+  if (/government|civics|politics|constitution|democracy|law|economics/.test(q)) return 'social-studies';
+  return 'general';
 }
 
 export async function POST(req: Request) {
@@ -32,7 +28,7 @@ export async function POST(req: Request) {
 
     const { studentQuery, lessonId } = await req.json();
 
-    // Get student profile
+    // Get student profile — used as seed values (orchestrator node re-fetches full context)
     const studentProfile = await prisma.user.findUnique({
       where: { id: user.userId },
       select: {
@@ -44,13 +40,12 @@ export async function POST(req: Request) {
     });
 
     const threadId = lessonId || `lesson-${user.userId}-${Date.now()}`;
+    const detectedSubject = subjectFromQuery(studentQuery);
 
-    // Create encoder for streaming
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Send start signal
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ type: 'start', threadId })}\n\n`)
           );
@@ -58,14 +53,17 @@ export async function POST(req: Request) {
           let allBlocks: any[] = [];
           let metadata: any = null;
 
-          // Stream events from LangGraph orchestrator
-          const eventStream = await lessonOrchestrator.streamEvents(
+          // Stream events from the lessonBrain (8-agent graph)
+          // Initial state seeds gradeLevel/interests/learningStyle as fallbacks;
+          // the orchestrator node calls getStudentContext() to enrich with ZPD, BKT, etc.
+          const eventStream = await lessonBrain.streamEvents(
             {
-              studentQuery,
               userId: user.userId,
-              studentProfile,
-              lessonBlocks: [],
-              currentBlockIndex: 0
+              topic: studentQuery,
+              subject: detectedSubject,
+              gradeLevel: studentProfile?.gradeLevel || '8',
+              interests: (studentProfile?.interests as string[]) || [],
+              learningStyle: studentProfile?.learningStyle || 'EXPEDITION',
             },
             {
               configurable: { thread_id: threadId },
@@ -74,7 +72,7 @@ export async function POST(req: Request) {
           );
 
           for await (const event of eventStream) {
-            // Stream agent progress
+            // Broadcast agent progress so the UI can show "Adeline is thinking..."
             if (event.event === 'on_chain_start') {
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({
@@ -87,10 +85,16 @@ export async function POST(req: Request) {
 
             if (event.event === 'on_chain_end') {
               const output = event.data?.output;
-              
-              // Stream metadata when available
-              if (output?.lessonMetadata && !metadata) {
-                metadata = output.lessonMetadata;
+              if (!output) continue;
+
+              // Emit metadata once we have subject/topic from the graph
+              if (!metadata && (output.subject || output.topic)) {
+                metadata = {
+                  title: output.topic || studentQuery,
+                  subject_track: output.subject || detectedSubject,
+                  gradeLevel: output.gradeLevel || studentProfile?.gradeLevel || '8',
+                  standards_codes: output.standardsCodes || [],
+                };
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({
                     type: 'lesson_metadata',
@@ -99,9 +103,9 @@ export async function POST(req: Request) {
                 );
               }
 
-              // Stream blocks incrementally as they're created
-              if (output?.lessonBlocks && output.lessonBlocks.length > allBlocks.length) {
-                const newBlocks = output.lessonBlocks.slice(allBlocks.length);
+              // Stream new blocks incrementally as each agent node completes
+              if (output.blocks && output.blocks.length > allBlocks.length) {
+                const newBlocks = output.blocks.slice(allBlocks.length);
                 for (const block of newBlocks) {
                   controller.enqueue(
                     encoder.encode(`data: ${JSON.stringify({
@@ -110,22 +114,21 @@ export async function POST(req: Request) {
                     })}\n\n`)
                   );
                   allBlocks.push(block);
-                  
-                  // Small delay for better streaming UX
-                  await new Promise(resolve => setTimeout(resolve, 300));
+                  // Small delay for a natural streaming feel
+                  await new Promise(resolve => setTimeout(resolve, 200));
                 }
               }
             }
           }
 
-          // Save lesson to database after streaming completes
+          // Save completed lesson to DB
           if (allBlocks.length > 0) {
             const savedLesson = await prisma.lesson.upsert({
               where: { lessonId: threadId },
               create: {
                 lessonId: threadId,
                 title: metadata?.title || studentQuery,
-                subject: metadata?.subject_track || 'truth-based-history',
+                subject: metadata?.subject_track || detectedSubject,
                 gradeLevel: studentProfile?.gradeLevel || '8',
                 lessonJson: {
                   ...metadata,
@@ -144,7 +147,6 @@ export async function POST(req: Request) {
               }
             });
 
-            // Create/update session with Redis checkpoint
             await prisma.lessonSession.upsert({
               where: {
                 userId_lessonId_isActive: {
@@ -156,13 +158,13 @@ export async function POST(req: Request) {
               create: {
                 userId: user.userId,
                 lessonId: threadId,
-                visibleBlocks: allBlocks.map((b: any) => b.block_id),
+                visibleBlocks: allBlocks.map((b: any) => b.block_id || b.id || ''),
                 completedBlocks: [],
                 checkpointId: threadId,
                 isActive: true
               },
               update: {
-                visibleBlocks: allBlocks.map((b: any) => b.block_id),
+                visibleBlocks: allBlocks.map((b: any) => b.block_id || b.id || ''),
                 checkpointId: threadId,
                 updatedAt: new Date()
               }
