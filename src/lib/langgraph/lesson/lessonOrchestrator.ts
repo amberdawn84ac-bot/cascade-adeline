@@ -51,6 +51,14 @@ export const LessonState = Annotation.Root({
     reducer: (left: string, right: string) => right,
     default: () => "",
   }),
+  assessmentNeeded: Annotation<boolean>({
+    reducer: (left: boolean, right: boolean) => right,
+    default: () => false,
+  }),
+  assessmentResults: Annotation<any>({
+    reducer: (left: any, right: any) => right,
+    default: () => null,
+  }),
 });
 
 export type LessonStateType = typeof LessonState.State;
@@ -214,6 +222,78 @@ Return JSON:
   }
 }
 
+// Path Router Agent - Determines if assessment/branching is needed
+async function pathRouterAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
+  // Check if lesson needs assessment based on complexity and depth
+  const needsAssessment = state.routingDecision?.depth === 'deep-dive' || 
+    (state.lessonBlocks && state.lessonBlocks.length > 5);
+  
+  return { assessmentNeeded: needsAssessment };
+}
+
+// Assessment Agent - Generates quiz/assessment blocks for mastery checking
+async function assessmentAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
+  if (!state.assessmentNeeded) {
+    return {};
+  }
+
+  const prompt = `Generate an assessment quiz block for this lesson:
+Topic: ${state.studentQuery}
+Subject: ${state.routingDecision?.subject_track}
+Learning Objectives: ${JSON.stringify(state.lessonMetadata?.learning_objectives)}
+
+Create a quiz block with:
+- 3-5 questions that test deep understanding, not memorization
+- Questions that require critical thinking ("Why would...?", "What if...?", "Who benefits...?")
+- Branching logic: score > 80% shows advanced content, < 60% shows remedial support
+- Multiple choice with 4 options each
+
+Return JSON:
+{
+  "block_id": "quiz-assessment",
+  "block_type": "quiz",
+  "order": ${(state.lessonBlocks?.length || 0) + 1},
+  "title": "Check Your Understanding",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "...",
+      "options": ["A", "B", "C", "D"],
+      "correct_answer": 0,
+      "explanation": "..."
+    }
+  ],
+  "branching": {
+    "on_score_above_80": {
+      "show_blocks": ["advanced-synthesis"],
+      "message": "Great work! Let's explore deeper connections."
+    },
+    "on_score_below_60": {
+      "show_blocks": ["remedial-review"],
+      "message": "Let's review the key concepts together."
+    }
+  }
+}`;
+
+  try {
+    const response = await model.invoke([new HumanMessage(prompt)]);
+    const content = response.content.toString();
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const assessmentBlock = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+    if (assessmentBlock) {
+      return {
+        assessmentResults: assessmentBlock,
+        lessonBlocks: [...(state.lessonBlocks || []), assessmentBlock]
+      };
+    }
+  } catch (error) {
+    console.error('[Assessment Agent] Error:', error);
+  }
+
+  return {};
+}
+
 // Lesson Assembler Agent - Combines sources and scripture into lesson blocks
 async function lessonAssemblerAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
   const prompt = `You are the Lesson Assembler Agent for Dear Adeline.
@@ -300,10 +380,23 @@ export const lessonOrchestrator = new StateGraph(LessonState)
   .addNode("sourceRetriever", sourceRetrieverAgent)
   .addNode("scriptureConnector", scriptureConnectorAgent)
   .addNode("lessonAssembler", lessonAssemblerAgent)
+  .addNode("pathRouter", pathRouterAgent)
+  .addNode("assessment", assessmentAgent)
   .addEdge(START, "router")
   .addEdge("router", "sourceRetriever")
   .addEdge("router", "scriptureConnector")
   .addEdge("sourceRetriever", "lessonAssembler")
   .addEdge("scriptureConnector", "lessonAssembler")
-  .addEdge("lessonAssembler", END)
+  .addEdge("lessonAssembler", "pathRouter")
+  .addConditionalEdges(
+    "pathRouter",
+    (state: LessonStateType) => {
+      return state.assessmentNeeded ? "assessment" : "end";
+    },
+    {
+      assessment: "assessment",
+      end: END
+    }
+  )
+  .addEdge("assessment", END)
   .compile();
