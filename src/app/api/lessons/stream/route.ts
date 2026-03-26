@@ -64,6 +64,7 @@ export async function POST(req: Request) {
               gradeLevel: studentProfile?.gradeLevel || '8',
               interests: (studentProfile?.interests as string[]) || [],
               learningStyle: studentProfile?.learningStyle || 'EXPEDITION',
+              learningMode: (studentProfile?.learningStyle?.toUpperCase() === 'EXPEDITION') ? 'expedition' : 'classic',
             },
             {
               configurable: { thread_id: threadId },

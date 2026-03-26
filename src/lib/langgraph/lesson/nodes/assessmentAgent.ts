@@ -12,8 +12,8 @@ const assessmentSchema = z.object({
   flashcards: z.array(z.object({
     term: z.string(),
     definition: z.string(),
-    example: z.string().optional(),
-    category: z.string().optional(),
+    example: z.string().nullish(),
+    category: z.string().nullish(),
   })).min(2).max(5),
 });
 

@@ -5,11 +5,11 @@ import { LessonBlock, LessonStateType } from '../lessonState';
 
 const personalizerSchema = z.object({
   reflectionPrompt: z.string(),
-  badgeName: z.string().optional(),
+  badgeName: z.string().nullish(),
   okStandards: z.array(z.object({
     blockIndex: z.number(),
     standard: z.string(),
-  })).optional(),
+  })).nullish(),
 });
 
 // Voice Scaling: Nurturing Guide (K-2) to Challenging Mentor (9-12)

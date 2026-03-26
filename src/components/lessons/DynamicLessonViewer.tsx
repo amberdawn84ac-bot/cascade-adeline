@@ -54,19 +54,27 @@ export function DynamicLessonViewer({
   );
 
   // Block type to component mapping
-  const blockComponents = {
+  const blockComponents: Record<string, React.ComponentType<any>> = {
     text: TextBlock,
     scripture: ScriptureBlock,
     primary_source: PrimarySourceBlock,
     investigation: InvestigationBlock,
     quiz: QuizBlock,
-    hands_on: HandsOnBlock,
+    'hands-on': HandsOnBlock,   // hyphen matches LessonBlock type
+    hands_on: HandsOnBlock,     // underscore alias for legacy blocks
     photo: PhotoBlock,
     video: VideoBlock,
-    flashcard: FlashcardBlock,
+    flashcards: FlashcardBlock, // plural matches assessmentAgent output
+    flashcard: FlashcardBlock,  // singular alias for legacy blocks
     infographic: InfographicBlock,
     game: GameBlock,
     worksheet: WorksheetBlock,
+    // New block types from contentAgent — render content via TextBlock until dedicated components exist
+    prompt: TextBlock,
+    choice: TextBlock,
+    interactive_concept: TextBlock,
+    branching_path: TextBlock,
+    source_gap: TextBlock,
   };
 
   const handleResponse = (blockId: string, response: any) => {

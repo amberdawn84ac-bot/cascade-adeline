@@ -7,23 +7,23 @@ const contentSchema = z.object({
   blocks: z.array(z.object({
     type: z.enum(['text', 'scripture', 'prompt', 'choice', 'interactive_concept', 'branching_path']),
     content: z.string(),
-    ok_standard: z.string().optional(),
-    faith_tie: z.boolean().optional(),
+    ok_standard: z.string().nullish(),
+    faith_tie: z.boolean().nullish(),
     // Interactive fields for choice/branching blocks
     choices: z.array(z.object({
       label: z.string(),
       description: z.string(),
-      nextPath: z.string().optional(),
-    })).optional(),
+      nextPath: z.string().nullish(),
+    })).nullish(),
     // Interactive concept fields
-    concept: z.string().optional(),
+    concept: z.string().nullish(),
     variables: z.array(z.object({
       name: z.string(),
       label: z.string(),
-      min: z.number().optional(),
-      max: z.number().optional(),
-      defaultValue: z.number().optional(),
-    })).optional(),
+      min: z.number().nullish(),
+      max: z.number().nullish(),
+      defaultValue: z.number().nullish(),
+    })).nullish(),
   })).min(2).max(8),
 });
 
