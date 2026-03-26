@@ -151,7 +151,8 @@ export async function POST(req: NextRequest) {
     const intent = routedState.intent;
     const selectedModel = routedState.selectedModel || config.models.default;
 
-    // 1.5 LESSON intent — stream lesson blocks inline via LangGraph lessonOrchestrator
+    // 1.5 LESSON intent — stream lesson blocks via LangGraph lessonOrchestrator
+    // Emit blocks as both lesson_block annotations (for window bridge) AND genUIPayload (for chat rendering)
     if (intent === 'LESSON') {
       console.log('[CHAT ROUTE] LESSON intent detected, query:', maskedContent.masked);
       const threadId = `lesson-${userId}-${Date.now()}`;
@@ -166,7 +167,7 @@ export async function POST(req: NextRequest) {
       const lessonStreamResponse = new ReadableStream({
         async start(controller) {
           controller.enqueue(encoder.encode(
-            `0:${JSON.stringify('Let me build a lesson on that — blocks will appear as Adeline assembles them:\n\n')}\n`,
+            `0:${JSON.stringify('Let me build a lesson on that — blocks will appear in the left pane:\n\n')}\n`,
           ));
 
           try {
@@ -233,11 +234,18 @@ export async function POST(req: NextRequest) {
                   // Normalise block_type → type for StreamingLessonRenderer
                   if (!b.type) b.type = b.block_type;
                   console.log('[CHAT ROUTE] Emitting lesson_block:', b.block_id, 'type:', b.type);
-                  // Raw annotation — FloatingBeeBubble bridge calls window.__addLessonBlock
-                  // directly so the right panel stays clean (no lesson blocks rendered inline).
+                  
+                  // Emit BOTH annotation types:
+                  // 1. lesson_block for FloatingBeeBubble window bridge (existing behavior)
                   controller.enqueue(encoder.encode(
                     `2:${JSON.stringify([{ type: 'lesson_block', data: { block: b, lessonId: threadId } }])}\n`,
                   ));
+                  
+                  // 2. genUIPayload for potential inline rendering in chat (new behavior)
+                  controller.enqueue(encoder.encode(
+                    `2:${JSON.stringify([{ genUIPayload: { component: 'LessonBlock', props: { block: b, lessonId: threadId } } }])}\n`,
+                  ));
+                  
                   blocksToEmit.push(b);
                 }
               }
@@ -261,8 +269,12 @@ export async function POST(req: NextRequest) {
               for (const block of blocksToEmit) {
                 const b = block as Record<string, unknown>;
                 console.log('[CHAT ROUTE] Emitting cached lesson_block:', b.block_id, 'type:', b.type);
+                // Emit both annotation types for cached blocks too
                 controller.enqueue(encoder.encode(
                   `2:${JSON.stringify([{ type: 'lesson_block', data: { block, lessonId: threadId } }])}\n`,
+                ));
+                controller.enqueue(encoder.encode(
+                  `2:${JSON.stringify([{ genUIPayload: { component: 'LessonBlock', props: { block, lessonId: threadId } } }])}\n`,
                 ));
               }
             }

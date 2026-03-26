@@ -71,23 +71,35 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
 
     for (const ann of newAnns) {
       console.log('[FloatingBeeBubble] Annotation type:', ann?.type ?? (ann?.genUIPayload ? 'genUIPayload:' + ann.genUIPayload?.component : 'unknown'));
+      
+      // Handle lesson_metadata annotations
       if (ann?.type === 'lesson_metadata' && ann.data) {
         console.log('[FloatingBeeBubble] lesson_metadata received → onLessonMount + __setLessonMetadata', ann.data);
-        // Show the left pane as soon as lesson metadata arrives (before blocks render)
         onLessonMount?.();
         if (typeof window.__setLessonMetadata === 'function') {
           window.__setLessonMetadata(ann.data);
         } else {
           console.warn('[FloatingBeeBubble] window.__setLessonMetadata not registered!');
         }
-      } else if (ann?.type === 'lesson_block' && ann.data?.block) {
+      } 
+      // Handle lesson_block annotations (legacy format)
+      else if (ann?.type === 'lesson_block' && ann.data?.block) {
         const b = ann.data.block;
         console.log('[FloatingBeeBubble] lesson_block received → __addLessonBlock', b?.block_id, 'type:', b?.type ?? b?.block_type, '| bridge registered:', typeof window.__addLessonBlock);
-        // Direct bridge: push block to left-pane StreamingLessonRenderer.
-        // onLessonMount ensures the pane is visible even if metadata was missed.
         onLessonMount?.();
         if (typeof window.__addLessonBlock === 'function') {
           window.__addLessonBlock(ann.data.block);
+        } else {
+          console.warn('[FloatingBeeBubble] window.__addLessonBlock not registered!');
+        }
+      }
+      // Handle genUIPayload LessonBlock annotations (new format)
+      else if (ann?.genUIPayload?.component === 'LessonBlock' && ann.genUIPayload?.props?.block) {
+        const block = ann.genUIPayload.props.block;
+        console.log('[FloatingBeeBubble] GenUI LessonBlock received → __addLessonBlock', block?.block_id, 'type:', block?.type ?? block?.block_type);
+        onLessonMount?.();
+        if (typeof window.__addLessonBlock === 'function') {
+          window.__addLessonBlock(block);
         } else {
           console.warn('[FloatingBeeBubble] window.__addLessonBlock not registered!');
         }
