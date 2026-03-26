@@ -78,6 +78,14 @@
   --font-emphasis: 'Permanent Marker', cursive;
   --font-bold: 'Swanky and Moo Moo', cursive;
   --font-neat: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+:root {
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.147 0.004 49.25);
   --popover: oklch(1 0 0);
