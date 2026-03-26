@@ -21,7 +21,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
   const bubbleRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
     api: '/api/chat',
     body: { userId, contextType: 'general' },
   });
@@ -40,6 +40,17 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Restore lesson history from DB on first mount — fixes annotation amnesia across refreshes
+  useEffect(() => {
+    if (!userId || messages.length > 0) return;
+    fetch('/api/lessons/history')
+      .then(r => r.ok ? r.json() : [])
+      .then((history: any[]) => {
+        if (history.length > 0) setMessages(history);
+      })
+      .catch(() => {});
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDragStart = (e: React.MouseEvent) => {
     setIsDragging(true);

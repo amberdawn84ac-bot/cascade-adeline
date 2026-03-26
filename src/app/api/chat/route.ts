@@ -12,6 +12,7 @@ import { getModel, getTranscriptionModel } from '@/lib/ai-models';
 import { router as adelineRouter } from '@/lib/langgraph/router';
 import { lifeCreditLogger } from '@/lib/langgraph/lifeCreditLogger';
 import { lessonOrchestrator } from '@/lib/langgraph/lesson/lessonOrchestrator';
+import { subjectFromQuery } from '@/lib/langgraph/lesson/subjectFromQuery';
 import { AdelineGraphState } from '@/lib/langgraph/types';
 import { getStudentContext } from '@/lib/learning/student-context';
 import redis from '@/lib/redis';
@@ -246,16 +247,46 @@ export async function POST(req: NextRequest) {
               } as AdelineGraphState).catch(() => {});
             }
 
-            // Non-blocking: save lesson session to DB for annotation persistence / history
-            prisma.lessonSession.create({
-              data: {
+            // Non-blocking: archive lesson content to Lesson table (parent library + annotation recovery)
+            if (blocksToEmit.length > 0) {
+              const subject = subjectFromQuery(maskedContent.masked);
+              prisma.lesson.upsert({
+                where: { lessonId: threadId },
+                create: {
+                  lessonId: threadId,
+                  title: (finalMetadata?.title as string | undefined) || maskedContent.masked.slice(0, 100),
+                  subject,
+                  gradeLevel: studentCtx.gradeLevel ?? '8',
+                  lessonJson: (finalMetadata ?? {}) as Record<string, unknown>,
+                  contentBlocks: blocksToEmit as unknown[],
+                  standardsCodes: Array.isArray(finalMetadata?.credits)
+                    ? (finalMetadata.credits as any[]).map((c: any) => String(c.subject))
+                    : [],
+                  estimatedDuration: Math.max(10, blocksToEmit.length * 5),
+                },
+                update: {
+                  contentBlocks: blocksToEmit as unknown[],
+                  lessonJson: (finalMetadata ?? {}) as Record<string, unknown>,
+                  updatedAt: new Date(),
+                },
+              }).catch(() => {});
+            }
+
+            // Non-blocking: track session for branching state
+            prisma.lessonSession.upsert({
+              where: { userId_lessonId_isActive: { userId, lessonId: threadId, isActive: false } },
+              create: {
                 userId,
                 lessonId: threadId,
-                visibleBlocks: [],
+                visibleBlocks: (blocksToEmit as any[]).map((b: any) => b.block_id).filter(Boolean),
                 completedBlocks: [],
                 studentResponses: {},
                 checkpointId: threadId,
                 isActive: false,
+              },
+              update: {
+                visibleBlocks: (blocksToEmit as any[]).map((b: any) => b.block_id).filter(Boolean),
+                updatedAt: new Date(),
               },
             }).catch(() => {});
 
