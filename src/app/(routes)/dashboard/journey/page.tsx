@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { StreamingLessonRenderer } from '@/components/lessons/StreamingLessonRenderer';
 import { useLessonStream } from '@/hooks/useLessonStream';
+import { StudentStatusBar } from '@/components/StudentStatusBar';
 
 interface LessonSuggestion {
   id: string;
@@ -54,21 +55,47 @@ export default function JourneyPage() {
     setPendingTopic(null);
   };
 
+  // Shared page chrome rendered in both idle and active-lesson states
+  const pageChrome = (
+    <>
+      {/* Page header */}
+      <header className="bg-white border-b-2 border-[#E7DAC3] p-6">
+        <div className="max-w-4xl mx-auto">
+          <h1
+            className="text-3xl font-bold text-[#2F4731]"
+            style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}
+          >
+            My Learning Plan
+          </h1>
+          <p className="text-[#2F4731]/60 mt-1 text-sm">
+            Choose a lesson to start, or ask Adeline in the chat bubble!
+          </p>
+        </div>
+      </header>
+
+      {/* Status bar — always visible */}
+      <div className="max-w-4xl mx-auto px-6 pt-6">
+        <StudentStatusBar />
+      </div>
+    </>
+  );
+
   // Show lesson renderer when a lesson is active (pending → streaming → saved)
   if (activeLessonId) {
     return (
       <div className="min-h-screen bg-[#FFFEF7]">
-        <div className="max-w-4xl mx-auto px-6 py-6">
+        {pageChrome}
+        <div className="max-w-4xl mx-auto px-6 pb-6">
           <button
             onClick={handleBackToSuggestions}
-            className="flex items-center gap-2 text-[#BD6809] hover:text-[#2F4731] mb-6 transition-colors"
+            className="flex items-center gap-2 text-[#BD6809] hover:text-[#2F4731] mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back to Learning Plan</span>
+            <span className="text-sm font-medium">Back to lesson list</span>
           </button>
 
           {isStreaming && (
-            <div className="flex items-center gap-3 py-4 mb-4">
+            <div className="flex items-center gap-3 py-3 mb-4">
               <Loader2 className="w-5 h-5 animate-spin text-[#BD6809]" />
               <p className="text-[#2F4731]/60 italic text-sm">Adeline is preparing your lesson…</p>
             </div>
@@ -94,20 +121,10 @@ export default function JourneyPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFEF7]">
-      {/* Header */}
-      <header className="bg-white border-b-2 border-[#E7DAC3] p-6 mb-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
-            My Learning Plan
-          </h1>
-          <p className="text-[#2F4731]/60 mt-2">
-            Choose a lesson to start, or ask Adeline in the chat bubble!
-          </p>
-        </div>
-      </header>
+      {pageChrome}
 
       {/* Lesson Suggestions */}
-      <main className="max-w-4xl mx-auto px-6">
+      <main className="max-w-4xl mx-auto px-6 pb-8">
         {isStreaming && (
           <div className="flex items-center justify-center py-12 mb-6">
             <div className="flex items-center gap-3">
