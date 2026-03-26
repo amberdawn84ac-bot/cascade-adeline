@@ -77,6 +77,7 @@
   --font-handwritten: 'Kalam', 'Caveat', cursive;
   --font-emphasis: 'Permanent Marker', cursive;
   --font-bold: 'Swanky and Moo Moo', cursive;
+  --font-neat: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.147 0.004 49.25);
   --popover: oklch(1 0 0);

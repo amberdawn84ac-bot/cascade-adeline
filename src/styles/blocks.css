@@ -12,7 +12,7 @@
   background: var(--paper-light);
   border-left: 4px solid var(--golden-wheat);
   border-radius: 0 8px 8px 0;
-  font-family: var(--font-handwritten);
+  font-family: var(--font-neat);
   color: var(--ink-brown);
   box-shadow: 0 2px 4px var(--paper-shadow);
 }
