@@ -15,6 +15,18 @@ interface FlashcardBlockProps {
 }
 
 export default function FlashcardBlock({ blockData, onResponse, studentResponse }: FlashcardBlockProps) {
+  // Normalise: agent emits individual blocks with content/interactive; legacy format uses cards[]
+  const cards: Array<{ front: string; back: string; etymology?: string }> =
+    blockData.cards?.length
+      ? blockData.cards
+      : [{
+          front: typeof (blockData as any).content === 'string'
+            ? (blockData as any).content
+            : (blockData as any).interactive?.term || 'Term',
+          back: (blockData as any).interactive?.definition || '',
+          etymology: (blockData as any).interactive?.example,
+        }];
+
   const [currentCard, setCurrentCard] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [completed, setCompleted] = useState(studentResponse?.completed || []);
@@ -26,20 +38,20 @@ export default function FlashcardBlock({ blockData, onResponse, studentResponse 
     }
     setFlipped(false);
     setShowEtymology(false);
-    setCurrentCard((prev) => (prev + 1) % blockData.cards.length);
+    setCurrentCard((prev) => (prev + 1) % cards.length);
   };
 
   const handlePrevious = () => {
     setFlipped(false);
     setShowEtymology(false);
-    setCurrentCard((prev) => (prev - 1 + blockData.cards.length) % blockData.cards.length);
+    setCurrentCard((prev) => (prev - 1 + cards.length) % cards.length);
   };
 
   const handleFlip = () => {
     setFlipped(!flipped);
   };
 
-  const card = blockData.cards[currentCard];
+  const card = cards[currentCard];
 
   if (!card) return null;
 
@@ -48,7 +60,7 @@ export default function FlashcardBlock({ blockData, onResponse, studentResponse 
       <div className="flashcard-header">
         <h4>Vocabulary Flashcards</h4>
         <span className="card-counter">
-          {currentCard + 1} / {blockData.cards.length}
+          {currentCard + 1} / {cards.length}
         </span>
       </div>
 
@@ -105,11 +117,11 @@ export default function FlashcardBlock({ blockData, onResponse, studentResponse 
           <div className="progress-bar">
             <div 
               className="progress-fill"
-              style={{ width: `${(completed.length / blockData.cards.length) * 100}%` }}
+              style={{ width: `${(completed.length / cards.length) * 100}%` }}
             />
           </div>
           <span className="progress-text">
-            {completed.length} of {blockData.cards.length} completed
+            {completed.length} of {cards.length} completed
           </span>
         </div>
       )}

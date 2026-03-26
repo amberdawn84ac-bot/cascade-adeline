@@ -34,7 +34,23 @@ export default function QuizBlock({ blockData, onResponse, studentResponse, less
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [startTime] = useState(Date.now());
 
-  const questions = blockData.questions || [];
+  // Normalise: agent emits blocks with content (question text) and interactive (options/answer)
+  const normalised = (() => {
+    const b = blockData as any;
+    if (b.questions?.length) return b; // legacy multi-question format
+    // Single-question from assessmentAgent: content = question, interactive = options
+    return {
+      ...b,
+      question: b.question || b.content || '',
+      options: b.options || b.interactive?.options,
+      answer: b.answer || b.interactive?.answer,
+      explanation: b.explanation || b.interactive?.explanation,
+      quiz_type: b.quiz_type || (b.interactive?.options?.length ? 'multiple-choice' : undefined),
+      questions: [],
+    };
+  })();
+
+  const questions = normalised.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
 
   const handleSubmit = async () => {
@@ -107,17 +123,17 @@ export default function QuizBlock({ blockData, onResponse, studentResponse, less
           }
         }
       } else {
-        // Single question quiz (legacy format)
-        const isCorrect = selectedAnswer === blockData.answer;
+        // Single question quiz (agent format: content + interactive)
+        const isCorrect = selectedAnswer === normalised.answer;
         const score = isCorrect ? 100 : 0;
-        
+
         const timeSpent = Math.floor((Date.now() - startTime) / 1000);
         const result = await submitQuizAnswer({
           lessonId: lessonId || 'unknown',
           blockId: blockData.block_id,
           questionId: 'single',
-          selectedAnswer: blockData.options?.indexOf(selectedAnswer) || 0,
-          correctAnswer: blockData.options?.indexOf(blockData.answer) || 0,
+          selectedAnswer: normalised.options?.indexOf(selectedAnswer) ?? 0,
+          correctAnswer: normalised.options?.indexOf(normalised.answer) ?? 0,
           conceptId: blockData.conceptId,
           timeSpent
         });
@@ -161,12 +177,12 @@ export default function QuizBlock({ blockData, onResponse, studentResponse, less
       </div>
 
       <div className="quiz-question">
-        <p>{blockData.question}</p>
+        <p>{normalised.question}</p>
       </div>
 
       {!showResult ? (
         <div className="quiz-options">
-          {blockData.quiz_type === 'multiple-choice' && blockData.options?.map((option, index) => (
+          {normalised.quiz_type === 'multiple-choice' && normalised.options?.map((option: string, index: number) => (
             <label key={index} className="quiz-option">
               <input
                 type="radio"
@@ -179,7 +195,7 @@ export default function QuizBlock({ blockData, onResponse, studentResponse, less
             </label>
           ))}
 
-          {blockData.quiz_type === 'true-false' && (
+          {normalised.quiz_type === 'true-false' && (
             <div className="quiz-options">
               <label className="quiz-option">
                 <input
@@ -204,7 +220,7 @@ export default function QuizBlock({ blockData, onResponse, studentResponse, less
             </div>
           )}
 
-          {blockData.quiz_type === 'short-answer' && (
+          {normalised.quiz_type === 'short-answer' && (
             <textarea
               value={selectedAnswer}
               onChange={(e) => setSelectedAnswer(e.target.value)}
@@ -227,10 +243,10 @@ export default function QuizBlock({ blockData, onResponse, studentResponse, less
             <span>{studentResponse?.correct ? 'Correct!' : 'Incorrect'}</span>
           </div>
 
-          {blockData.explanation && (
+          {normalised.explanation && (
             <div className="quiz-explanation">
               <h5>Explanation:</h5>
-              <p>{blockData.explanation}</p>
+              <p>{normalised.explanation}</p>
             </div>
           )}
 
@@ -239,7 +255,7 @@ export default function QuizBlock({ blockData, onResponse, studentResponse, less
               <strong>Your answer:</strong> {selectedAnswer || 'Not answered'}
             </div>
             <div className="correct-answer">
-              <strong>Correct answer:</strong> {blockData.answer}
+              <strong>Correct answer:</strong> {normalised.answer}
             </div>
           </div>
         </div>
