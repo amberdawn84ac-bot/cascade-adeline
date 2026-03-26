@@ -33,22 +33,30 @@ export default function JourneyPage() {
     const topic = typeof topicOrSuggestion === 'string'
       ? topicOrSuggestion
       : topicOrSuggestion.title;
+    console.log('[Journey] handleLessonRequest called with topic:', topic);
     setPendingTopic(topic);
     setActiveLessonId('pending'); // mounts renderer → sets window.__addLessonBlock
+    console.log('[Journey] Set activeLessonId to "pending" to mount renderer');
   }, []);
 
   // Hybrid path: mounts StreamingLessonRenderer without triggering SSE.
   // 'chat-driven' is truthy (renderer mounts) but !== 'pending' (SSE useEffect skips).
   const handleLessonMount = useCallback(() => {
+    console.log('[Journey] handleLessonMount called - setting activeLessonId to "chat-driven"');
     setActiveLessonId('chat-driven');
   }, []);
 
   // After renderer mounts (activeLessonId === 'pending'), start the SSE stream
   useEffect(() => {
-    if (activeLessonId !== 'pending' || !pendingTopic) return;
+    if (activeLessonId !== 'pending' || !pendingTopic) {
+      console.log('[Journey] SSE useEffect skipped - activeLessonId:', activeLessonId, 'pendingTopic:', pendingTopic);
+      return;
+    }
+    console.log('[Journey] SSE useEffect triggered - starting lesson stream for:', pendingTopic);
     const topic = pendingTopic;
     setPendingTopic(null);
     startLesson(topic).then(savedId => {
+      console.log('[Journey] Lesson stream completed, savedId:', savedId);
       if (savedId) setActiveLessonId(savedId);
     });
   }, [activeLessonId, pendingTopic, startLesson]);

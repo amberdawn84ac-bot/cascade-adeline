@@ -66,20 +66,31 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
 
     const newAnns = annotations.slice(prevCount);
     sentAnnotationCountRef.current[latestAssistant.id] = annotations.length;
+    console.log('[FloatingBeeBubble] Processing', newAnns.length, 'new annotations from message', latestAssistant.id);
 
     for (const ann of newAnns) {
       if (ann?.type === 'lesson_metadata' && ann.data) {
+        console.log('[FloatingBeeBubble] Annotation: lesson_metadata', ann.data);
         // Show the left pane as soon as lesson metadata arrives (before blocks render)
         onLessonMount?.();
-        window.__setLessonMetadata?.(ann.data);
+        if (typeof window.__setLessonMetadata === 'function') {
+          window.__setLessonMetadata(ann.data);
+        } else {
+          console.warn('[FloatingBeeBubble] window.__setLessonMetadata not registered!');
+        }
       } else if (ann?.type === 'lesson_block' && ann.data?.block) {
+        console.log('[FloatingBeeBubble] Annotation: lesson_block', ann.data.block.type || ann.data.block.block_type);
         // Direct bridge: push block to left-pane StreamingLessonRenderer.
         // onLessonMount ensures the pane is visible even if metadata was missed.
         onLessonMount?.();
-        window.__addLessonBlock?.(ann.data.block);
+        if (typeof window.__addLessonBlock === 'function') {
+          window.__addLessonBlock(ann.data.block);
+        } else {
+          console.warn('[FloatingBeeBubble] window.__addLessonBlock not registered!');
+        }
       }
     }
-  }, [messages]);
+  }, [messages, onLessonMount]);
 
   const handleDragStart = (e: React.MouseEvent) => {
     setIsDragging(true);
