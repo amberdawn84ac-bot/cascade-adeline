@@ -11,8 +11,11 @@ import { loadConfig, buildSystemPrompt } from '@/lib/config';
 import { getModel, getTranscriptionModel } from '@/lib/ai-models';
 import { router as adelineRouter } from '@/lib/langgraph/router';
 import { lifeCreditLogger } from '@/lib/langgraph/lifeCreditLogger';
+import { lessonOrchestrator } from '@/lib/langgraph/lesson/lessonOrchestrator';
+import { subjectFromQuery } from '@/lib/langgraph/lesson/subjectFromQuery';
 import { AdelineGraphState } from '@/lib/langgraph/types';
 import { getStudentContext } from '@/lib/learning/student-context';
+import redis from '@/lib/redis';
 import prisma from '@/lib/db';
 
 // Intent-specific addendum appended to Adeline's base system prompt
@@ -148,27 +151,131 @@ export async function POST(req: NextRequest) {
     const intent = routedState.intent;
     const selectedModel = routedState.selectedModel || config.models.default;
 
-    // 1.5 LESSON intent: Delegate to lesson streaming system
+    // 1.5 LESSON intent — stream lesson blocks inline via LangGraph lessonOrchestrator
     if (intent === 'LESSON') {
-      const lessonStream = await fetch(new URL('/api/lessons/stream', req.url), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentQuery: maskedContent.masked,
-          lessonId: `lesson-${Date.now()}`
-        })
+      const threadId = `lesson-${userId}-${Date.now()}`;
+      // Unused subject detection kept for future personalization hints
+      void subjectFromQuery(maskedContent.masked);
+
+      // Redis cache key: skip orchestrator if same topic was built recently (24h TTL)
+      const cacheKey = `lesson:${userId}:${Buffer.from(maskedContent.masked).toString('base64').slice(0, 32)}`;
+      const cached = await redis.get<{ lessonBlocks: unknown[]; lessonMetadata: unknown }>(cacheKey).catch(() => null);
+
+      const encoder = new TextEncoder();
+      const lessonStreamResponse = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(encoder.encode(
+            `0:${JSON.stringify('Let me build a lesson on that — blocks will appear as Adeline assembles them:\n\n')}\n`,
+          ));
+
+          try {
+            let blocksToEmit: unknown[] = [];
+            let finalMetadata: Record<string, unknown> | null = null;
+
+            if (cached?.lessonBlocks?.length) {
+              // Fast path: serve cached blocks without re-invoking the swarm
+              blocksToEmit = cached.lessonBlocks;
+              finalMetadata = (cached.lessonMetadata as Record<string, unknown>) ?? null;
+            } else {
+              // Run the LangGraph lesson orchestrator swarm
+              let emittedCount = 0;
+
+              const eventStream = lessonOrchestrator.streamEvents(
+                {
+                  studentQuery: maskedContent.masked,
+                  userId,
+                  studentProfile: {
+                    gradeLevel: studentCtx.gradeLevel ?? '8',
+                    interests: (studentCtx as any).interests ?? [],
+                    learningStyle: (studentCtx as any).learningStyle ?? 'EXPEDITION',
+                    age: (studentCtx as any).age,
+                    bktSummary: (studentCtx as any).bktSummary,
+                  },
+                },
+                { configurable: { thread_id: threadId }, version: 'v2' as const },
+              );
+
+              for await (const event of eventStream) {
+                if (event.event !== 'on_chain_end') continue;
+                const output = event.data?.output as Record<string, unknown> | undefined;
+                if (!Array.isArray(output?.lessonBlocks)) continue;
+                const blocks = output.lessonBlocks as unknown[];
+                if (blocks.length <= emittedCount) continue;
+
+                const newBlocks = blocks.slice(emittedCount);
+                emittedCount = blocks.length;
+
+                for (const block of newBlocks) {
+                  const b = block as Record<string, unknown>;
+                  if (!b.block_id) {
+                    b.block_id = `block-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                  }
+                  const annotation = {
+                    genUIPayload: { component: 'LessonBlock', props: { block: b, lessonId: threadId } },
+                  };
+                  controller.enqueue(encoder.encode(`2:${JSON.stringify([annotation])}\n`));
+                  blocksToEmit.push(b);
+                }
+
+                if (output.lessonMetadata) {
+                  finalMetadata = output.lessonMetadata as Record<string, unknown>;
+                }
+              }
+
+              // Cache assembled lesson for 24 hours
+              if (blocksToEmit.length > 0) {
+                redis.set(cacheKey, { lessonBlocks: blocksToEmit, lessonMetadata: finalMetadata }, { ex: 86400 })
+                  .catch(() => {});
+              }
+            }
+
+            // Emit cached blocks (fast path)
+            if (cached?.lessonBlocks?.length) {
+              for (const block of blocksToEmit) {
+                const annotation = {
+                  genUIPayload: { component: 'LessonBlock', props: { block, lessonId: threadId } },
+                };
+                controller.enqueue(encoder.encode(`2:${JSON.stringify([annotation])}\n`));
+              }
+            }
+
+            // Fire-and-forget: LifeCreditLogger using lesson subject credits
+            if (finalMetadata && Array.isArray((finalMetadata as any).credits) && (finalMetadata as any).credits.length) {
+              lifeCreditLogger({
+                userId,
+                gradeLevel: studentCtx.gradeLevel ?? '8',
+                prompt: `Completed lesson: ${(finalMetadata as any).title || maskedContent.masked}`,
+                conversationHistory: [],
+              } as AdelineGraphState).catch(() => {});
+            }
+
+            // Non-blocking: save lesson thread to DB for history/annotation persistence
+            prisma.lessonSession.create({
+              data: {
+                userId,
+                lessonId: threadId,
+                subject: subjectFromQuery(maskedContent.masked),
+                gradeLevel: studentCtx.gradeLevel ?? '8',
+                isActive: false,
+                completedBlocks: [],
+                studentResponses: {},
+                checkpointId: threadId,
+              },
+            }).catch(() => {});
+
+          } catch (err) {
+            console.error('[Chat/LESSON] orchestrator error:', err);
+            controller.enqueue(encoder.encode(
+              `0:${JSON.stringify('\n\nI hit a snag building that lesson. Try again!')}\n`,
+            ));
+          } finally {
+            controller.close();
+          }
+        },
       });
 
-      if (!lessonStream.ok) {
-        return staticStreamResponse('I had trouble creating that lesson. Please try again!');
-      }
-
-      return new Response(lessonStream.body, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
-        }
+      return new Response(lessonStreamResponse, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' },
       });
     }
 

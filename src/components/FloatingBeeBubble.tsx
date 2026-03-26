@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { X, Send, Sparkles } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
+import { GenUIRenderer } from './gen-ui/GenUIRenderer';
 
 interface FloatingBeeBubbleProps {
   onLessonStream?: (blocks: any[]) => void;
@@ -25,29 +26,11 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
     body: { userId, contextType: 'general' },
   });
 
-  // Lesson intent phrases — matches what the router detects on the server
-  const LESSON_PHRASES = [
-    'teach me', 'start a lesson', 'learn about', 'lesson on',
-    'explain ', 'how does ', 'what is ', 'walk me through',
-    'help me understand', 'show me how', 'i want to learn',
-    'give me a lesson', 'tell me about',
-  ];
-
+  // All messages (including lesson requests) go through /api/chat.
+  // The server-side adelineRouter classifies LESSON intent and streams blocks inline.
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    const lower = input.toLowerCase();
-    const isLesson = LESSON_PHRASES.some(p => lower.includes(p));
-
-    if (isLesson && onLessonRequest) {
-      console.log('[FloatingBeeBubble] Lesson phrase detected — calling onLessonRequest:', input);
-      onLessonRequest(input);
-      setIsOpen(false);
-      return;
-    }
-
-    console.log('[FloatingBeeBubble] Non-lesson message — sending to /api/chat');
     handleSubmit(e);
   };
 
@@ -99,13 +82,19 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
               <p className="text-sm mt-2">Ask me to start a lesson or help with anything!</p>
               <div className="mt-4 space-y-2">
                 <button
-                  onClick={() => onLessonRequest?.('Butterflies of North America')}
+                  onClick={() => {
+                    handleInputChange({ target: { value: 'Start a lesson on butterflies of North America' } } as React.ChangeEvent<HTMLInputElement>);
+                    setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 50);
+                  }}
                   className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-[#2F4731] hover:bg-[#2F4731]/5 transition-colors border border-[#E7DAC3]"
                 >
                   🦋 Start a lesson on butterflies
                 </button>
                 <button
-                  onClick={() => onLessonRequest?.('The American Revolution')}
+                  onClick={() => {
+                    handleInputChange({ target: { value: 'Start a lesson on the American Revolution' } } as React.ChangeEvent<HTMLInputElement>);
+                    setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 50);
+                  }}
                   className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-[#2F4731] hover:bg-[#2F4731]/5 transition-colors border border-[#E7DAC3]"
                 >
                   🏛️ American Revolution lesson
@@ -115,12 +104,20 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
           )}
           {messages.map((message) => (
             <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl px-4 py-2 ${
-                message.role === 'user'
-                  ? 'bg-[#2F4731] text-white'
-                  : 'bg-white text-[#121B13] shadow-sm border border-[#E7DAC3]'
-              }`}>
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <div className={message.role === 'user' ? 'max-w-[85%] rounded-2xl px-4 py-2 bg-[#2F4731] text-white' : 'w-full'}>
+                {message.content && (
+                  <p className={`text-sm whitespace-pre-wrap ${message.role === 'user' ? '' : 'rounded-2xl px-4 py-2 bg-white text-[#121B13] shadow-sm border border-[#E7DAC3]'}`}>
+                    {message.content}
+                  </p>
+                )}
+                {Array.isArray((message as any).annotations) &&
+                  (message as any).annotations.map((ann: any, i: number) =>
+                    ann?.genUIPayload ? (
+                      <div key={i} className="mt-2 w-full">
+                        <GenUIRenderer payload={ann.genUIPayload} />
+                      </div>
+                    ) : null,
+                  )}
               </div>
             </div>
           ))}
@@ -226,13 +223,8 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
                 <div className="mt-4 space-y-2">
                   <button
                     onClick={() => {
-                      if (onLessonRequest) {
-                        onLessonRequest('Butterflies of North America');
-                        setIsOpen(false);
-                      } else {
-                        handleInputChange({ target: { value: 'Start a lesson on butterflies' } } as any);
-                        setTimeout(() => handleSubmit({ preventDefault: () => {} } as any), 100);
-                      }
+                      handleInputChange({ target: { value: 'Start a lesson on butterflies of North America' } } as React.ChangeEvent<HTMLInputElement>);
+                      setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 50);
                     }}
                     className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-[#2F4731] hover:bg-[#2F4731]/5 transition-colors border border-[#E7DAC3]"
                   >
@@ -240,13 +232,8 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
                   </button>
                   <button
                     onClick={() => {
-                      if (onLessonRequest) {
-                        onLessonRequest('The American Revolution');
-                        setIsOpen(false);
-                      } else {
-                        handleInputChange({ target: { value: 'Teach me about the American Revolution' } } as any);
-                        setTimeout(() => handleSubmit({ preventDefault: () => {} } as any), 100);
-                      }
+                      handleInputChange({ target: { value: 'Start a lesson on the American Revolution' } } as React.ChangeEvent<HTMLInputElement>);
+                      setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 50);
                     }}
                     className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-[#2F4731] hover:bg-[#2F4731]/5 transition-colors border border-[#E7DAC3]"
                   >
@@ -261,14 +248,20 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
                 key={message.id}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                    message.role === 'user'
-                      ? 'bg-[#2F4731] text-white'
-                      : 'bg-white text-[#121B13] shadow-sm border border-[#E7DAC3]'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <div className={message.role === 'user' ? 'max-w-[80%] rounded-2xl px-4 py-2 bg-[#2F4731] text-white' : 'w-full'}>
+                  {message.content && (
+                    <p className={`text-sm whitespace-pre-wrap ${message.role === 'user' ? '' : 'rounded-2xl px-4 py-2 bg-white text-[#121B13] shadow-sm border border-[#E7DAC3]'}`}>
+                      {message.content}
+                    </p>
+                  )}
+                  {Array.isArray((message as any).annotations) &&
+                    (message as any).annotations.map((ann: any, i: number) =>
+                      ann?.genUIPayload ? (
+                        <div key={i} className="mt-2 w-full">
+                          <GenUIRenderer payload={ann.genUIPayload} />
+                        </div>
+                      ) : null,
+                    )}
                 </div>
               </div>
             ))}
