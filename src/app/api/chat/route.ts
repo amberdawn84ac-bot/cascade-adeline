@@ -153,11 +153,14 @@ export async function POST(req: NextRequest) {
 
     // 1.5 LESSON intent — stream lesson blocks inline via LangGraph lessonOrchestrator
     if (intent === 'LESSON') {
+      console.log('[CHAT ROUTE] LESSON intent detected, query:', maskedContent.masked);
       const threadId = `lesson-${userId}-${Date.now()}`;
+      console.log('[CHAT ROUTE] threadId:', threadId);
 
       // Redis cache key: skip orchestrator if same topic was built recently (24h TTL)
       const cacheKey = `lesson:${userId}:${Buffer.from(maskedContent.masked).toString('base64').slice(0, 32)}`;
       const cached = await redis.get<{ lessonBlocks: unknown[]; lessonMetadata: unknown }>(cacheKey).catch(() => null);
+      console.log('[CHAT ROUTE] Redis cache hit:', !!cached, cached ? `(${(cached.lessonBlocks as unknown[])?.length ?? 0} blocks)` : '');
 
       const encoder = new TextEncoder();
       const lessonStreamResponse = new ReadableStream({
@@ -172,10 +175,12 @@ export async function POST(req: NextRequest) {
 
             if (cached?.lessonBlocks?.length) {
               // Fast path: serve cached blocks without re-invoking the swarm
+              console.log('[CHAT ROUTE] Serving from cache:', (cached.lessonBlocks as unknown[]).length, 'blocks');
               blocksToEmit = cached.lessonBlocks;
               finalMetadata = (cached.lessonMetadata as Record<string, unknown>) ?? null;
             } else {
               // Run the LangGraph lesson orchestrator swarm
+              console.log('[CHAT ROUTE] Orchestrator started for:', maskedContent.masked);
               const emittedBlockIds = new Set<string>();
 
               const eventStream = lessonOrchestrator.streamEvents(
@@ -194,13 +199,18 @@ export async function POST(req: NextRequest) {
               );
 
               for await (const event of eventStream) {
+                if (event.event === 'on_chain_start') {
+                  console.log('[CHAT ROUTE] Orchestrator node started:', event.name);
+                }
                 if (event.event !== 'on_chain_end') continue;
+                console.log('[CHAT ROUTE] Orchestrator node completed:', event.name, '| output keys:', Object.keys(event.data?.output ?? {}));
                 const output = event.data?.output as Record<string, unknown> | undefined;
                 if (!output) continue;
 
                 // Emit metadata to window bridge once it arrives
                 if (output.lessonMetadata && !finalMetadata) {
                   finalMetadata = output.lessonMetadata as Record<string, unknown>;
+                  console.log('[CHAT ROUTE] Emitting lesson_metadata:', JSON.stringify(finalMetadata).slice(0, 120));
                   controller.enqueue(encoder.encode(
                     `2:${JSON.stringify([{ type: 'lesson_metadata', data: { ...finalMetadata, lessonId: threadId } }])}\n`,
                   ));
@@ -208,19 +218,21 @@ export async function POST(req: NextRequest) {
 
                 if (!Array.isArray(output?.lessonBlocks)) continue;
                 const blocks = output.lessonBlocks as unknown[];
+                console.log('[CHAT ROUTE] Blocks from', event.name, ':', blocks.length, '(total in state)');
 
                 for (const block of blocks) {
                   const b = block as Record<string, unknown>;
                   if (!b.block_id) {
                     b.block_id = `block-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
                   }
-                  
+
                   // Skip if already emitted (dedup by block_id)
                   if (emittedBlockIds.has(b.block_id as string)) continue;
                   emittedBlockIds.add(b.block_id as string);
 
                   // Normalise block_type → type for StreamingLessonRenderer
                   if (!b.type) b.type = b.block_type;
+                  console.log('[CHAT ROUTE] Emitting lesson_block:', b.block_id, 'type:', b.type);
                   // Raw annotation — FloatingBeeBubble bridge calls window.__addLessonBlock
                   // directly so the right panel stays clean (no lesson blocks rendered inline).
                   controller.enqueue(encoder.encode(
@@ -229,6 +241,7 @@ export async function POST(req: NextRequest) {
                   blocksToEmit.push(b);
                 }
               }
+              console.log('[CHAT ROUTE] Orchestrator finished. Total blocks emitted:', blocksToEmit.length);
 
               // Cache assembled lesson for 24 hours
               if (blocksToEmit.length > 0) {
@@ -239,12 +252,15 @@ export async function POST(req: NextRequest) {
 
             // Emit cached blocks (fast path)
             if (cached?.lessonBlocks?.length) {
+              console.log('[CHAT ROUTE] Emitting cached metadata + blocks:', blocksToEmit.length);
               if (finalMetadata) {
                 controller.enqueue(encoder.encode(
                   `2:${JSON.stringify([{ type: 'lesson_metadata', data: { ...finalMetadata, lessonId: threadId } }])}\n`,
                 ));
               }
               for (const block of blocksToEmit) {
+                const b = block as Record<string, unknown>;
+                console.log('[CHAT ROUTE] Emitting cached lesson_block:', b.block_id, 'type:', b.type);
                 controller.enqueue(encoder.encode(
                   `2:${JSON.stringify([{ type: 'lesson_block', data: { block, lessonId: threadId } }])}\n`,
                 ));

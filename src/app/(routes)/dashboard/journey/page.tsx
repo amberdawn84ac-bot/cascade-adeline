@@ -33,16 +33,16 @@ export default function JourneyPage() {
     const topic = typeof topicOrSuggestion === 'string'
       ? topicOrSuggestion
       : topicOrSuggestion.title;
-    console.log('[Journey] handleLessonRequest called with topic:', topic);
+    console.log('[Journey] handleLessonRequest →', topic);
     setPendingTopic(topic);
     setActiveLessonId('pending'); // mounts renderer → sets window.__addLessonBlock
-    console.log('[Journey] Set activeLessonId to "pending" to mount renderer');
+    console.log('[Journey] activeLessonId set to "pending"');
   }, []);
 
   // Hybrid path: mounts StreamingLessonRenderer without triggering SSE.
   // 'chat-driven' is truthy (renderer mounts) but !== 'pending' (SSE useEffect skips).
   const handleLessonMount = useCallback(() => {
-    console.log('[Journey] handleLessonMount called - setting activeLessonId to "chat-driven"');
+    console.log('[Journey] handleLessonMount called → setActiveLessonId(chat-driven)');
     setActiveLessonId('chat-driven');
   }, []);
 

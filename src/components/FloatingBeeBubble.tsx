@@ -30,6 +30,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
+    console.log('[FloatingBeeBubble] User submitted:', input.trim());
     // Server-side adelineRouter classifies LESSON intent — no client-side intercept needed.
     handleSubmit(e);
   };
@@ -66,11 +67,12 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
 
     const newAnns = annotations.slice(prevCount);
     sentAnnotationCountRef.current[latestAssistant.id] = annotations.length;
-    console.log('[FloatingBeeBubble] Processing', newAnns.length, 'new annotations from message', latestAssistant.id);
+    console.log('[FloatingBeeBubble] Processing', newAnns.length, 'new annotation(s) for message', latestAssistant.id);
 
     for (const ann of newAnns) {
+      console.log('[FloatingBeeBubble] Annotation type:', ann?.type ?? (ann?.genUIPayload ? 'genUIPayload:' + ann.genUIPayload?.component : 'unknown'));
       if (ann?.type === 'lesson_metadata' && ann.data) {
-        console.log('[FloatingBeeBubble] Annotation: lesson_metadata', ann.data);
+        console.log('[FloatingBeeBubble] lesson_metadata received → onLessonMount + __setLessonMetadata', ann.data);
         // Show the left pane as soon as lesson metadata arrives (before blocks render)
         onLessonMount?.();
         if (typeof window.__setLessonMetadata === 'function') {
@@ -79,7 +81,8 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
           console.warn('[FloatingBeeBubble] window.__setLessonMetadata not registered!');
         }
       } else if (ann?.type === 'lesson_block' && ann.data?.block) {
-        console.log('[FloatingBeeBubble] Annotation: lesson_block', ann.data.block.type || ann.data.block.block_type);
+        const b = ann.data.block;
+        console.log('[FloatingBeeBubble] lesson_block received → __addLessonBlock', b?.block_id, 'type:', b?.type ?? b?.block_type, '| bridge registered:', typeof window.__addLessonBlock);
         // Direct bridge: push block to left-pane StreamingLessonRenderer.
         // onLessonMount ensures the pane is visible even if metadata was missed.
         onLessonMount?.();
@@ -134,6 +137,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
               <div className="mt-4 space-y-2">
                 <button
                   onClick={() => {
+                    console.log('[FloatingBeeBubble] Suggestion clicked: butterflies');
                     handleInputChange({ target: { value: 'Start a lesson on butterflies of North America' } } as React.ChangeEvent<HTMLInputElement>);
                     setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 50);
                   }}
@@ -143,6 +147,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
                 </button>
                 <button
                   onClick={() => {
+                    console.log('[FloatingBeeBubble] Suggestion clicked: American Revolution');
                     handleInputChange({ target: { value: 'Start a lesson on the American Revolution' } } as React.ChangeEvent<HTMLInputElement>);
                     setTimeout(() => handleSubmit({ preventDefault: () => {} } as React.FormEvent), 50);
                   }}

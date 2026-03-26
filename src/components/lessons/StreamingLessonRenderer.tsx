@@ -85,22 +85,25 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
   }, []);
 
   const addBlock = useCallback((block: any) => {
-    console.log('[StreamingLessonRenderer] addBlock called:', block.type || block.block_type, 'block_id:', block.block_id);
+    console.log('[StreamingLessonRenderer] addBlock queued:', block?.block_id, 'type:', block?.type ?? block?.block_type, '| queue length after:', queueRef.current.length + 1);
     queueRef.current.push(block);
     if (!processingRef.current) revealNext();
   }, [revealNext]);
 
   // Expose addBlock and setLessonMetadata globally for useLessonStream
   useEffect(() => {
-    console.log('[StreamingLessonRenderer] Registering window.__addLessonBlock and __setLessonMetadata');
-    (window as any).__addLessonBlock = addBlock;
+    console.log('[StreamingLessonRenderer] MOUNTED — registering window bridge: __addLessonBlock + __setLessonMetadata');
+    (window as any).__addLessonBlock = (block: any) => {
+      console.log('[StreamingLessonRenderer] __addLessonBlock called:', block?.block_id, 'type:', block?.type ?? block?.block_type);
+      addBlock(block);
+    };
     (window as any).__setLessonMetadata = (metadata: any) => {
-      console.log('[StreamingLessonRenderer] setLessonMetadata called:', metadata);
+      console.log('[StreamingLessonRenderer] __setLessonMetadata called:', metadata?.title, 'lessonId:', metadata?.lessonId);
       setLessonMetadata(metadata);
       if (metadata?.lessonId) setLessonId(metadata.lessonId);
     };
     return () => {
-      console.log('[StreamingLessonRenderer] Unregistering window bridge functions');
+      console.log('[StreamingLessonRenderer] Cleaning up window bridge');
       delete (window as any).__addLessonBlock;
       delete (window as any).__setLessonMetadata;
     };
