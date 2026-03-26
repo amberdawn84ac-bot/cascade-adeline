@@ -61,7 +61,7 @@ export default function QuizBlock({ blockData, onResponse, studentResponse, less
     try {
       // For multi-question quiz
       if (questions.length > 0 && currentQuestion) {
-        const selectedIndex = currentQuestion.options.findIndex(opt => opt === selectedAnswer);
+        const selectedIndex = currentQuestion.options.findIndex((opt: string) => opt === selectedAnswer);
         const isCorrect = selectedIndex === currentQuestion.correct_answer;
         
         // Save answer to state
