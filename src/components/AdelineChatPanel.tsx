@@ -8,13 +8,14 @@ import { FloatingBeeBubble } from './FloatingBeeBubble';
 interface AdelineChatPanelProps {
   userId?: string;
   onLessonRequest?: (topic: string) => void;
+  onLessonMount?: () => void;
 }
 
 /**
  * Persistent right-side chat panel. Wraps FloatingBeeBubble in panelMode
  * so the chat UI is always visible — no bubble toggle, no floating overlay.
  */
-export function AdelineChatPanel({ userId = '', onLessonRequest }: AdelineChatPanelProps) {
+export function AdelineChatPanel({ userId = '', onLessonRequest, onLessonMount }: AdelineChatPanelProps) {
   return (
     <div className="flex flex-col h-full" style={{ background: '#FFFEF7' }}>
       {/* Panel header */}
@@ -45,6 +46,7 @@ export function AdelineChatPanel({ userId = '', onLessonRequest }: AdelineChatPa
         <FloatingBeeBubble
           userId={userId}
           onLessonRequest={onLessonRequest}
+          onLessonMount={onLessonMount}
           panelMode
         />
       </div>

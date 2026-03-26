@@ -9,12 +9,13 @@ import { GenUIRenderer } from './gen-ui/GenUIRenderer';
 interface FloatingBeeBubbleProps {
   onLessonStream?: (blocks: any[]) => void;
   onLessonRequest?: (topic: string) => void;
+  onLessonMount?: () => void;
   userId?: string;
   /** When true, renders as a full-height panel (no bubble toggle, no fixed position, no drag) */
   panelMode?: boolean;
 }
 
-export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = '', panelMode = false }: FloatingBeeBubbleProps) {
+export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMount, userId = '', panelMode = false }: FloatingBeeBubbleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -42,8 +43,15 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
     const lower = input.toLowerCase();
     const isLesson = LESSON_PHRASES.some(p => lower.includes(p));
 
+    if (isLesson && onLessonMount) {
+      // Hybrid path: mount renderer (no SSE), let chat API stream blocks via window bridge
+      onLessonMount();
+      handleSubmit(e);
+      return;
+    }
+
     if (isLesson && onLessonRequest) {
-      // Route to left pane; add immediate feedback message in the chat
+      // Legacy path (pages without onLessonMount): SSE via onLessonRequest
       setMessages([...messages, {
         id: `local-${Date.now()}`,
         role: 'assistant',
@@ -75,6 +83,31 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
       })
       .catch(() => {});
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Annotation bridge: forward raw lesson_block / lesson_metadata annotations
+  // from the chat stream to the left-pane StreamingLessonRenderer via window globals.
+  const sentAnnotationCountRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    const latestAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!latestAssistant) return;
+    const annotations: any[] = Array.isArray((latestAssistant as any).annotations)
+      ? (latestAssistant as any).annotations
+      : [];
+    const prevCount = sentAnnotationCountRef.current[latestAssistant.id] ?? 0;
+    if (annotations.length <= prevCount) return;
+
+    const newAnns = annotations.slice(prevCount);
+    sentAnnotationCountRef.current[latestAssistant.id] = annotations.length;
+
+    for (const ann of newAnns) {
+      if (ann?.type === 'lesson_metadata' && ann.data) {
+        (window as any).__setLessonMetadata?.(ann.data);
+      }
+      if (ann?.type === 'lesson_block' && ann.block) {
+        (window as any).__addLessonBlock?.(ann.block);
+      }
+    }
+  }, [messages]);
 
   const handleDragStart = (e: React.MouseEvent) => {
     setIsDragging(true);
