@@ -30,6 +30,42 @@ const contentSchema = z.object({
 
 const CONTENT_BLOCK_TYPES = ['primary_text', 'concept_text', 'critical_thinking', 'title'];
 
+function getGradeAdaptation(gradeLevel: string): string {
+  const g = gradeLevel?.toLowerCase() || '8';
+  const isK2 = g === 'k' || g === 'kindergarten' || g === '1' || g === '2';
+  const is35 = g === '3' || g === '4' || g === '5';
+  const is68 = g === '6' || g === '7' || g === '8';
+
+  if (isK2) return `GRADE ADAPTATION — K-2 (SPROUTS):
+- Use simple, concrete words only. No vocabulary above a 2nd-grade reading level.
+- Every concept must connect to something the child can see, touch, or taste.
+- Sentences: 8 words max. One idea per sentence.
+- Text blocks: 1-2 sentences only.
+- Choice blocks: 2 options max, 3-word labels ("Go outside" / "Stay inside").
+- NO abstract reasoning, no "consider the implications." Make it a game or story.`;
+
+  if (is35) return `GRADE ADAPTATION — GRADES 3-5 (SEEDLINGS):
+- Reading level: 3rd-5th grade. Short paragraphs, common words.
+- Use analogies to things kids this age know (sports, animals, cooking, Minecraft).
+- Introduce 1-2 new vocabulary words per lesson, define them in plain language.
+- Choices: 2-3 options with 1-sentence descriptions.
+- Include "what if" wonder questions. No citations or scholarly language.`;
+
+  if (is68) return `GRADE ADAPTATION — GRADES 6-8 (GROWING):
+- Reading level: middle school. Can handle 2-3 sentence paragraphs.
+- Connect concepts to real-world consequences the student can observe.
+- Introduce cause-and-effect thinking. Ask "why does this matter today?"
+- Choice blocks: 2-3 substantive options that require real thinking.
+- Can include one citation or named primary source if relevant.`;
+
+  return `GRADE ADAPTATION — GRADES 9-12 (OAKS):
+- Treat the student as a capable scholar. Use college-prep vocabulary.
+- Every claim should be traceable to evidence. Ask "who benefits?" and "what's the trade-off?"
+- Require multi-step reasoning in prompts: state position, cite evidence, acknowledge counterargument.
+- Choice blocks: 2-3 nuanced options that represent genuine intellectual tensions.
+- Faith tie should engage theological depth, not just surface parallels.`;
+}
+
 export async function contentAgent(state: LessonStateType): Promise<Partial<LessonStateType>> {
   if (state.blueprint && !state.blueprint.some(t => CONTENT_BLOCK_TYPES.includes(t))) {
     console.log('[contentAgent] Skipped — no content blocks in blueprint');
@@ -78,6 +114,8 @@ STUDENT PROFILE:
 - Interests: ${interests}
 - Learning Style: ${state.learningStyle}
 - ZPD & Mastery: ${state.bktSummary || 'Not yet assessed'}
+
+${getGradeAdaptation(state.gradeLevel)}
 ${isRemediation ? `\nREMEDIATION MODE: The student scored below 70% on the quiz. Reteach the SAME concept using a completely different approach — different analogy, different examples, different angle. Do NOT repeat what you already said.` : ''}${sourcesContext}
 
 JSON OUTPUT RULES (CRITICAL — NEVER VIOLATE):

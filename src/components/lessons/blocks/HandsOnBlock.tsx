@@ -18,6 +18,36 @@ export default function HandsOnBlock({ blockData, onResponse, studentResponse }:
   const [completed, setCompleted] = useState(studentResponse?.completed || false);
   const [documentation, setDocumentation] = useState(studentResponse?.documentation || '');
 
+  // Normalize: activityAgent stores structured data as JSON string in content
+  const raw = blockData as any;
+  let activity_title: string = raw.activity_title || raw.title || '';
+  let description: string = raw.description || '';
+  let steps: string[] = raw.steps || [];
+  let materials_needed: string[] = raw.materials_needed || [];
+  let documentation_prompts: string[] = raw.documentation_prompts || [];
+  let safety_notes: string[] = raw.safety_notes || [];
+
+  if (raw.content && !activity_title) {
+    try {
+      const parsed = JSON.parse(raw.content);
+      activity_title = parsed.title || activity_title;
+      description = parsed.fullInstructions || description;
+      materials_needed = parsed.supplies || materials_needed;
+      steps = parsed.steps || steps;
+    } catch {
+      description = raw.content;
+    }
+  }
+
+  // If fullInstructions is long, split numbered lines into steps
+  if (description && steps.length === 0) {
+    const lines = description.split(/\n+/).map((l: string) => l.trim()).filter(Boolean);
+    if (lines.length > 2) {
+      steps = lines;
+      description = '';
+    }
+  }
+
   const handleComplete = () => {
     setCompleted(true);
     if (onResponse) {
@@ -35,23 +65,23 @@ export default function HandsOnBlock({ blockData, onResponse, studentResponse }:
         <svg viewBox="0 0 24 24" width="24" height="24" className="hands-icon">
           <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" stroke="currentColor" fill="none" strokeWidth="2"/>
         </svg>
-        <h3>{blockData.activity_title}</h3>
+        <h3>{activity_title || 'Hands-On Activity'}</h3>
       </div>
 
-      <p className="activity-description">{blockData.description}</p>
+      {description && <p className="activity-description">{description}</p>}
 
-      {blockData.materials_needed && blockData.materials_needed.length > 0 && (
+      {materials_needed.length > 0 && (
         <div className="materials-section">
           <h4>Materials Needed:</h4>
           <ul className="materials-list">
-            {blockData.materials_needed.map((material, i) => (
+            {materials_needed.map((material, i) => (
               <li key={i}>{material}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {blockData.safety_notes && blockData.safety_notes.length > 0 && (
+      {safety_notes.length > 0 && (
         <div className="safety-notes">
           <svg viewBox="0 0 24 24" width="20" height="20">
             <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" fill="currentColor"/>
@@ -59,28 +89,28 @@ export default function HandsOnBlock({ blockData, onResponse, studentResponse }:
           </svg>
           <strong>Safety:</strong>
           <ul>
-            {blockData.safety_notes.map((note, i) => (
+            {safety_notes.map((note, i) => (
               <li key={i}>{note}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {blockData.steps && blockData.steps.length > 0 && (
+      {steps.length > 0 && (
         <div className="steps-section">
           <h4>Steps:</h4>
           <ol className="steps-list">
-            {blockData.steps.map((step, i) => (
+            {steps.map((step, i) => (
               <li key={i}>{step}</li>
             ))}
           </ol>
         </div>
       )}
 
-      {blockData.documentation_prompts && blockData.documentation_prompts.length > 0 && (
+      {documentation_prompts.length > 0 && (
         <div className="documentation-section">
           <h4>Document Your Work:</h4>
-          {blockData.documentation_prompts.map((prompt, i) => (
+          {documentation_prompts.map((prompt, i) => (
             <p key={i} className="doc-prompt">{prompt}</p>
           ))}
           <textarea
@@ -92,7 +122,7 @@ export default function HandsOnBlock({ blockData, onResponse, studentResponse }:
         </div>
       )}
 
-      <button 
+      <button
         className="complete-activity-btn"
         onClick={handleComplete}
         disabled={completed}
