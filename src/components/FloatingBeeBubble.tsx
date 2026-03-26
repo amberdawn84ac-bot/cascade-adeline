@@ -103,9 +103,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
       if (ann?.type === 'lesson_metadata' && ann.data) {
         (window as any).__setLessonMetadata?.(ann.data);
       }
-      if (ann?.type === 'lesson_block' && ann.block) {
-        (window as any).__addLessonBlock?.(ann.block);
-      }
+      // lesson_block no longer handled here — LessonBlock.tsx teleports itself via useEffect
     }
   }, [messages]);
 

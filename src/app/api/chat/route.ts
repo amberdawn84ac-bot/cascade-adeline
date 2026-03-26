@@ -220,9 +220,10 @@ export async function POST(req: NextRequest) {
                   }
                   // Normalise block_type → type for StreamingLessonRenderer
                   if (!b.type) b.type = b.block_type;
-                  // Raw annotation — read by window bridge, NOT GenUIRenderer
+                  // genUIPayload format — GenUIRenderer renders LessonBlock inline;
+                  // LessonBlock's own useEffect teleports the block to the left pane.
                   controller.enqueue(encoder.encode(
-                    `2:${JSON.stringify([{ type: 'lesson_block', block: b }])}\n`,
+                    `2:${JSON.stringify([{ genUIPayload: { component: 'LessonBlock', props: { block: b, lessonId: threadId } } }])}\n`,
                   ));
                   blocksToEmit.push(b);
                 }
@@ -244,7 +245,7 @@ export async function POST(req: NextRequest) {
               }
               for (const block of blocksToEmit) {
                 controller.enqueue(encoder.encode(
-                  `2:${JSON.stringify([{ type: 'lesson_block', block }])}\n`,
+                  `2:${JSON.stringify([{ genUIPayload: { component: 'LessonBlock', props: { block, lessonId: threadId } } }])}\n`,
                 ));
               }
             }

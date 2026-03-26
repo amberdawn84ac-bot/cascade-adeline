@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Maximize2, X, RefreshCw } from 'lucide-react';
 import TextBlock from '@/components/lessons/blocks/TextBlock';
 import ScriptureBlock from '@/components/lessons/blocks/ScriptureBlock';
@@ -55,6 +55,16 @@ export function LessonBlock({ block, lessonId }: LessonBlockProps) {
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [teleported, setTeleported] = useState(false);
+
+  // Teleport block to the left-pane StreamingLessonRenderer if the window bridge is registered.
+  // Falls back to full inline rendering when the left pane isn't mounted (e.g. outside Journey page).
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).__addLessonBlock) {
+      (window as any).__addLessonBlock(block);
+      setTeleported(true);
+    }
+  }, [block]);
 
   // Normalize block_type → type (lessonOrchestrator emits block_type, block components expect type)
   const normalized = { ...block, type: (block.type as string) || (block.block_type as string) };
@@ -80,6 +90,16 @@ export function LessonBlock({ block, lessonId }: LessonBlockProps) {
       setSaving(false);
     }
   };
+
+  // When teleported to the left pane, show a subtle in-chat notification instead of the full block
+  if (teleported) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2F4731]/5 border border-[#2F4731]/20 text-xs text-[#2F4731] italic my-1">
+        <span>📋</span>
+        <span>Adeline added a <strong>{blockType}</strong> block to your learning board →</span>
+      </div>
+    );
+  }
 
   const isWide = WIDE_BLOCK_TYPES.has(blockType);
 
