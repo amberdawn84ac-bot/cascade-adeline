@@ -257,16 +257,16 @@ export async function POST(req: NextRequest) {
                   title: (finalMetadata?.title as string | undefined) || maskedContent.masked.slice(0, 100),
                   subject,
                   gradeLevel: studentCtx.gradeLevel ?? '8',
-                  lessonJson: (finalMetadata ?? {}) as Record<string, unknown>,
-                  contentBlocks: blocksToEmit as unknown[],
+                  lessonJson: (finalMetadata ?? {}) as any,
+                  contentBlocks: blocksToEmit as any,
                   standardsCodes: Array.isArray(finalMetadata?.credits)
                     ? (finalMetadata.credits as any[]).map((c: any) => String(c.subject))
                     : [],
                   estimatedDuration: Math.max(10, blocksToEmit.length * 5),
                 },
                 update: {
-                  contentBlocks: blocksToEmit as unknown[],
-                  lessonJson: (finalMetadata ?? {}) as Record<string, unknown>,
+                  contentBlocks: blocksToEmit as any,
+                  lessonJson: (finalMetadata ?? {}) as any,
                   updatedAt: new Date(),
                 },
               }).catch(() => {});
