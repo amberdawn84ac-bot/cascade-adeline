@@ -80,8 +80,8 @@ Rules:
     interactive: {
       term: f.term,
       definition: f.definition,
-      example: f.example,
-      category: f.category || state.subject,
+      example: f.example ?? undefined,
+      category: f.category ?? state.subject,
     },
     metadata: {
       skills: [state.subject],

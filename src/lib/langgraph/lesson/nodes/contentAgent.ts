@@ -125,7 +125,7 @@ EXPEDITION MODE CREATIVE FREEDOM (20-30%):
     } : undefined,
     metadata: {
       skills: [state.subject],
-      ok_standard: b.ok_standard,
+      ok_standard: b.ok_standard ?? undefined,
       zpd_level: state.gradeLevel,
       faith_tie: b.faith_tie ?? b.type === 'scripture',
       agent: 'contentAgent',
