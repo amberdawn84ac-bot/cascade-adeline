@@ -26,11 +26,35 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = ''
     body: { userId, contextType: 'general' },
   });
 
-  // All messages (including lesson requests) go through /api/chat.
-  // The server-side adelineRouter classifies LESSON intent and streams blocks inline.
+  // Lesson intent phrases — when onLessonRequest is wired (Journey page),
+  // intercept these and route to the left pane instead of the chat API.
+  const LESSON_PHRASES = [
+    'teach me', 'start a lesson', 'learn about', 'lesson on',
+    'explain ', 'how does ', 'what is ', 'walk me through',
+    'help me understand', 'show me how', 'i want to learn',
+    'give me a lesson', 'tell me about',
+  ];
+
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
+
+    const lower = input.toLowerCase();
+    const isLesson = LESSON_PHRASES.some(p => lower.includes(p));
+
+    if (isLesson && onLessonRequest) {
+      // Route to left pane; add immediate feedback message in the chat
+      setMessages([...messages, {
+        id: `local-${Date.now()}`,
+        role: 'assistant',
+        content: "I'm building that lesson on your learning board right now!",
+        createdAt: new Date(),
+      }]);
+      onLessonRequest(input);
+      setIsOpen(false);
+      return;
+    }
+
     handleSubmit(e);
   };
 

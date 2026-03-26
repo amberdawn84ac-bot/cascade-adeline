@@ -1,5 +1,5 @@
 import { getSessionUser } from '@/lib/auth';
-import { lessonBrain } from '@/lib/langgraph/lesson/lessonGraph';
+import { lessonOrchestrator } from '@/lib/langgraph/lesson/lessonOrchestrator';
 import { subjectFromQuery } from '@/lib/langgraph/lesson/subjectFromQuery';
 import prisma from '@/lib/db';
 
@@ -41,23 +41,24 @@ export async function POST(req: Request) {
 
           let allBlocks: any[] = [];
           let metadata: any = null;
+          let emittedCount = 0;
 
-          // Stream events from the lessonBrain (8-agent graph)
-          // Initial state seeds gradeLevel/interests/learningStyle as fallbacks;
-          // the orchestrator node calls getStudentContext() to enrich with ZPD, BKT, etc.
-          const eventStream = await lessonBrain.streamEvents(
+          // Stream events from lessonOrchestrator (router → sources+scripture parallel → assembler → assessment)
+          const eventStream = lessonOrchestrator.streamEvents(
             {
+              studentQuery,
               userId: user.userId,
-              topic: studentQuery,
-              subject: detectedSubject,
-              gradeLevel: studentProfile?.gradeLevel || '8',
-              interests: (studentProfile?.interests as string[]) || [],
-              learningStyle: studentProfile?.learningStyle || 'EXPEDITION',
-              learningMode: (studentProfile?.learningStyle?.toUpperCase() === 'EXPEDITION') ? 'expedition' : 'classic',
+              studentProfile: {
+                gradeLevel: studentProfile?.gradeLevel || '8',
+                interests: (studentProfile?.interests as string[]) || [],
+                learningStyle: studentProfile?.learningStyle || 'EXPEDITION',
+                age: null,
+                bktSummary: null,
+              },
             },
             {
               configurable: { thread_id: threadId },
-              version: 'v2'
+              version: 'v2' as const,
             }
           );
 
@@ -77,13 +78,13 @@ export async function POST(req: Request) {
               const output = event.data?.output;
               if (!output) continue;
 
-              // Emit metadata once we have subject/topic from the graph
-              if (!metadata && (output.subject || output.topic)) {
+              // Emit metadata from lessonOrchestrator's lessonMetadata field
+              if (!metadata && output.lessonMetadata) {
                 metadata = {
-                  title: output.topic || studentQuery,
-                  subject_track: output.subject || detectedSubject,
-                  gradeLevel: output.gradeLevel || studentProfile?.gradeLevel || '8',
-                  standards_codes: output.standardsCodes || [],
+                  title: output.lessonMetadata.title || studentQuery,
+                  subject_track: output.lessonMetadata.subject_track || detectedSubject,
+                  gradeLevel: studentProfile?.gradeLevel || '8',
+                  standards_codes: [],
                 };
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({
@@ -93,29 +94,29 @@ export async function POST(req: Request) {
                 );
               }
 
-              // Stream new blocks incrementally as each agent node completes
-              if (output.blocks && output.blocks.length > allBlocks.length) {
-                const newBlocks = output.blocks.slice(allBlocks.length).map((block: any, i: number) => ({
+              // lessonOrchestrator uses lessonBlocks with a replace reducer — track by emittedCount
+              if (Array.isArray(output.lessonBlocks) && output.lessonBlocks.length > emittedCount) {
+                const newBlocks = output.lessonBlocks.slice(emittedCount).map((block: any, i: number) => ({
                   ...block,
-                  block_id: block.block_id || `${event.name}-${allBlocks.length + i}-${Date.now()}`,
+                  block_id: block.block_id || `${event.name}-${emittedCount + i}-${Date.now()}`,
+                  // Normalise block_type → type so StreamingLessonRenderer finds the component
+                  type: block.type || block.block_type,
                 }));
+                emittedCount = output.lessonBlocks.length;
                 for (const block of newBlocks) {
                   try {
-                    // Verify the block can be serialised before sending to the client
                     const serialised = JSON.stringify({ type: 'lesson_block', block });
                     controller.enqueue(encoder.encode(`data: ${serialised}\n\n`));
                     allBlocks.push(block);
                   } catch (serErr) {
                     console.warn('[Lesson Stream] Skipping unserializable block:', serErr);
                   }
-                  // Small delay for a natural streaming feel
                   await new Promise(resolve => setTimeout(resolve, 200));
                 }
               }
             }
 
             if (event.event === 'on_chain_error') {
-              // Log agent errors but continue — other agents may still succeed
               console.error('[Lesson Stream] Agent error:', event.name, event.data?.error);
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({
