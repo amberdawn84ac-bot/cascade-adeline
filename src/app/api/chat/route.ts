@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
               finalMetadata = (cached.lessonMetadata as Record<string, unknown>) ?? null;
             } else {
               // Run the LangGraph lesson orchestrator swarm
-              let emittedCount = 0;
+              const emittedBlockIds = new Set<string>();
 
               const eventStream = lessonOrchestrator.streamEvents(
                 {
@@ -208,16 +208,17 @@ export async function POST(req: NextRequest) {
 
                 if (!Array.isArray(output?.lessonBlocks)) continue;
                 const blocks = output.lessonBlocks as unknown[];
-                if (blocks.length <= emittedCount) continue;
 
-                const newBlocks = blocks.slice(emittedCount);
-                emittedCount = blocks.length;
-
-                for (const block of newBlocks) {
+                for (const block of blocks) {
                   const b = block as Record<string, unknown>;
                   if (!b.block_id) {
                     b.block_id = `block-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
                   }
+                  
+                  // Skip if already emitted (dedup by block_id)
+                  if (emittedBlockIds.has(b.block_id as string)) continue;
+                  emittedBlockIds.add(b.block_id as string);
+
                   // Normalise block_type → type for StreamingLessonRenderer
                   if (!b.type) b.type = b.block_type;
                   // Raw annotation — FloatingBeeBubble bridge calls window.__addLessonBlock

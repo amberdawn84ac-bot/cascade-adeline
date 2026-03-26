@@ -1,10 +1,12 @@
 import { StateGraph, END, START, Annotation, MemorySaver } from "@langchain/langgraph";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import prisma from '@/lib/db';
+import { loadConfig } from '@/lib/config';
 
-const model = new ChatGoogleGenerativeAI({
-  model: "gemini-2.0-flash",
+const config = loadConfig();
+const model = new ChatOpenAI({
+  model: config.models.default || "gpt-4o",
   temperature: 0.7,
 });
 
@@ -362,8 +364,16 @@ Return JSON:
       credits: []
     };
 
+    // Ensure every block has a unique block_id
+    const blocks = (lessonData.blocks || []).map((block: any, index: number) => {
+      if (!block.block_id) {
+        block.block_id = `${block.block_type || 'block'}-${index}-${Date.now()}`;
+      }
+      return block;
+    });
+
     return {
-      lessonBlocks: lessonData.blocks || [],
+      lessonBlocks: blocks,
       lessonMetadata: {
         title: lessonData.title,
         subject_track: lessonData.subject_track,

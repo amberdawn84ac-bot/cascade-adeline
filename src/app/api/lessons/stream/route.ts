@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
           let allBlocks: any[] = [];
           let metadata: any = null;
-          let emittedCount = 0;
+          const emittedBlockIds = new Set<string>();
 
           // Stream events from lessonOrchestrator (router → sources+scripture parallel → assembler → assessment)
           const eventStream = lessonOrchestrator.streamEvents(
@@ -98,20 +98,26 @@ export async function POST(req: Request) {
                 );
               }
 
-              // lessonOrchestrator uses lessonBlocks with a replace reducer — track by emittedCount
-              if (Array.isArray(output.lessonBlocks) && output.lessonBlocks.length > emittedCount) {
-                const newBlocks = output.lessonBlocks.slice(emittedCount).map((block: any, i: number) => ({
-                  ...block,
-                  block_id: block.block_id || `${event.name}-${emittedCount + i}-${Date.now()}`,
+              // Emit blocks using block_id-based dedup instead of emittedCount
+              if (Array.isArray(output.lessonBlocks)) {
+                for (const block of output.lessonBlocks) {
+                  const blockId = block.block_id || `${event.name}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                  if (!block.block_id) block.block_id = blockId;
+                  
+                  // Skip if already emitted (dedup by block_id)
+                  if (emittedBlockIds.has(blockId)) continue;
+                  emittedBlockIds.add(blockId);
+
                   // Normalise block_type → type so StreamingLessonRenderer finds the component
-                  type: block.type || block.block_type,
-                }));
-                emittedCount = output.lessonBlocks.length;
-                for (const block of newBlocks) {
+                  const normalizedBlock = {
+                    ...block,
+                    type: block.type || block.block_type,
+                  };
+
                   try {
-                    const serialised = JSON.stringify({ type: 'lesson_block', block });
+                    const serialised = JSON.stringify({ type: 'lesson_block', block: normalizedBlock });
                     controller.enqueue(encoder.encode(`data: ${serialised}\n\n`));
-                    allBlocks.push(block);
+                    allBlocks.push(normalizedBlock);
                   } catch (serErr) {
                     console.warn('[Lesson Stream] Skipping unserializable block:', serErr);
                   }

@@ -173,7 +173,10 @@ export default function JourneyPage() {
               )}
             </>
           )}
+        </div>
 
+        {/* Always-mounted renderer (hidden when idle) to prevent race condition */}
+        <div className={activeLessonId ? 'px-6 pb-8' : 'hidden'}>
           <StreamingLessonRenderer
             userId=""
             onBlockResponse={(blockId, response) => {
