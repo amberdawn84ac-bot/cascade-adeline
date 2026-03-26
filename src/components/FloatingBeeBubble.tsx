@@ -20,41 +20,34 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
-    body: {
-      userId,
-      contextType: 'lesson'
-    },
-    onResponse: async (response) => {
-      // Handle streaming lesson blocks
-      const reader = response.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === 'lesson_block' && onLessonStream) {
-                onLessonStream([data.block]);
-              }
-            } catch (e) {
-              // Ignore parse errors
-            }
-          }
-        }
-      }
-    }
+    body: { userId, contextType: 'general' },
   });
+
+  // Lesson intent phrases — matches what the router detects on the server
+  const LESSON_PHRASES = [
+    'teach me', 'start a lesson', 'learn about', 'lesson on',
+    'explain ', 'how does ', 'what is ', 'walk me through',
+    'help me understand', 'show me how', 'i want to learn',
+    'give me a lesson', 'tell me about',
+  ];
+
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const lower = input.toLowerCase();
+    const isLesson = LESSON_PHRASES.some(p => lower.includes(p));
+
+    if (isLesson && onLessonRequest) {
+      console.log('[FloatingBeeBubble] Lesson phrase detected — calling onLessonRequest:', input);
+      onLessonRequest(input);
+      setIsOpen(false);
+      return;
+    }
+
+    console.log('[FloatingBeeBubble] Non-lesson message — sending to /api/chat');
+    handleSubmit(e);
+  };
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -217,7 +210,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
           </div>
 
           {/* Input Area */}
-          <form onSubmit={handleSubmit} className="p-4 bg-white border-t border-[#E7DAC3]">
+          <form onSubmit={handleCustomSubmit} className="p-4 bg-white border-t border-[#E7DAC3]">
             <div className="flex space-x-2">
               <input
                 type="text"

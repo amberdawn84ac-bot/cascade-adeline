@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { StreamingLessonRenderer } from '@/components/lessons/StreamingLessonRenderer';
 import { useLessonStream } from '@/hooks/useLessonStream';
@@ -14,7 +14,10 @@ interface LessonSuggestion {
 }
 
 export default function JourneyPage() {
+  // activeLessonId: null = idle, 'pending' = renderer mounting, string = lesson saved
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  // pendingTopic is set by button click; useEffect starts the stream after renderer mounts
+  const [pendingTopic, setPendingTopic] = useState<string | null>(null);
   const { isStreaming, error, startLesson } = useLessonStream();
 
   const [lessonSuggestions] = useState<LessonSuggestion[]>([
@@ -24,18 +27,34 @@ export default function JourneyPage() {
     { id: '4', title: 'Scripture Study: Psalms', subject: 'Bible', description: 'Hebrew poetry and original meanings', emoji: '📖' },
   ]);
 
-  const handleStartLesson = async (suggestion: LessonSuggestion) => {
-    const savedId = await startLesson(suggestion.title);
-    if (savedId) {
-      setActiveLessonId(savedId);
-    }
-  };
+  // Step 1: button click → set 'pending' to mount the renderer immediately
+  const handleStartLesson = useCallback((suggestion: LessonSuggestion) => {
+    console.log('[Journey] handleStartLesson clicked:', suggestion.title);
+    setPendingTopic(suggestion.title);
+    setActiveLessonId('pending'); // renders <StreamingLessonRenderer> → sets window.__addLessonBlock
+  }, []);
+
+  // Step 2: after renderer is mounted (activeLessonId === 'pending'), start the stream
+  useEffect(() => {
+    if (activeLessonId !== 'pending' || !pendingTopic) return;
+
+    console.log('[Journey] Renderer mounted, starting lesson stream for:', pendingTopic);
+    const topic = pendingTopic;
+    setPendingTopic(null); // clear so effect doesn't re-fire
+
+    startLesson(topic).then(savedId => {
+      console.log('[Journey] Lesson stream complete, savedId:', savedId);
+      if (savedId) setActiveLessonId(savedId);
+    });
+  }, [activeLessonId, pendingTopic, startLesson]);
 
   const handleBackToSuggestions = () => {
+    console.log('[Journey] Returning to lesson suggestions');
     setActiveLessonId(null);
+    setPendingTopic(null);
   };
 
-  // If a lesson is active, show the StreamingLessonRenderer
+  // Show lesson renderer when a lesson is active (pending → streaming → saved)
   if (activeLessonId) {
     return (
       <div className="min-h-screen bg-[#FFFEF7]">
@@ -48,10 +67,24 @@ export default function JourneyPage() {
             <span className="text-sm font-medium">Back to Learning Plan</span>
           </button>
 
+          {isStreaming && (
+            <div className="flex items-center gap-3 py-4 mb-4">
+              <Loader2 className="w-5 h-5 animate-spin text-[#BD6809]" />
+              <p className="text-[#2F4731]/60 italic text-sm">Adeline is preparing your lesson…</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center gap-3 p-4 mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="text-sm">Something went wrong: {error}</p>
+            </div>
+          )}
+
           <StreamingLessonRenderer
             userId=""
             onBlockResponse={(blockId, response) => {
-              console.log('Block response:', blockId, response);
+              console.log('[Journey] Block response:', blockId, response);
             }}
           />
         </div>
@@ -79,7 +112,7 @@ export default function JourneyPage() {
           <div className="flex items-center justify-center py-12 mb-6">
             <div className="flex items-center gap-3">
               <Loader2 className="w-6 h-6 animate-spin text-[#BD6809]" />
-              <p className="text-[#2F4731]/60 italic">Adeline is preparing your lesson...</p>
+              <p className="text-[#2F4731]/60 italic">Adeline is preparing your lesson…</p>
             </div>
           </div>
         )}
