@@ -196,6 +196,16 @@ export async function POST(req: NextRequest) {
               for await (const event of eventStream) {
                 if (event.event !== 'on_chain_end') continue;
                 const output = event.data?.output as Record<string, unknown> | undefined;
+                if (!output) continue;
+
+                // Emit metadata to window bridge once it arrives
+                if (output.lessonMetadata && !finalMetadata) {
+                  finalMetadata = output.lessonMetadata as Record<string, unknown>;
+                  controller.enqueue(encoder.encode(
+                    `2:${JSON.stringify([{ type: 'lesson_metadata', data: finalMetadata }])}\n`,
+                  ));
+                }
+
                 if (!Array.isArray(output?.lessonBlocks)) continue;
                 const blocks = output.lessonBlocks as unknown[];
                 if (blocks.length <= emittedCount) continue;
@@ -208,15 +218,13 @@ export async function POST(req: NextRequest) {
                   if (!b.block_id) {
                     b.block_id = `block-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
                   }
-                  const annotation = {
-                    genUIPayload: { component: 'LessonBlock', props: { block: b, lessonId: threadId } },
-                  };
-                  controller.enqueue(encoder.encode(`2:${JSON.stringify([annotation])}\n`));
+                  // Normalise block_type → type for StreamingLessonRenderer
+                  if (!b.type) b.type = b.block_type;
+                  // Raw annotation — read by window bridge, NOT GenUIRenderer
+                  controller.enqueue(encoder.encode(
+                    `2:${JSON.stringify([{ type: 'lesson_block', block: b }])}\n`,
+                  ));
                   blocksToEmit.push(b);
-                }
-
-                if (output.lessonMetadata) {
-                  finalMetadata = output.lessonMetadata as Record<string, unknown>;
                 }
               }
 
@@ -229,11 +237,15 @@ export async function POST(req: NextRequest) {
 
             // Emit cached blocks (fast path)
             if (cached?.lessonBlocks?.length) {
+              if (finalMetadata) {
+                controller.enqueue(encoder.encode(
+                  `2:${JSON.stringify([{ type: 'lesson_metadata', data: finalMetadata }])}\n`,
+                ));
+              }
               for (const block of blocksToEmit) {
-                const annotation = {
-                  genUIPayload: { component: 'LessonBlock', props: { block, lessonId: threadId } },
-                };
-                controller.enqueue(encoder.encode(`2:${JSON.stringify([annotation])}\n`));
+                controller.enqueue(encoder.encode(
+                  `2:${JSON.stringify([{ type: 'lesson_block', block }])}\n`,
+                ));
               }
             }
 

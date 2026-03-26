@@ -37,6 +37,12 @@ export default function JourneyPage() {
     setActiveLessonId('pending'); // mounts renderer → sets window.__addLessonBlock
   }, []);
 
+  // Hybrid path: mounts StreamingLessonRenderer without triggering SSE.
+  // 'chat-driven' is truthy (renderer mounts) but !== 'pending' (SSE useEffect skips).
+  const handleLessonMount = useCallback(() => {
+    setActiveLessonId('chat-driven');
+  }, []);
+
   // After renderer mounts (activeLessonId === 'pending'), start the SSE stream
   useEffect(() => {
     if (activeLessonId !== 'pending' || !pendingTopic) return;
@@ -163,7 +169,7 @@ export default function JourneyPage() {
 
       {/* ── Right column: Adeline chat panel ── */}
       <div className="w-[380px] shrink-0 hidden md:flex flex-col border-l-2 border-[#E7DAC3]">
-        <AdelineChatPanel onLessonRequest={handleLessonRequest} />
+        <AdelineChatPanel onLessonRequest={handleLessonRequest} onLessonMount={handleLessonMount} />
       </div>
     </div>
   );
