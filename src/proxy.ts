@@ -1,13 +1,13 @@
-// src/middleware.ts
+// src/proxy.ts — renamed from middleware.ts (Next.js 16 convention change)
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 const PROTECTED_PATHS = ['/dashboard', '/parent', '/library', '/api/clubs', '/api/transcript'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Generate request ID for distributed tracing
   const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
-  
+
   let supabaseResponse = NextResponse.next({ request });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,10 +28,9 @@ export async function middleware(request: NextRequest) {
   // Validate required Supabase env vars - fail fast if misconfigured
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('[Middleware] CRITICAL: Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
-    console.error('[Middleware] Set these environment variables in your deployment platform (Vercel/Netlify)');
+    console.error('[Proxy] CRITICAL: Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
     throw new Error('Supabase configuration missing. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.');
   }
 
@@ -49,7 +48,7 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('x-edge-ts', Date.now().toString());
 
   const { pathname } = request.nextUrl;
-  
+
   // Redirect old subject-specific rooms to unified journey page
   const oldSubjectRooms = ['/dashboard/science', '/dashboard/math', '/dashboard/ela', '/dashboard/history'];
   if (oldSubjectRooms.some(room => pathname.startsWith(room))) {
@@ -57,7 +56,7 @@ export async function middleware(request: NextRequest) {
     url.pathname = '/dashboard/journey';
     return NextResponse.redirect(url);
   }
-  
+
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
 
   if (!user && isProtected) {
@@ -76,4 +75,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
-
