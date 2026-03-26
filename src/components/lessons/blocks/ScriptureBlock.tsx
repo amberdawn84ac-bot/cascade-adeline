@@ -18,9 +18,28 @@ export default function ScriptureBlock({ blockData, onResponse, studentResponse 
   // Normalise: contentAgent emits { type:'scripture', content:'Ref — context' }
   // Legacy format has reference/passage/translation as separate fields.
   const raw = blockData as any;
-  const rawContent: string = raw.content || '';
+  
+  // Defensive: ensure content is always a string
+  let rawContent: string = '';
+  if (raw.content && typeof raw.content === 'string') {
+    rawContent = raw.content;
+  } else if (raw.content && typeof raw.content === 'object') {
+    // If content is an object, try to extract meaningful text
+    rawContent = raw.content.primary_passage || raw.content.text || JSON.stringify(raw.content);
+  } else {
+    rawContent = '';
+  }
+  
   // Try to split "Book 1:2 — passage text" into reference + passage
-  const dashIdx = rawContent.search(/\s[—–-]\s/);
+  // Only call .search() if we're sure rawContent is a string
+  let dashIdx = -1;
+  try {
+    dashIdx = rawContent.search(/\s[—–-]\s/);
+  } catch (err) {
+    console.warn('[ScriptureBlock] Failed to search content:', err, 'content:', rawContent);
+    dashIdx = -1;
+  }
+  
   const reference = blockData.reference || (dashIdx > 0 ? rawContent.slice(0, dashIdx).trim() : rawContent);
   const passage = blockData.passage || (dashIdx > 0 ? rawContent.slice(dashIdx + 3).trim() : '');
   const translation = blockData.translation || raw.interactive?.translation || 'ESV';

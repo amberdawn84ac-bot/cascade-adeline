@@ -364,11 +364,30 @@ Return JSON:
       credits: []
     };
 
-    // Ensure every block has a unique block_id
+    // Ensure every block has a unique block_id and normalize scripture blocks
     const blocks = (lessonData.blocks || []).map((block: any, index: number) => {
       if (!block.block_id) {
         block.block_id = `${block.block_type || 'block'}-${index}-${Date.now()}`;
       }
+      
+      // Normalize scripture blocks to have string content in correct format
+      if (block.block_type === 'scripture' || block.type === 'scripture') {
+        // If we have scripture data from the connector, format it properly
+        if (state.scripture && !block.content) {
+          const scripture = state.scripture;
+          const reference = scripture.primary_passage || '';
+          const text = scripture.text || '';
+          // Format as "Reference — passage text"
+          block.content = text ? `${reference} — ${text}` : reference;
+        }
+        // Ensure content is always a string
+        if (block.content && typeof block.content !== 'string') {
+          block.content = JSON.stringify(block.content);
+        } else if (!block.content) {
+          block.content = 'Scripture passage — loading...';
+        }
+      }
+      
       return block;
     });
 

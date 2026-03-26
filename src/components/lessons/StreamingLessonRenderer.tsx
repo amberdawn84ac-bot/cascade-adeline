@@ -1,6 +1,45 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+// Error boundary to prevent single block crashes from unmounting entire renderer
+class BlockErrorBoundary extends React.Component<
+  { blockId: string; children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { blockId: string; children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error(`[BlockErrorBoundary] Block ${this.props.blockId} crashed:`, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
+          <p className="text-red-700 text-sm">
+            ⚠️ This block encountered an error and could not be displayed.
+          </p>
+          <details className="mt-2">
+            <summary className="text-xs text-red-600 cursor-pointer">Error details</summary>
+            <pre className="text-xs text-red-500 mt-1 whitespace-pre-wrap">
+              {this.state.error?.message}
+            </pre>
+          </details>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 import TextBlock from './blocks/TextBlock';
 import ScriptureBlock from './blocks/ScriptureBlock';
 import PrimarySourceBlock from './blocks/PrimarySourceBlock';
@@ -231,12 +270,13 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
     if (block.type === 'quiz' && lessonId) props.lessonId = lessonId;
 
     return (
-      <div
-        key={block.block_id}
-        className="animate-[fadeSlideIn_0.4s_ease-out]"
-      >
-        <BlockComponent {...props} />
-      </div>
+      <BlockErrorBoundary key={block.block_id} blockId={block.block_id}>
+        <div
+          className="animate-[fadeSlideIn_0.4s_ease-out]"
+        >
+          <BlockComponent {...props} />
+        </div>
+      </BlockErrorBoundary>
     );
   };
 
