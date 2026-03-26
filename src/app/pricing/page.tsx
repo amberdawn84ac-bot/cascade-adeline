@@ -31,7 +31,7 @@ const TIERS = [
     id: 'STUDENT',
     productId: { monthly: 'STUDENT_MONTHLY', yearly: 'STUDENT_YEARLY' },
     name: 'Student',
-    price: { monthly: 2.99, yearly: 32.29 },
+    price: { monthly: 9.99, yearly: 107.89 },
     description: 'Full access for one learner',
     features: [
       'Everything in Free, plus:',
@@ -49,7 +49,7 @@ const TIERS = [
     id: 'PARENT',
     productId: { monthly: 'PARENT_MONTHLY', yearly: 'PARENT_YEARLY' },
     name: 'Parent',
-    price: { monthly: 9.99, yearly: 107.89 },
+    price: { monthly: 29.99, yearly: 323.89 },
     description: 'For homeschool families',
     features: [
       'Everything in Student, plus:',
@@ -67,7 +67,7 @@ const TIERS = [
     id: 'TEACHER',
     productId: { monthly: 'TEACHER_MONTHLY', yearly: 'TEACHER_YEARLY' },
     name: 'Teacher',
-    price: { monthly: 29.99, yearly: 323.89 },
+    price: { monthly: 49.99, yearly: 539.89 },
     description: 'For classrooms & co-ops',
     features: [
       'Everything in Parent, plus:',
