@@ -120,9 +120,8 @@ export function ConversationalLogin() {
       if (data.session) {
         // Auto-confirm enabled (local dev)
         if (tier === 'FREE') {
-          // Free tier - go straight to onboarding
-          router.refresh();
-          router.push('/onboarding');
+          // Free tier - go straight to onboarding (hard redirect so cookie propagates before middleware runs)
+          window.location.href = '/onboarding';
         } else {
           // Paid tier - redirect to checkout
           const checkoutRes = await fetch('/api/stripe/create-checkout', {

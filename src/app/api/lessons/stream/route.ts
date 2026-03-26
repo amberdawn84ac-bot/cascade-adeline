@@ -106,7 +106,10 @@ export async function POST(req: Request) {
 
               // Stream new blocks incrementally as each agent node completes
               if (output.blocks && output.blocks.length > allBlocks.length) {
-                const newBlocks = output.blocks.slice(allBlocks.length);
+                const newBlocks = output.blocks.slice(allBlocks.length).map((block: any, i: number) => ({
+                  ...block,
+                  block_id: block.block_id || `${event.name}-${allBlocks.length + i}-${Date.now()}`,
+                }));
                 for (const block of newBlocks) {
                   controller.enqueue(
                     encoder.encode(`data: ${JSON.stringify({

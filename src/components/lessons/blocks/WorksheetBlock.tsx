@@ -1,4 +1,7 @@
+'use client';
+
 import React, { useState } from 'react';
+import DOMPurify from 'dompurify';
 
 interface WorksheetBlockProps {
   blockData: {
@@ -50,7 +53,7 @@ export default function WorksheetBlock({ blockData, onResponse, studentResponse 
       case 'text':
         return (
           <div className="worksheet-text">
-            <div dangerouslySetInnerHTML={{ __html: section.content || '' }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content || '') }} />
           </div>
         );
       

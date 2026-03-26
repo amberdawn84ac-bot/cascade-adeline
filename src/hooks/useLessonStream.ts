@@ -60,7 +60,11 @@ export function useLessonStream(): UseLessonStreamResult {
             const data = JSON.parse(line.slice(6));
 
             if (data.type === 'lesson_block') {
-              window.__addLessonBlock?.(data.block);
+              const block = data.block;
+              if (!block.block_id) {
+                block.block_id = `block-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+              }
+              window.__addLessonBlock?.(block);
             } else if (data.type === 'lesson_metadata') {
               window.__setLessonMetadata?.(data.data);
             } else if (data.type === 'lesson_saved') {

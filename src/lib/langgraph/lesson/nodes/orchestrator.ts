@@ -81,6 +81,7 @@ export async function orchestrator(state: LessonStateType): Promise<Partial<Less
     interests,
     learningStyle,
     gradeLevel: effectiveGrade,
+    learningMode: state.learningMode,
     loopCount,
     phase,
   };

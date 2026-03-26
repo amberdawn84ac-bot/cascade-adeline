@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 interface TextBlockProps {
   blockData: {
@@ -24,7 +27,7 @@ export default function TextBlock({ blockData }: TextBlockProps) {
 
   return (
     <div className={getClassName()}>
-      <div dangerouslySetInnerHTML={{ __html: convertMarkdown(blockData.content) }} />
+      <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(convertMarkdown(blockData.content)) }} />
     </div>
   );
 }

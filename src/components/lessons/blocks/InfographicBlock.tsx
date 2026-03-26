@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 interface InfographicBlockProps {
   blockData: {
@@ -31,7 +34,7 @@ export default function InfographicBlock({ blockData }: InfographicBlockProps) {
         {blockData.svg_content ? (
           <div 
             className="svg-container"
-            dangerouslySetInnerHTML={{ __html: blockData.svg_content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blockData.svg_content, { USE_PROFILES: { svg: true } }) }}
           />
         ) : (
           <div className="placeholder-visualization">
