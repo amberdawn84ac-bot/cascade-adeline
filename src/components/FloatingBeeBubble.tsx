@@ -71,9 +71,13 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
       if (ann?.type === 'lesson_metadata' && ann.data) {
         // Show the left pane as soon as lesson metadata arrives (before blocks render)
         onLessonMount?.();
-        (window as any).__setLessonMetadata?.(ann.data);
+        window.__setLessonMetadata?.(ann.data);
+      } else if (ann?.type === 'lesson_block' && ann.data?.block) {
+        // Direct bridge: push block to left-pane StreamingLessonRenderer.
+        // onLessonMount ensures the pane is visible even if metadata was missed.
+        onLessonMount?.();
+        window.__addLessonBlock?.(ann.data.block);
       }
-      // lesson_block annotations handled by LessonBlock.tsx's own useEffect via GenUIRenderer
     }
   }, [messages]);
 

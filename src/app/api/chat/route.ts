@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
                 if (output.lessonMetadata && !finalMetadata) {
                   finalMetadata = output.lessonMetadata as Record<string, unknown>;
                   controller.enqueue(encoder.encode(
-                    `2:${JSON.stringify([{ type: 'lesson_metadata', data: finalMetadata }])}\n`,
+                    `2:${JSON.stringify([{ type: 'lesson_metadata', data: { ...finalMetadata, lessonId: threadId } }])}\n`,
                   ));
                 }
 
@@ -220,10 +220,10 @@ export async function POST(req: NextRequest) {
                   }
                   // Normalise block_type → type for StreamingLessonRenderer
                   if (!b.type) b.type = b.block_type;
-                  // genUIPayload format — GenUIRenderer renders LessonBlock inline;
-                  // LessonBlock's own useEffect teleports the block to the left pane.
+                  // Raw annotation — FloatingBeeBubble bridge calls window.__addLessonBlock
+                  // directly so the right panel stays clean (no lesson blocks rendered inline).
                   controller.enqueue(encoder.encode(
-                    `2:${JSON.stringify([{ genUIPayload: { component: 'LessonBlock', props: { block: b, lessonId: threadId } } }])}\n`,
+                    `2:${JSON.stringify([{ type: 'lesson_block', data: { block: b, lessonId: threadId } }])}\n`,
                   ));
                   blocksToEmit.push(b);
                 }
@@ -240,12 +240,12 @@ export async function POST(req: NextRequest) {
             if (cached?.lessonBlocks?.length) {
               if (finalMetadata) {
                 controller.enqueue(encoder.encode(
-                  `2:${JSON.stringify([{ type: 'lesson_metadata', data: finalMetadata }])}\n`,
+                  `2:${JSON.stringify([{ type: 'lesson_metadata', data: { ...finalMetadata, lessonId: threadId } }])}\n`,
                 ));
               }
               for (const block of blocksToEmit) {
                 controller.enqueue(encoder.encode(
-                  `2:${JSON.stringify([{ genUIPayload: { component: 'LessonBlock', props: { block, lessonId: threadId } } }])}\n`,
+                  `2:${JSON.stringify([{ type: 'lesson_block', data: { block, lessonId: threadId } }])}\n`,
                 ));
               }
             }
