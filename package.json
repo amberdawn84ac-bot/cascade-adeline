@@ -50,6 +50,7 @@
     "date-fns": "^4.1.0",
     "dompurify": "^3.3.3",
     "framer-motion": "^12.34.0",
+    "jsonrepair": "^3.13.3",
     "jsonwebtoken": "^9.0.3",
     "lightningcss": "^1.31.1",
     "lucide-react": "^0.563.0",

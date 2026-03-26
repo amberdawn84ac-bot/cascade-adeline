@@ -111,17 +111,30 @@ export async function POST(req: Request) {
                   block_id: block.block_id || `${event.name}-${allBlocks.length + i}-${Date.now()}`,
                 }));
                 for (const block of newBlocks) {
-                  controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({
-                      type: 'lesson_block',
-                      block
-                    })}\n\n`)
-                  );
-                  allBlocks.push(block);
+                  try {
+                    // Verify the block can be serialised before sending to the client
+                    const serialised = JSON.stringify({ type: 'lesson_block', block });
+                    controller.enqueue(encoder.encode(`data: ${serialised}\n\n`));
+                    allBlocks.push(block);
+                  } catch (serErr) {
+                    console.warn('[Lesson Stream] Skipping unserializable block:', serErr);
+                  }
                   // Small delay for a natural streaming feel
                   await new Promise(resolve => setTimeout(resolve, 200));
                 }
               }
+            }
+
+            if (event.event === 'on_chain_error') {
+              // Log agent errors but continue — other agents may still succeed
+              console.error('[Lesson Stream] Agent error:', event.name, event.data?.error);
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({
+                  type: 'agent_error',
+                  agent: event.name,
+                  message: 'This section could not be generated — continuing with the rest of the lesson.',
+                })}\n\n`)
+              );
             }
           }
 

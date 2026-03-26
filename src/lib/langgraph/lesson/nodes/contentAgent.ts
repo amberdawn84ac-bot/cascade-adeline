@@ -2,6 +2,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { loadConfig } from '@/lib/config';
 import { LessonBlock, LessonStateType } from '../lessonState';
+import { safeStructuredInvoke } from '../safeInvoke';
 
 const contentSchema = z.object({
   blocks: z.array(z.object({
@@ -42,7 +43,8 @@ export async function contentAgent(state: LessonStateType): Promise<Partial<Less
   const model = new ChatOpenAI({
     model: config.models.default || 'gpt-4o',
     temperature,
-  }).withStructuredOutput(contentSchema);
+    maxTokens: 4096,
+  });
 
   const isRemediation = state.phase === 'remediation';
   const interests = state.interests.join(', ') || 'general learning';
@@ -78,27 +80,25 @@ STUDENT PROFILE:
 - ZPD & Mastery: ${state.bktSummary || 'Not yet assessed'}
 ${isRemediation ? `\nREMEDIATION MODE: The student scored below 70% on the quiz. Reteach the SAME concept using a completely different approach — different analogy, different examples, different angle. Do NOT repeat what you already said.` : ''}${sourcesContext}
 
+JSON OUTPUT RULES (CRITICAL — NEVER VIOLATE):
+0. Output ONLY valid JSON. No text before or after the JSON object.
+0. Every string value MUST be properly escaped: use \" for quotes inside strings, \\n for newlines. Never use literal newlines inside JSON string values.
+0. Keep EVERY "content" field under 400 characters. If you need more space, split into a second block.
+0. Produce exactly 4-6 blocks total — never more than 6.
+
 CONTENT RULES:
 1. Create INTERACTIVE, DYNAMIC blocks with CHOICES and BRANCHING — NOT just text.
-2. Use RICH TYPOGRAPHY in text blocks:
-   - ### Large headers for major sections
-   - #### Smaller headers for subsections
-   - **Bold** for key terms, vocabulary, important concepts
-   - *Italics* for emphasis, definitions, or examples
-   - > Blockquotes for important principles or key takeaways
-   - \`Code formatting\` for formulas, equations, or technical terms
-   - Lists (bullet and numbered) to break down information
+2. Use inline markdown in text blocks (bold, italic, short headers) — but keep total content concise.
 3. Connect to student interests (${interests}) through examples and applications.
-4. Keep paragraphs SHORT (1–2 sentences max). Use visual spacing.
-5. History/Social Studies: Present facts and context. If real primary sources were provided above, reference them by title. NEVER invent document titles, dates, or quotations — only reference what is in the REAL PRIMARY SOURCES list above.
+4. Keep paragraphs SHORT (1–2 sentences max).
+5. History/Social Studies: Present facts and context. If real primary sources were provided above, reference them by title. NEVER invent document titles, dates, or quotations.
 6. Every lesson MUST include at least one faith tie connecting the concept to scripture or biblical worldview.
 7. Generate a MIX of block types:
-   - 1 "text" block (intro with rich typography)
-   - 1 "choice" block (student picks investigation path, topic focus, or learning approach - include 2-3 choices with labels and descriptions)
-   - 1 "interactive_concept" block (adjustable variables to explore the concept - include concept name and 2-3 variables with ranges)
-   - 1 "branching_path" block (student decision that affects what they learn next - include 2-3 paths with descriptions)
-   - 1 "scripture" block (relevant verse with brief context — use original Hebrew/Greek names: Yahweh, Elohim, Yeshua)
-   - 1 "prompt" block (Socratic question to make them think)
+   - 1 "text" block (intro, max 300 chars)
+   - 1 "choice" block (2-3 short choices with brief labels and 1-sentence descriptions)
+   - 1 "branching_path" block (2-3 paths, 1-sentence descriptions)
+   - 1 "scripture" block (verse reference + 1 sentence of context — no full quotes)
+   - 1 "prompt" block (Socratic question, max 120 chars)
 
 ${mode === 'expedition' ? `
 EXPEDITION MODE CREATIVE FREEDOM (20-30%):
@@ -109,10 +109,10 @@ EXPEDITION MODE CREATIVE FREEDOM (20-30%):
 - Use humor, mystery, or dramatic tension to maintain engagement
 - Don't be afraid to break the expected pattern if it serves curiosity` : ''}`;
 
-  const result = await model.invoke([
+  const result = await safeStructuredInvoke(model, [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: `Generate lesson content for: "${state.topic}" (${state.subject})\nDescription: ${state.description || 'Not provided'}` },
-  ]);
+  ], contentSchema);
 
   const blocks: LessonBlock[] = result.blocks.map(b => ({
     type: b.type as any,

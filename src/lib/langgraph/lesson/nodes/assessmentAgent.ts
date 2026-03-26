@@ -1,6 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { LessonBlock, LessonStateType } from '../lessonState';
+import { safeStructuredInvoke } from '../safeInvoke';
 
 const assessmentSchema = z.object({
   quizQuestions: z.array(z.object({
@@ -27,7 +28,8 @@ export async function assessmentAgent(state: LessonStateType): Promise<Partial<L
   const model = new ChatOpenAI({
     model: 'gpt-4o-mini',
     temperature: 0.4,
-  }).withStructuredOutput(assessmentSchema);
+    maxTokens: 2048,
+  });
 
   const textBlocks = state.blocks.filter(b => b.type === 'text');
   const lessonContent = textBlocks.map(b => b.content as string).join('\n\n');
@@ -36,7 +38,7 @@ export async function assessmentAgent(state: LessonStateType): Promise<Partial<L
     ? `\nBLUEPRINT: ${state.blueprint.join(' → ')}\nThis agent handles: ${state.blueprint.filter(t => ASSESSMENT_BLOCK_TYPES.includes(t)).join(', ')}.`
     : '';
 
-  const result = await model.invoke([
+  const result = await safeStructuredInvoke(model, [
     {
       role: 'system',
       content: `You are creating assessment materials for a homeschool student (grade ${state.gradeLevel}).${blueprintNote}
@@ -45,17 +47,18 @@ ${state.interests?.length ? `Student interests: ${state.interests.join(', ')} �
 Rules:
 - Questions must test UNDERSTANDING, not just memorization
 - All 4 answer options must be plausible — no trick answers
-- Explanations must explain WHY the answer is correct and what the wrong answers miss
+- Explanations must explain WHY the answer is correct and what the wrong answers miss (max 100 chars each)
 - Flashcards cover the key vocabulary and concepts from the lesson
-- Language and complexity MUST match grade ${state.gradeLevel} level exactly — align to Oklahoma Academic Standards (and Common Core where applicable) for this grade
+- Language and complexity MUST match grade ${state.gradeLevel} level
 - NEVER ask trick questions or penalize creative thinking
-- Difficulty must be appropriate for the student's ZPD: ${state.bktSummary || 'grade level'}`,
+- Difficulty must be appropriate for the student's ZPD: ${state.bktSummary || 'grade level'}
+- CRITICAL: Output ONLY valid JSON. Escape all quotes with \\". Keep all strings concise.`,
     },
     {
       role: 'user',
-      content: `Create quiz questions and flashcards for this lesson on "${state.topic}" (${state.subject}).\n\nLesson content:\n${lessonContent.slice(0, 2000)}`,
+      content: `Create quiz questions and flashcards for this lesson on "${state.topic}" (${state.subject}).\n\nLesson content:\n${lessonContent.slice(0, 1500)}`,
     },
-  ]);
+  ], assessmentSchema);
 
   const quizBlocks: LessonBlock[] = result.quizQuestions.map((q): LessonBlock => ({
     type: 'quiz',

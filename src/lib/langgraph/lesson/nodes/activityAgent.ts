@@ -1,6 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import { LessonBlock, LessonStateType } from '../lessonState';
+import { safeStructuredInvoke } from '../safeInvoke';
 
 const activitySchema = z.object({
   title: z.string(),
@@ -19,7 +20,8 @@ export async function activityAgent(state: LessonStateType): Promise<Partial<Les
   const model = new ChatOpenAI({
     model: 'gpt-4o-mini',
     temperature: 0.6,
-  }).withStructuredOutput(activitySchema);
+    maxTokens: 2048,
+  });
 
   const interests = state.interests.join(', ') || 'general';
 
@@ -27,7 +29,7 @@ export async function activityAgent(state: LessonStateType): Promise<Partial<Les
     ? `\nBLUEPRINT: ${state.blueprint.join(' → ')}\nThis agent handles: ${state.blueprint.filter(t => ACTIVITY_BLOCK_TYPES.includes(t)).join(', ')}.`
     : '';
 
-  const result = await model.invoke([
+  const result = await safeStructuredInvoke(model, [
     {
       role: 'system',
       content: `You are creating a hands-on activity for a homeschool student (grade ${state.gradeLevel}).${blueprintNote}
@@ -46,9 +48,9 @@ photoPrompt: A short specific instruction for what the student should photograph
     },
     {
       role: 'user',
-      content: `Create a hands-on activity for the lesson: "${state.topic}" (${state.subject})\nDescription: ${state.description || 'Not provided'}`,
+      content: `Create a hands-on activity for the lesson: "${state.topic}" (${state.subject})\nDescription: ${state.description || 'Not provided'}\n\nCRITICAL: Output ONLY valid JSON. Escape all quotes inside strings with \\". Keep fullInstructions under 800 characters — summarize steps, do not write a novel.`,
     },
-  ]);
+  ], activitySchema);
 
   const handsOnBlock: LessonBlock = {
     type: 'hands-on',
