@@ -1,7 +1,6 @@
 import { jsonrepair } from 'jsonrepair';
 import { z } from 'zod';
 import type { ChatOpenAI } from '@langchain/openai';
-import type { BaseMessage } from '@langchain/core/messages';
 
 type MessageParam = { role: string; content: string | any[] };
 
@@ -20,7 +19,7 @@ export async function safeStructuredInvoke<T>(
   schema: z.ZodType<T>,
 ): Promise<T> {
   const wrappedModel = model.withStructuredOutput(schema, { includeRaw: true });
-  const result = await wrappedModel.invoke(messages as BaseMessage[]);
+  const result = await wrappedModel.invoke(messages as any);
 
   // Happy path: LangChain parsed it successfully
   if (result.parsed != null) {
