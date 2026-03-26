@@ -27,19 +27,30 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
   const [lessonId, setLessonId] = useState<string | null>(null);
 
   // Block type to component mapping
-  const blockComponents = {
+  const blockComponents: Record<string, React.ComponentType<any>> = {
     text: TextBlock,
     scripture: ScriptureBlock,
     primary_source: PrimarySourceBlock,
     investigation: InvestigationBlock,
     quiz: QuizBlock,
+    // hands-on activity (hyphen from activityAgent)
+    'hands-on': HandsOnBlock,
     hands_on: HandsOnBlock,
     photo: PhotoBlock,
     video: VideoBlock,
+    // flashcards (plural) from assessmentAgent
+    flashcards: FlashcardBlock,
     flashcard: FlashcardBlock,
     infographic: InfographicBlock,
     game: GameBlock,
     worksheet: WorksheetBlock,
+    // content agent block types — fall back to TextBlock for display
+    prompt: TextBlock,
+    choice: TextBlock,
+    branching_path: TextBlock,
+    interactive_concept: TextBlock,
+    vocab_tooltip: TextBlock,
+    source_gap: TextBlock,
   };
 
   // Add new blocks as they stream in
@@ -129,7 +140,8 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
   };
 
   const renderBlock = (block: any) => {
-    const BlockComponent = blockComponents[block.block_type as keyof typeof blockComponents];
+    // Blocks use `type`, not `block_type`
+    const BlockComponent = blockComponents[block.type as string];
     
     if (!BlockComponent) {
       console.warn(`Unknown block type: ${block.block_type}`);
@@ -148,7 +160,7 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
       studentResponse: studentResponses[block.block_id]
     };
 
-    if (block.block_type === 'quiz' && lessonId) {
+    if (block.type === 'quiz' && lessonId) {
       props.lessonId = lessonId;
     }
 
