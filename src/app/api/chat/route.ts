@@ -12,7 +12,6 @@ import { getModel, getTranscriptionModel } from '@/lib/ai-models';
 import { router as adelineRouter } from '@/lib/langgraph/router';
 import { lifeCreditLogger } from '@/lib/langgraph/lifeCreditLogger';
 import { lessonOrchestrator } from '@/lib/langgraph/lesson/lessonOrchestrator';
-import { subjectFromQuery } from '@/lib/langgraph/lesson/subjectFromQuery';
 import { AdelineGraphState } from '@/lib/langgraph/types';
 import { getStudentContext } from '@/lib/learning/student-context';
 import redis from '@/lib/redis';
@@ -154,8 +153,6 @@ export async function POST(req: NextRequest) {
     // 1.5 LESSON intent — stream lesson blocks inline via LangGraph lessonOrchestrator
     if (intent === 'LESSON') {
       const threadId = `lesson-${userId}-${Date.now()}`;
-      // Unused subject detection kept for future personalization hints
-      void subjectFromQuery(maskedContent.masked);
 
       // Redis cache key: skip orchestrator if same topic was built recently (24h TTL)
       const cacheKey = `lesson:${userId}:${Buffer.from(maskedContent.masked).toString('base64').slice(0, 32)}`;
@@ -249,17 +246,16 @@ export async function POST(req: NextRequest) {
               } as AdelineGraphState).catch(() => {});
             }
 
-            // Non-blocking: save lesson thread to DB for history/annotation persistence
+            // Non-blocking: save lesson session to DB for annotation persistence / history
             prisma.lessonSession.create({
               data: {
                 userId,
                 lessonId: threadId,
-                subject: subjectFromQuery(maskedContent.masked),
-                gradeLevel: studentCtx.gradeLevel ?? '8',
-                isActive: false,
+                visibleBlocks: [],
                 completedBlocks: [],
                 studentResponses: {},
                 checkpointId: threadId,
+                isActive: false,
               },
             }).catch(() => {});
 
