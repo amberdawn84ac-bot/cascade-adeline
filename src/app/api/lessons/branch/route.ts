@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { updateBKT } from '@/lib/learning/bkt';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { HumanMessage } from '@langchain/core/messages';
+
+const branchModel = new ChatGoogleGenerativeAI({ model: 'gemini-2.0-flash', temperature: 0.7 });
 
 export async function POST(req: Request) {
   try {
@@ -11,6 +15,54 @@ export async function POST(req: Request) {
     }
 
     const { blockId, response, currentBlocks, lessonId } = await req.json();
+
+    // ── Deep Dive: AI-generated follow-up blocks ──────────────────────────────
+    // When a student clicks "Dive Deeper" on a block, generate 1-2 follow-up
+    // blocks via the pathRouterAgent's AI model and return them as newBlocks.
+    // The client pushes them to window.__addLessonBlock for the left-pane renderer.
+    if (response?.action === 'deep_dive') {
+      try {
+        // Fetch the original block content from the saved lesson for context
+        const lesson = lessonId
+          ? await prisma.lesson.findUnique({ where: { lessonId }, select: { contentBlocks: true, title: true } })
+          : null;
+        const allBlocks: any[] = Array.isArray(lesson?.contentBlocks) ? lesson.contentBlocks as any[] : [];
+        const sourceBlock = allBlocks.find((b: any) => b.block_id === blockId) ?? { block_id: blockId };
+
+        const prompt = `You are the pathRouterAgent for Dear Adeline, a Christian homeschool AI mentor.
+
+A student clicked "Dive Deeper" on this lesson block:
+${JSON.stringify(sourceBlock, null, 2)}
+
+Lesson title: ${(lesson as any)?.title ?? 'Unknown'}
+
+Generate 1-2 follow-up blocks that go deeper into this specific content.
+Rules:
+- Use primary sources, original documents, or real historical evidence
+- Apply "follow the money" thinking if relevant
+- Make it hands-on or investigative — not just more text
+- Each block needs a unique block_id, a block_type, and an order higher than existing blocks
+- Valid block_types: text, primary_source, investigation, quiz, hands_on, flashcard, prompt
+
+Return a JSON array of blocks only (no wrapper object):
+[
+  { "block_id": "deep-1", "block_type": "primary_source", "order": 99, ... },
+  { "block_id": "deep-2", "block_type": "investigation", "order": 100, ... }
+]`;
+
+        const aiResponse = await branchModel.invoke([new HumanMessage(prompt)]);
+        const content = aiResponse.content.toString();
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        const newBlocks = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+        // Normalise block_type → type for StreamingLessonRenderer
+        const normalised = newBlocks.map((b: any) => ({ ...b, type: b.type ?? b.block_type }));
+        return NextResponse.json({ newBlocks: normalised });
+      } catch (err) {
+        console.error('[Branch API/deep_dive] AI error:', err);
+        return NextResponse.json({ newBlocks: [] });
+      }
+    }
 
     // Save student response
     await prisma.studentLessonProgress.upsert({

@@ -56,6 +56,7 @@ export function LessonBlock({ block, lessonId }: LessonBlockProps) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [teleported, setTeleported] = useState(false);
+  const [diving, setDiving] = useState(false);
 
   // Teleport block to the left-pane StreamingLessonRenderer if the window bridge is registered.
   // Falls back to full inline rendering when the left pane isn't mounted (e.g. outside Journey page).
@@ -91,12 +92,43 @@ export function LessonBlock({ block, lessonId }: LessonBlockProps) {
     }
   };
 
+  // Deep Dive: ask the branch API to generate follow-up blocks and push them to the left pane
+  const handleDeepDive = async () => {
+    setDiving(true);
+    try {
+      const res = await fetch('/api/lessons/branch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blockId: block.block_id, response: { action: 'deep_dive' }, lessonId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.newBlocks)) {
+          data.newBlocks.forEach((b: unknown) => (window as any).__addLessonBlock?.(b));
+        }
+      }
+    } catch (err) {
+      console.error('[LessonBlock] Deep Dive error:', err);
+    } finally {
+      setDiving(false);
+    }
+  };
+
   // When teleported to the left pane, show a subtle in-chat notification instead of the full block
   if (teleported) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2F4731]/5 border border-[#2F4731]/20 text-xs text-[#2F4731] italic my-1">
-        <span>📋</span>
-        <span>Adeline added a <strong>{blockType}</strong> block to your learning board →</span>
+      <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[#2F4731]/5 border border-[#2F4731]/20 text-xs text-[#2F4731] my-1">
+        <span className="italic">
+          <span>📋 </span>
+          Adeline added a <strong>{blockType}</strong> block to your learning board →
+        </span>
+        <button
+          onClick={handleDeepDive}
+          disabled={diving}
+          className="shrink-0 px-2 py-1 rounded-md bg-[#BD6809] text-white text-xs font-semibold hover:bg-[#2F4731] disabled:opacity-50 transition-colors"
+        >
+          {diving ? '…' : 'Dive Deeper'}
+        </button>
       </div>
     );
   }

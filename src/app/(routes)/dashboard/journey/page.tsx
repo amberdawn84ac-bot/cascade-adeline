@@ -132,39 +132,47 @@ export default function JourneyPage() {
           </main>
         )}
 
-        {/* ── Active lesson: streaming renderer ── */}
-        {activeLessonId && (
-          <div className="px-6 pb-8 pt-4">
-            <button
-              onClick={handleBackToSuggestions}
-              className="flex items-center gap-2 text-[#BD6809] hover:text-[#2F4731] mb-4 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Back to lesson list</span>
-            </button>
+        {/*
+         * StreamingLessonRenderer is ALWAYS mounted so window.__addLessonBlock is
+         * registered the moment the Journey page loads — no race condition when
+         * the first lesson_metadata annotation triggers onLessonMount() and blocks
+         * start teleporting before the renderer would otherwise have had time to mount.
+         * The container is visually hidden (but DOM-present) when no lesson is active.
+         */}
+        <div className={activeLessonId ? 'px-6 pb-8 pt-4' : 'hidden'}>
+          {activeLessonId && (
+            <>
+              <button
+                onClick={handleBackToSuggestions}
+                className="flex items-center gap-2 text-[#BD6809] hover:text-[#2F4731] mb-4 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-sm font-medium">Back to lesson list</span>
+              </button>
 
-            {isStreaming && (
-              <div className="flex items-center gap-3 py-3 mb-4">
-                <Loader2 className="w-5 h-5 animate-spin text-[#BD6809]" />
-                <p className="text-[#2F4731]/60 italic text-sm">Adeline is preparing your lesson…</p>
-              </div>
-            )}
+              {isStreaming && (
+                <div className="flex items-center gap-3 py-3 mb-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-[#BD6809]" />
+                  <p className="text-[#2F4731]/60 italic text-sm">Adeline is preparing your lesson…</p>
+                </div>
+              )}
 
-            {error && (
-              <div className="flex items-center gap-3 p-4 mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <p className="text-sm">Something went wrong: {error}</p>
-              </div>
-            )}
+              {error && (
+                <div className="flex items-center gap-3 p-4 mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <p className="text-sm">Something went wrong: {error}</p>
+                </div>
+              )}
+            </>
+          )}
 
-            <StreamingLessonRenderer
-              userId=""
-              onBlockResponse={(blockId, response) => {
-                console.log('[Journey] Block response:', blockId, response);
-              }}
-            />
-          </div>
-        )}
+          <StreamingLessonRenderer
+            userId=""
+            onBlockResponse={(blockId, response) => {
+              console.log('[Journey] Block response:', blockId, response);
+            }}
+          />
+        </div>
       </div>
 
       {/* ── Right column: Adeline chat panel ── */}

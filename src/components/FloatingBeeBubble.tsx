@@ -27,42 +27,10 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
     body: { userId, contextType: 'general' },
   });
 
-  // Lesson intent phrases — when onLessonRequest is wired (Journey page),
-  // intercept these and route to the left pane instead of the chat API.
-  const LESSON_PHRASES = [
-    'teach me', 'start a lesson', 'learn about', 'lesson on',
-    'explain ', 'how does ', 'what is ', 'walk me through',
-    'help me understand', 'show me how', 'i want to learn',
-    'give me a lesson', 'tell me about',
-  ];
-
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    const lower = input.toLowerCase();
-    const isLesson = LESSON_PHRASES.some(p => lower.includes(p));
-
-    if (isLesson && onLessonMount) {
-      // Hybrid path: mount renderer (no SSE), let chat API stream blocks via window bridge
-      onLessonMount();
-      handleSubmit(e);
-      return;
-    }
-
-    if (isLesson && onLessonRequest) {
-      // Legacy path (pages without onLessonMount): SSE via onLessonRequest
-      setMessages([...messages, {
-        id: `local-${Date.now()}`,
-        role: 'assistant',
-        content: "I'm building that lesson on your learning board right now!",
-        createdAt: new Date(),
-      }]);
-      onLessonRequest(input);
-      setIsOpen(false);
-      return;
-    }
-
+    // Server-side adelineRouter classifies LESSON intent — no client-side intercept needed.
     handleSubmit(e);
   };
 
@@ -101,9 +69,11 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
 
     for (const ann of newAnns) {
       if (ann?.type === 'lesson_metadata' && ann.data) {
+        // Show the left pane as soon as lesson metadata arrives (before blocks render)
+        onLessonMount?.();
         (window as any).__setLessonMetadata?.(ann.data);
       }
-      // lesson_block no longer handled here — LessonBlock.tsx teleports itself via useEffect
+      // lesson_block annotations handled by LessonBlock.tsx's own useEffect via GenUIRenderer
     }
   }, [messages]);
 
