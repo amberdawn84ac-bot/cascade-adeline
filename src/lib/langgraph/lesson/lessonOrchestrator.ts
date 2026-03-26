@@ -1,7 +1,6 @@
-import { StateGraph, END, START, Annotation } from "@langchain/langgraph";
+import { StateGraph, END, START, Annotation, MemorySaver } from "@langchain/langgraph";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
-import redis from '@/lib/redis';
+import { HumanMessage } from "@langchain/core/messages";
 import prisma from '@/lib/db';
 
 const model = new ChatGoogleGenerativeAI({
@@ -58,6 +57,15 @@ export const LessonState = Annotation.Root({
   assessmentResults: Annotation<any>({
     reducer: (left: any, right: any) => right,
     default: () => null,
+  }),
+  branchingLogic: Annotation<{
+    selectedChoice?: string;
+    afterBlockId?: string;
+    quizScore?: number;
+    branch?: 'advanced' | 'remedial' | 'continue';
+  } | undefined>({
+    reducer: (_left: any, right: any) => right,
+    default: () => undefined,
   }),
 });
 
@@ -374,6 +382,10 @@ Return JSON:
 }
 
 
+// MemorySaver provides in-process LangGraph checkpointing for the duration of each request.
+// Cross-request lesson state is handled by Redis in the chat route (24h TTL cache).
+const _checkpointer = new MemorySaver();
+
 // Add nodes and edges using the same pattern as existing LangGraph
 export const lessonOrchestrator = new StateGraph(LessonState)
   .addNode("router", routerAgent)
@@ -399,4 +411,4 @@ export const lessonOrchestrator = new StateGraph(LessonState)
     }
   )
   .addEdge("assessment", END)
-  .compile();
+  .compile({ checkpointer: _checkpointer });
