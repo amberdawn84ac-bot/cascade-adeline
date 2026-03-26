@@ -58,6 +58,25 @@
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.147 0.004 49.25);
+
+  /* ── Adeline lesson block palette ── */
+  --paper-light: #FFFEF7;
+  --paper-medium: #FAF5E4;
+  --golden-wheat: #BD6809;
+  --ink-brown: #121B13;
+  --deep-purple: #9A3F4A;
+  --forest-green: #2F4731;
+  --fuschia-dark: #3D1419;
+  --paper-shadow: rgba(61, 20, 25, 0.08);
+  --border-brown: #E7DAC3;
+  --highlight-yellow: #FFF9C4;
+  --highlight-pink: #FCE4EC;
+  --highlight-mint: #E8F5E9;
+  --neon-fuschia: #9A3F4A;
+  --neon-orange: #BD6809;
+  --font-handwritten: 'Kalam', 'Caveat', cursive;
+  --font-emphasis: 'Permanent Marker', cursive;
+  --font-bold: 'Swanky and Moo Moo', cursive;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.147 0.004 49.25);
   --popover: oklch(1 0 0);

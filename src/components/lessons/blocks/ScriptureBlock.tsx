@@ -15,6 +15,16 @@ interface ScriptureBlockProps {
 }
 
 export default function ScriptureBlock({ blockData, onResponse, studentResponse }: ScriptureBlockProps) {
+  // Normalise: contentAgent emits { type:'scripture', content:'Ref — context' }
+  // Legacy format has reference/passage/translation as separate fields.
+  const raw = blockData as any;
+  const rawContent: string = raw.content || '';
+  // Try to split "Book 1:2 — passage text" into reference + passage
+  const dashIdx = rawContent.search(/\s[—–-]\s/);
+  const reference = blockData.reference || (dashIdx > 0 ? rawContent.slice(0, dashIdx).trim() : rawContent);
+  const passage = blockData.passage || (dashIdx > 0 ? rawContent.slice(dashIdx + 3).trim() : '');
+  const translation = blockData.translation || raw.interactive?.translation || 'ESV';
+
   const [reflection, setReflection] = useState(studentResponse?.reflection || '');
   const [expanded, setExpanded] = useState(false);
 
@@ -38,13 +48,13 @@ export default function ScriptureBlock({ blockData, onResponse, studentResponse 
               strokeWidth="1.5"
             />
           </svg>
-          <h3 className="scripture-reference">{blockData.reference}</h3>
-          <span className="translation-badge">{blockData.translation || 'ESV'}</span>
+          <h3 className="scripture-reference">{reference}</h3>
+          <span className="translation-badge">{translation}</span>
         </div>
 
         <blockquote className="scripture-passage">
           <div className="quotation-mark-open">"</div>
-          {blockData.passage}
+          {passage || reference}
           <div className="quotation-mark-close">"</div>
         </blockquote>
 

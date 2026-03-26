@@ -14,20 +14,27 @@ interface TextBlockProps {
 }
 
 export default function TextBlock({ blockData }: TextBlockProps) {
-  const getClassName = () => {
-    let className = 'text-block';
-    if (blockData.visual_style) {
-      className += ` style-${blockData.visual_style}`;
-    }
-    if (blockData.emphasis) {
-      className += ` emphasis-${blockData.emphasis}`;
-    }
-    return className;
+  // Map visual styles to Tailwind modifier classes
+  const styleClasses: Record<string, string> = {
+    callout: 'bg-[#FFF9C4] border-l-[#BD6809] rotate-[-0.3deg]',
+    handwritten: 'bg-[#E8F5E9] border-l-[#2F4731] rotate-[0.3deg]',
+  };
+  const emphasisClasses: Record<string, string> = {
+    highlighted: 'bg-[#FFF9C4] border-l-[#BD6809]',
+    important: 'border-l-[#9A3F4A] border-l-[6px] font-bold',
   };
 
+  const extra = [
+    styleClasses[blockData.visual_style || ''] || '',
+    emphasisClasses[blockData.emphasis || ''] || '',
+  ].join(' ');
+
   return (
-    <div className={getClassName()}>
-      <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(convertMarkdown(blockData.content)) }} />
+    <div className={`text-block ${extra}`}>
+      <div
+        className="prose prose-sm max-w-none text-[#121B13] leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(convertMarkdown(blockData.content)) }}
+      />
     </div>
   );
 }

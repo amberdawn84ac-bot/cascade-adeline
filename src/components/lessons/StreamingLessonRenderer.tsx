@@ -13,6 +13,8 @@ import FlashcardBlock from './blocks/FlashcardBlock';
 import InfographicBlock from './blocks/InfographicBlock';
 import GameBlock from './blocks/GameBlock';
 import WorksheetBlock from './blocks/WorksheetBlock';
+import ChoiceBlock from './blocks/ChoiceBlock';
+import PromptBlock from './blocks/PromptBlock';
 
 interface StreamingLessonRendererProps {
   userId: string;
@@ -44,10 +46,11 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
     infographic: InfographicBlock,
     game: GameBlock,
     worksheet: WorksheetBlock,
-    // content agent block types — fall back to TextBlock for display
-    prompt: TextBlock,
-    choice: TextBlock,
-    branching_path: TextBlock,
+    // Interactive block types
+    prompt: PromptBlock,
+    choice: ChoiceBlock,
+    branching_path: ChoiceBlock,
+    // Remaining content-agent types fall back to TextBlock
     interactive_concept: TextBlock,
     vocab_tooltip: TextBlock,
     source_gap: TextBlock,
@@ -169,122 +172,74 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
 
   if (blocks.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-amber-50">
+      <div className="flex items-center justify-center py-20 bg-[#FFFEF7]">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4">
-            <svg viewBox="0 0 64 64" className="w-full h-full animate-bounce">
-              {/* Bee icon */}
-              <ellipse cx="32" cy="36" rx="14" ry="18" fill="#FFD700" />
-              <rect x="18" y="28" width="28" height="3" fill="#000" opacity="0.8" />
-              <rect x="18" y="36" width="28" height="3" fill="#000" opacity="0.8" />
-              <rect x="18" y="44" width="28" height="3" fill="#000" opacity="0.8" />
-              <circle cx="32" cy="20" r="8" fill="#FFD700" />
-              <circle cx="28" cy="19" r="2" fill="#000" />
-              <circle cx="36" cy="19" r="2" fill="#000" />
-              <ellipse cx="22" cy="26" rx="8" ry="12" fill="#fff" opacity="0.6" />
-              <ellipse cx="42" cy="26" rx="8" ry="12" fill="#fff" opacity="0.6" />
+          <div className="w-16 h-16 mx-auto mb-4 text-[#BD6809]">
+            <svg viewBox="0 0 24 24" className="w-full h-full animate-bounce" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
             </svg>
           </div>
-          <p className="text-amber-800 text-lg font-medium">
-            Chat with Adeline to start your lesson!
-          </p>
-          <p className="text-amber-600 text-sm mt-2">
-            Click the bee bubble in the bottom right corner
-          </p>
+          <p className="text-[#2F4731] text-lg font-medium">Adeline is preparing your lesson…</p>
+          <div className="flex justify-center gap-1 mt-3">
+            <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="field-notes-wrapper min-h-screen">
-      <div className="paper-texture"></div>
-      <div className="field-notes-content max-w-4xl mx-auto px-4 py-8">
-        {/* Scripture Banner */}
-        {lessonMetadata?.scripture_foundation && (
-          <div className="scripture-banner mb-8">
-            <div className="banner-decoration-left">
-              <svg viewBox="0 0 24 24" width="50" height="50">
-                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" fill="currentColor"/>
-              </svg>
-            </div>
-            <div className="scripture-text">
-              <span className="reference">{lessonMetadata.scripture_foundation.primary_passage}</span>
-              <span className="divider">•</span>
-              <span>{lessonMetadata.scripture_foundation.connection}</span>
-            </div>
-            <div className="banner-decoration-right">
-              <svg viewBox="0 0 24 24" width="50" height="50">
-                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" fill="currentColor"/>
-              </svg>
-            </div>
+    <div className="field-notes-journal min-h-screen">
+      {/* Lesson Header */}
+      {lessonMetadata?.title && (
+        <div className="field-notes-journal-header">
+          <h1 className="field-notes-journal-title">{lessonMetadata.title}</h1>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {lessonMetadata.subject_track && (
+              <span className="field-notes-badge">
+                {lessonMetadata.subject_track.replace(/-/g, ' ')}
+              </span>
+            )}
+            {lessonMetadata.gradeLevel && (
+              <span className="field-notes-badge">Grade {lessonMetadata.gradeLevel}</span>
+            )}
           </div>
-        )}
-
-        {/* Lesson Header */}
-        {lessonMetadata?.title && (
-          <div className="lesson-header mb-6">
-            <div className="decorative-line-left"></div>
-            <h1 className="lesson-title text-3xl font-bold text-amber-900">{lessonMetadata.title}</h1>
-            <div className="decorative-line-right"></div>
-          </div>
-        )}
-
-        {/* Subject Badge */}
-        {lessonMetadata?.subject_track && (
-          <div className="subject-badge mb-6">
-            {lessonMetadata.subject_track.replace(/-/g, ' ')}
-          </div>
-        )}
-
-        {/* Learning Objectives */}
-        {lessonMetadata?.learning_objectives && (
-          <div className="objectives-box mb-8">
-            <h3 className="font-semibold text-lg mb-3">Today's Investigation:</h3>
-            <ul className="space-y-2">
-              {lessonMetadata.learning_objectives.map((obj: string, i: number) => (
-                <li key={i} className="text-amber-900">{obj}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Render all blocks */}
-        <div className="lesson-blocks space-y-6">
-          {blocks.map(renderBlock)}
         </div>
+      )}
 
-        {/* Streaming indicator */}
-        {blocks.length > 0 && (
-          <div className="mt-8 text-center">
-            <div className="inline-flex items-center space-x-2 text-amber-600 text-sm">
-              <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-              <span>Adeline is preparing more content...</span>
-            </div>
-          </div>
-        )}
+      {/* Learning Objectives */}
+      {lessonMetadata?.learning_objectives?.length > 0 && (
+        <div className="mb-6 p-4 rounded-lg border border-[#E7DAC3] bg-[#FAF5E4]">
+          <h3 className="font-semibold text-[#2F4731] mb-2 text-sm uppercase tracking-wide">Today's Investigation</h3>
+          <ul className="space-y-1">
+            {lessonMetadata.learning_objectives.map((obj: string, i: number) => (
+              <li key={i} className="text-[#121B13] text-sm flex gap-2">
+                <span className="text-[#BD6809]">→</span>{obj}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-        {/* Credits Footer */}
-        {lessonMetadata?.credits && lessonMetadata.credits.length > 0 && (
-          <div className="lesson-footer mt-12">
-            <div className="credits-earned">
-              <h4 className="font-semibold text-lg mb-3">Credits Earned:</h4>
-              {lessonMetadata.credits.map((credit: any, i: number) => (
-                <div key={i} className="credit-item flex justify-between">
-                  <span className="credit-subject">{credit.subject}</span>
-                  <span className="credit-hours">{credit.hours} hours</span>
-                </div>
-              ))}
-            </div>
-            
-            <div className="footer-decorations mt-6 text-center">
-              <svg className="wheat-icon inline-block w-8 h-8 text-amber-600" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12 2L8 6l4 4 4-4-4-4zm0 8l-4 4 4 4 4-4-4-4z"/>
-              </svg>
-            </div>
-          </div>
-        )}
+      {/* Render all blocks */}
+      <div className="space-y-4">
+        {blocks.map(renderBlock)}
       </div>
+
+      {/* Credits Footer */}
+      {lessonMetadata?.credits && lessonMetadata.credits.length > 0 && (
+        <div className="mt-12 pt-6 border-t-2 border-[#E7DAC3]">
+          <h4 className="font-semibold text-[#2F4731] text-lg mb-3">Credits Earned</h4>
+          {lessonMetadata.credits.map((credit: any, i: number) => (
+            <div key={i} className="flex justify-between py-2 border-b border-[#E7DAC3]">
+              <span className="text-[#121B13]">{credit.subject}</span>
+              <span className="text-[#BD6809] font-bold">{credit.hours} hrs</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
