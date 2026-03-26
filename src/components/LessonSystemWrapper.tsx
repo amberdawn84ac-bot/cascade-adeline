@@ -19,6 +19,10 @@ export function LessonSystemWrapper({ userId }: { userId?: string }) {
   const isAuthPage = pathname.includes('/auth') || pathname.includes('/onboarding');
   if (isAuthPage) return null;
 
+  // Journey page has its own persistent AdelineChatPanel — no bubble or overlay needed there
+  const isJourneyPage = pathname.includes('/journey');
+  if (isJourneyPage) return null;
+
   const handleBlockResponse = (blockId: string, response: unknown) => {
     console.log('[LessonSystemWrapper] Block response:', blockId, response);
   };

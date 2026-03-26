@@ -5,6 +5,7 @@ import { Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { StreamingLessonRenderer } from '@/components/lessons/StreamingLessonRenderer';
 import { useLessonStream } from '@/hooks/useLessonStream';
 import { StudentStatusBar } from '@/components/StudentStatusBar';
+import { AdelineChatPanel } from '@/components/AdelineChatPanel';
 
 interface LessonSuggestion {
   id: string;
@@ -14,157 +15,156 @@ interface LessonSuggestion {
   emoji: string;
 }
 
+const LESSON_SUGGESTIONS: LessonSuggestion[] = [
+  { id: '1', title: 'Butterflies of North America', subject: 'Science', description: 'Investigate butterfly life cycles and adaptations', emoji: '🦋' },
+  { id: '2', title: 'The American Revolution', subject: 'History', description: 'Primary sources from the founding era', emoji: '🏛️' },
+  { id: '3', title: 'Water Cycle Investigation', subject: 'Science', description: 'Hands-on experiments with evaporation and condensation', emoji: '💧' },
+  { id: '4', title: 'Scripture Study: Psalms', subject: 'Bible', description: 'Hebrew poetry and original meanings', emoji: '📖' },
+];
+
 export default function JourneyPage() {
   // activeLessonId: null = idle, 'pending' = renderer mounting, string = lesson saved
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
-  // pendingTopic is set by button click; useEffect starts the stream after renderer mounts
   const [pendingTopic, setPendingTopic] = useState<string | null>(null);
   const { isStreaming, error, startLesson } = useLessonStream();
 
-  const [lessonSuggestions] = useState<LessonSuggestion[]>([
-    { id: '1', title: 'Butterflies of North America', subject: 'Science', description: 'Investigate butterfly life cycles and adaptations', emoji: '🦋' },
-    { id: '2', title: 'The American Revolution', subject: 'History', description: 'Primary sources from the founding era', emoji: '🏛️' },
-    { id: '3', title: 'Water Cycle Investigation', subject: 'Science', description: 'Hands-on experiments with evaporation and condensation', emoji: '💧' },
-    { id: '4', title: 'Scripture Study: Psalms', subject: 'Bible', description: 'Hebrew poetry and original meanings', emoji: '📖' },
-  ]);
-
-  // Step 1: button click → set 'pending' to mount the renderer immediately
-  const handleStartLesson = useCallback((suggestion: LessonSuggestion) => {
-    console.log('[Journey] handleStartLesson clicked:', suggestion.title);
-    setPendingTopic(suggestion.title);
-    setActiveLessonId('pending'); // renders <StreamingLessonRenderer> → sets window.__addLessonBlock
+  // Accepts either a string topic (from chat panel) or LessonSuggestion (from cards)
+  const handleLessonRequest = useCallback((topicOrSuggestion: string | LessonSuggestion) => {
+    const topic = typeof topicOrSuggestion === 'string'
+      ? topicOrSuggestion
+      : topicOrSuggestion.title;
+    setPendingTopic(topic);
+    setActiveLessonId('pending'); // mounts renderer → sets window.__addLessonBlock
   }, []);
 
-  // Step 2: after renderer is mounted (activeLessonId === 'pending'), start the stream
+  // After renderer mounts (activeLessonId === 'pending'), start the SSE stream
   useEffect(() => {
     if (activeLessonId !== 'pending' || !pendingTopic) return;
-
-    console.log('[Journey] Renderer mounted, starting lesson stream for:', pendingTopic);
     const topic = pendingTopic;
-    setPendingTopic(null); // clear so effect doesn't re-fire
-
+    setPendingTopic(null);
     startLesson(topic).then(savedId => {
-      console.log('[Journey] Lesson stream complete, savedId:', savedId);
       if (savedId) setActiveLessonId(savedId);
     });
   }, [activeLessonId, pendingTopic, startLesson]);
 
   const handleBackToSuggestions = () => {
-    console.log('[Journey] Returning to lesson suggestions');
     setActiveLessonId(null);
     setPendingTopic(null);
   };
 
-  // Shared page chrome rendered in both idle and active-lesson states
-  const pageChrome = (
-    <>
-      {/* Page header */}
-      <header className="bg-white border-b-2 border-[#E7DAC3] p-6">
-        <div className="max-w-4xl mx-auto">
+  return (
+    /*
+     * Full-viewport two-column layout.
+     * -m-6 / -m-8 cancels the p-6/p-8 padding from (routes)/layout.tsx so the
+     * columns stretch edge-to-edge and the right panel fills the full height.
+     */
+    <div className="flex h-screen -m-6 md:-m-8 overflow-hidden bg-[#FFFEF7]">
+
+      {/* ── Left column: lesson content ── */}
+      <div className="flex-1 overflow-y-auto min-w-0">
+
+        {/* Page header */}
+        <header className="bg-white border-b-2 border-[#E7DAC3] px-6 py-5 sticky top-0 z-10">
           <h1
-            className="text-3xl font-bold text-[#2F4731]"
+            className="text-2xl font-bold text-[#2F4731]"
             style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}
           >
             My Learning Plan
           </h1>
-          <p className="text-[#2F4731]/60 mt-1 text-sm">
-            Choose a lesson to start, or ask Adeline in the chat bubble!
+          <p className="text-[#2F4731]/60 mt-0.5 text-sm">
+            {activeLessonId
+              ? 'Lesson in progress — ask Adeline questions in the panel →'
+              : 'Choose a topic below or ask Adeline in the panel →'}
           </p>
+        </header>
+
+        {/* Status bar */}
+        <div className="px-6 pt-5">
+          <StudentStatusBar />
         </div>
-      </header>
 
-      {/* Status bar — always visible */}
-      <div className="max-w-4xl mx-auto px-6 pt-6">
-        <StudentStatusBar />
-      </div>
-    </>
-  );
-
-  // Show lesson renderer when a lesson is active (pending → streaming → saved)
-  if (activeLessonId) {
-    return (
-      <div className="min-h-screen bg-[#FFFEF7]">
-        {pageChrome}
-        <div className="max-w-4xl mx-auto px-6 pb-6">
-          <button
-            onClick={handleBackToSuggestions}
-            className="flex items-center gap-2 text-[#BD6809] hover:text-[#2F4731] mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back to lesson list</span>
-          </button>
-
-          {isStreaming && (
-            <div className="flex items-center gap-3 py-3 mb-4">
-              <Loader2 className="w-5 h-5 animate-spin text-[#BD6809]" />
-              <p className="text-[#2F4731]/60 italic text-sm">Adeline is preparing your lesson…</p>
-            </div>
-          )}
-
-          {error && (
-            <div className="flex items-center gap-3 p-4 mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <p className="text-sm">Something went wrong: {error}</p>
-            </div>
-          )}
-
-          <StreamingLessonRenderer
-            userId=""
-            onBlockResponse={(blockId, response) => {
-              console.log('[Journey] Block response:', blockId, response);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-[#FFFEF7]">
-      {pageChrome}
-
-      {/* Lesson Suggestions */}
-      <main className="max-w-4xl mx-auto px-6 pb-8">
-        {isStreaming && (
-          <div className="flex items-center justify-center py-12 mb-6">
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-6 h-6 animate-spin text-[#BD6809]" />
-              <p className="text-[#2F4731]/60 italic">Adeline is preparing your lesson…</p>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center gap-3 p-4 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <p className="text-sm">Something went wrong: {error}</p>
-          </div>
-        )}
-
-        <div className="grid md:grid-cols-2 gap-4">
-          {lessonSuggestions.map(suggestion => (
-            <button
-              key={suggestion.id}
-              onClick={() => handleStartLesson(suggestion)}
-              disabled={isStreaming}
-              className="text-left p-6 rounded-2xl border-2 border-[#E7DAC3] hover:border-[#BD6809] hover:shadow-lg transition-all bg-white group disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="flex items-start gap-4">
-                <span className="text-4xl">{suggestion.emoji}</span>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-[#2F4731] mb-1 group-hover:text-[#BD6809] transition-colors">
-                    {suggestion.title}
-                  </h3>
-                  <p className="text-sm text-[#2F4731]/60 mb-2">{suggestion.description}</p>
-                  <span className="inline-block px-3 py-1 bg-[#2F4731]/10 text-[#2F4731] text-xs font-bold rounded-full">
-                    {suggestion.subject}
-                  </span>
-                </div>
+        {/* ── Idle: suggestion cards ── */}
+        {!activeLessonId && (
+          <main className="px-6 pb-8 pt-5">
+            {isStreaming && (
+              <div className="flex items-center gap-3 py-10 justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-[#BD6809]" />
+                <p className="text-[#2F4731]/60 italic">Adeline is preparing your lesson…</p>
               </div>
+            )}
+
+            {error && (
+              <div className="flex items-center gap-3 p-4 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <p className="text-sm">Something went wrong: {error}</p>
+              </div>
+            )}
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              {LESSON_SUGGESTIONS.map(suggestion => (
+                <button
+                  key={suggestion.id}
+                  onClick={() => handleLessonRequest(suggestion)}
+                  disabled={isStreaming}
+                  className="text-left p-6 rounded-2xl border-2 border-[#E7DAC3] hover:border-[#BD6809] hover:shadow-lg transition-all bg-white group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-start gap-4">
+                    <span className="text-4xl">{suggestion.emoji}</span>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-[#2F4731] mb-1 group-hover:text-[#BD6809] transition-colors">
+                        {suggestion.title}
+                      </h3>
+                      <p className="text-sm text-[#2F4731]/60 mb-2">{suggestion.description}</p>
+                      <span className="inline-block px-3 py-1 bg-[#2F4731]/10 text-[#2F4731] text-xs font-bold rounded-full">
+                        {suggestion.subject}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </main>
+        )}
+
+        {/* ── Active lesson: streaming renderer ── */}
+        {activeLessonId && (
+          <div className="px-6 pb-8 pt-4">
+            <button
+              onClick={handleBackToSuggestions}
+              className="flex items-center gap-2 text-[#BD6809] hover:text-[#2F4731] mb-4 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-medium">Back to lesson list</span>
             </button>
-          ))}
-        </div>
-      </main>
+
+            {isStreaming && (
+              <div className="flex items-center gap-3 py-3 mb-4">
+                <Loader2 className="w-5 h-5 animate-spin text-[#BD6809]" />
+                <p className="text-[#2F4731]/60 italic text-sm">Adeline is preparing your lesson…</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="flex items-center gap-3 p-4 mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <p className="text-sm">Something went wrong: {error}</p>
+              </div>
+            )}
+
+            <StreamingLessonRenderer
+              userId=""
+              onBlockResponse={(blockId, response) => {
+                console.log('[Journey] Block response:', blockId, response);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* ── Right column: Adeline chat panel ── */}
+      <div className="w-[380px] shrink-0 hidden md:flex flex-col border-l-2 border-[#E7DAC3]">
+        <AdelineChatPanel onLessonRequest={handleLessonRequest} />
+      </div>
     </div>
   );
 }

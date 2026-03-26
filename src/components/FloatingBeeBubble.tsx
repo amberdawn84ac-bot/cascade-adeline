@@ -8,10 +8,12 @@ import { useChat } from '@ai-sdk/react';
 interface FloatingBeeBubbleProps {
   onLessonStream?: (blocks: any[]) => void;
   onLessonRequest?: (topic: string) => void;
-  userId: string;
+  userId?: string;
+  /** When true, renders as a full-height panel (no bubble toggle, no fixed position, no drag) */
+  panelMode?: boolean;
 }
 
-export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: FloatingBeeBubbleProps) {
+export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId = '', panelMode = false }: FloatingBeeBubbleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -82,6 +84,81 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, userId }: F
       bubbleRef.current.style.top = `${e.clientY - position.y}px`;
     }
   };
+
+  // ─── Panel mode ─────────────────────────────────────────────────────────────
+  // Renders the chat UI as a full-height panel (used by AdelineChatPanel).
+  // No bubble toggle, no fixed position, no drag.
+  if (panelMode) {
+    return (
+      <div className="flex flex-col h-full bg-[#FFFEF7]">
+        {/* Messages */}
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.length === 0 && (
+            <div className="text-center text-gray-500 mt-8">
+              <p className="text-sm">👋 Hi! I&apos;m Adeline.</p>
+              <p className="text-sm mt-2">Ask me to start a lesson or help with anything!</p>
+              <div className="mt-4 space-y-2">
+                <button
+                  onClick={() => onLessonRequest?.('Butterflies of North America')}
+                  className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-[#2F4731] hover:bg-[#2F4731]/5 transition-colors border border-[#E7DAC3]"
+                >
+                  🦋 Start a lesson on butterflies
+                </button>
+                <button
+                  onClick={() => onLessonRequest?.('The American Revolution')}
+                  className="block w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-[#2F4731] hover:bg-[#2F4731]/5 transition-colors border border-[#E7DAC3]"
+                >
+                  🏛️ American Revolution lesson
+                </button>
+              </div>
+            </div>
+          )}
+          {messages.map((message) => (
+            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-2 ${
+                message.role === 'user'
+                  ? 'bg-[#2F4731] text-white'
+                  : 'bg-white text-[#121B13] shadow-sm border border-[#E7DAC3]'
+              }`}>
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-[#E7DAC3]">
+                <div className="flex space-x-2">
+                  <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-2 h-2 bg-[#BD6809] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        {/* Input */}
+        <form onSubmit={handleCustomSubmit} className="p-3 bg-white border-t border-[#E7DAC3] shrink-0">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              placeholder="Ask Adeline anything…"
+              className="flex-1 px-4 py-2 border border-[#E7DAC3] rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#BD6809] focus:border-transparent"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              className="bg-[#BD6809] text-white rounded-full p-2 hover:bg-[#2F4731] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <>
