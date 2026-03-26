@@ -62,9 +62,12 @@ export async function POST(req: Request) {
             }
           );
 
+          console.log('[Lesson Stream] Starting event stream for threadId:', threadId);
+
           for await (const event of eventStream) {
             // Broadcast agent progress so the UI can show "Adeline is thinking..."
             if (event.event === 'on_chain_start') {
+              console.log('[Lesson Stream] Agent started:', event.name);
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({
                   type: 'agent_start',
@@ -75,6 +78,7 @@ export async function POST(req: Request) {
             }
 
             if (event.event === 'on_chain_end') {
+              console.log('[Lesson Stream] Agent completed:', event.name, 'output keys:', Object.keys(event.data?.output || {}));
               const output = event.data?.output;
               if (!output) continue;
 
