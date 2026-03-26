@@ -151,145 +151,105 @@ export async function POST(req: NextRequest) {
     const intent = routedState.intent;
     const selectedModel = routedState.selectedModel || config.models.default;
 
-    // 1.5 LESSON intent — stream lesson blocks via LangGraph lessonOrchestrator
-    // Emit blocks as both lesson_block annotations (for window bridge) AND genUIPayload (for chat rendering)
+    // 1.5 LESSON intent — stream lesson blocks via LangGraph lessonOrchestrator using AI SDK
     if (intent === 'LESSON') {
-      console.log('[CHAT ROUTE] LESSON intent detected, query:', maskedContent.masked);
       const threadId = `lesson-${userId}-${Date.now()}`;
-      console.log('[CHAT ROUTE] threadId:', threadId);
-
-      // Redis cache key: skip orchestrator if same topic was built recently (24h TTL)
-      const cacheKey = `lesson:${userId}:${Buffer.from(maskedContent.masked).toString('base64').slice(0, 32)}`;
-      const cached = await redis.get<{ lessonBlocks: unknown[]; lessonMetadata: unknown }>(cacheKey).catch(() => null);
-      console.log('[CHAT ROUTE] Redis cache hit:', !!cached, cached ? `(${(cached.lessonBlocks as unknown[])?.length ?? 0} blocks)` : '');
-
-      const encoder = new TextEncoder();
-      const lessonStreamResponse = new ReadableStream({
-        async start(controller) {
-          controller.enqueue(encoder.encode(
-            `0:${JSON.stringify('Let me build a lesson on that — blocks will appear in the left pane:\n\n')}\n`,
-          ));
-
+      const detectedSubject = subjectFromQuery(maskedContent.masked);
+      
+      const { createDataStreamResponse } = await import('ai');
+      
+      return createDataStreamResponse({
+        execute: async (dataStream) => {
+          // Tell chat we're building on the left pane
+          dataStream.writeMessageAnnotation({ 
+            status: 'Building your interactive lesson on the learning board...' 
+          });
+          
           try {
+            const { lessonOrchestrator } = await import('@/lib/langgraph/lesson/lessonOrchestrator');
+            // Redis cache check
+            const cacheKey = `lesson:${userId}:${Buffer.from(maskedContent.masked).toString('base64').slice(0, 32)}`;
+            const cached = await redis.get<{ lessonBlocks: unknown[]; lessonMetadata: unknown }>(cacheKey).catch(() => null);
+            
             let blocksToEmit: unknown[] = [];
             let finalMetadata: Record<string, unknown> | null = null;
-
+            
             if (cached?.lessonBlocks?.length) {
-              // Fast path: serve cached blocks without re-invoking the swarm
-              console.log('[CHAT ROUTE] Serving from cache:', (cached.lessonBlocks as unknown[]).length, 'blocks');
+              // Serve from cache
               blocksToEmit = cached.lessonBlocks;
-              finalMetadata = (cached.lessonMetadata as Record<string, unknown>) ?? null;
+              finalMetadata = cached.lessonMetadata as Record<string, unknown> ?? null;
+              
+              // Emit cached blocks
+              for (const block of blocksToEmit) {
+                dataStream.writeMessageAnnotation({
+                  genUIPayload: { 
+                    component: 'LessonBlock', 
+                    props: { block, lessonId: threadId } 
+                  }
+                });
+              }
             } else {
-              // Run the LangGraph lesson orchestrator swarm
-              console.log('[CHAT ROUTE] Orchestrator started for:', maskedContent.masked);
+              // Run orchestrator
               const emittedBlockIds = new Set<string>();
-
-              const eventStream = lessonOrchestrator.streamEvents(
+              const eventStream = await lessonOrchestrator.streamEvents(
                 {
                   studentQuery: maskedContent.masked,
                   userId,
                   studentProfile: {
-                    gradeLevel: studentCtx.gradeLevel ?? '8',
-                    interests: (studentCtx as any).interests ?? [],
-                    learningStyle: (studentCtx as any).learningStyle ?? 'EXPEDITION',
-                    age: (studentCtx as any).age,
-                    bktSummary: (studentCtx as any).bktSummary,
+                    gradeLevel: studentCtx?.gradeLevel ?? '8',
+                    interests: (studentCtx as any)?.interests ?? [],
+                    learningStyle: (studentCtx as any)?.learningStyle ?? 'EXPEDITION',
+                    age: (studentCtx as any)?.age,
+                    bktSummary: (studentCtx as any)?.bktSummary,
                   },
                 },
-                { configurable: { thread_id: threadId }, version: 'v2' as const },
+                { configurable: { thread_id: threadId }, version: 'v2' as const }
               );
-
+    
               for await (const event of eventStream) {
-                if (event.event === 'on_chain_start') {
-                  console.log('[CHAT ROUTE] Orchestrator node started:', event.name);
-                }
                 if (event.event !== 'on_chain_end') continue;
-                console.log('[CHAT ROUTE] Orchestrator node completed:', event.name, '| output keys:', Object.keys(event.data?.output ?? {}));
                 const output = event.data?.output as Record<string, unknown> | undefined;
                 if (!output) continue;
-
-                // Emit metadata to window bridge once it arrives
+                
+                // Handle metadata
                 if (output.lessonMetadata && !finalMetadata) {
                   finalMetadata = output.lessonMetadata as Record<string, unknown>;
-                  console.log('[CHAT ROUTE] Emitting lesson_metadata:', JSON.stringify(finalMetadata).slice(0, 120));
-                  controller.enqueue(encoder.encode(
-                    `2:${JSON.stringify([{ type: 'lesson_metadata', data: { ...finalMetadata, lessonId: threadId } }])}\n`,
-                  ));
                 }
-
-                if (!Array.isArray(output?.lessonBlocks)) continue;
-                const blocks = output.lessonBlocks as unknown[];
-                console.log('[CHAT ROUTE] Blocks from', event.name, ':', blocks.length, '(total in state)');
-
-                for (const block of blocks) {
-                  const b = block as Record<string, unknown>;
-                  if (!b.block_id) {
-                    b.block_id = `block-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                
+                // Handle blocks
+                if (Array.isArray(output.lessonBlocks)) {
+                  for (const block of output.lessonBlocks) {
+                    const b = block as Record<string, unknown>;
+                    if (!b.block_id) {
+                      b.block_id = `block-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                    }
+                    
+                    if (emittedBlockIds.has(b.block_id as string)) continue;
+                    emittedBlockIds.add(b.block_id as string);
+                    
+                    if (!b.type) b.type = b.block_type;
+                    
+                    // Emit as AI SDK annotation
+                    dataStream.writeMessageAnnotation({
+                      genUIPayload: { 
+                        component: 'LessonBlock', 
+                        props: { block: b, lessonId: threadId } 
+                      }
+                    });
+                    
+                    blocksToEmit.push(b);
                   }
-
-                  // Skip if already emitted (dedup by block_id)
-                  if (emittedBlockIds.has(b.block_id as string)) continue;
-                  emittedBlockIds.add(b.block_id as string);
-
-                  // Normalise block_type → type for StreamingLessonRenderer
-                  if (!b.type) b.type = b.block_type;
-                  console.log('[CHAT ROUTE] Emitting lesson_block:', b.block_id, 'type:', b.type);
-                  
-                  // Emit BOTH annotation types:
-                  // 1. lesson_block for FloatingBeeBubble window bridge (existing behavior)
-                  controller.enqueue(encoder.encode(
-                    `2:${JSON.stringify([{ type: 'lesson_block', data: { block: b, lessonId: threadId } }])}\n`,
-                  ));
-                  
-                  // 2. genUIPayload for potential inline rendering in chat (new behavior)
-                  controller.enqueue(encoder.encode(
-                    `2:${JSON.stringify([{ genUIPayload: { component: 'LessonBlock', props: { block: b, lessonId: threadId } } }])}\n`,
-                  ));
-                  
-                  blocksToEmit.push(b);
                 }
               }
-              console.log('[CHAT ROUTE] Orchestrator finished. Total blocks emitted:', blocksToEmit.length);
-
-              // Cache assembled lesson for 24 hours
+              
+              // Cache for 24h
               if (blocksToEmit.length > 0) {
                 redis.set(cacheKey, { lessonBlocks: blocksToEmit, lessonMetadata: finalMetadata }, { ex: 86400 })
                   .catch(() => {});
               }
             }
-
-            // Emit cached blocks (fast path)
-            if (cached?.lessonBlocks?.length) {
-              console.log('[CHAT ROUTE] Emitting cached metadata + blocks:', blocksToEmit.length);
-              if (finalMetadata) {
-                controller.enqueue(encoder.encode(
-                  `2:${JSON.stringify([{ type: 'lesson_metadata', data: { ...finalMetadata, lessonId: threadId } }])}\n`,
-                ));
-              }
-              for (const block of blocksToEmit) {
-                const b = block as Record<string, unknown>;
-                console.log('[CHAT ROUTE] Emitting cached lesson_block:', b.block_id, 'type:', b.type);
-                // Emit both annotation types for cached blocks too
-                controller.enqueue(encoder.encode(
-                  `2:${JSON.stringify([{ type: 'lesson_block', data: { block, lessonId: threadId } }])}\n`,
-                ));
-                controller.enqueue(encoder.encode(
-                  `2:${JSON.stringify([{ genUIPayload: { component: 'LessonBlock', props: { block, lessonId: threadId } } }])}\n`,
-                ));
-              }
-            }
-
-            // Fire-and-forget: LifeCreditLogger using lesson subject credits
-            if (finalMetadata && Array.isArray((finalMetadata as any).credits) && (finalMetadata as any).credits.length) {
-              lifeCreditLogger({
-                userId,
-                gradeLevel: studentCtx.gradeLevel ?? '8',
-                prompt: `Completed lesson: ${(finalMetadata as any).title || maskedContent.masked}`,
-                conversationHistory: [],
-              } as AdelineGraphState).catch(() => {});
-            }
-
-            // Non-blocking: archive lesson content to Lesson table (parent library + annotation recovery)
+            
+            // Save to database (non-blocking)
             if (blocksToEmit.length > 0) {
               const subject = subjectFromQuery(maskedContent.masked);
               prisma.lesson.upsert({
@@ -298,7 +258,7 @@ export async function POST(req: NextRequest) {
                   lessonId: threadId,
                   title: (finalMetadata?.title as string | undefined) || maskedContent.masked.slice(0, 100),
                   subject,
-                  gradeLevel: studentCtx.gradeLevel ?? '8',
+                  gradeLevel: studentCtx?.gradeLevel ?? '8',
                   lessonJson: (finalMetadata ?? {}) as any,
                   contentBlocks: blocksToEmit as any,
                   standardsCodes: Array.isArray(finalMetadata?.credits)
@@ -312,39 +272,33 @@ export async function POST(req: NextRequest) {
                   updatedAt: new Date(),
                 },
               }).catch(() => {});
+              
+              // Save session
+              prisma.lessonSession.upsert({
+                where: { userId_lessonId_isActive: { userId, lessonId: threadId, isActive: false } },
+                create: {
+                  userId,
+                  lessonId: threadId,
+                  visibleBlocks: (blocksToEmit as any[]).map((b: any) => b.block_id).filter(Boolean),
+                  completedBlocks: [],
+                  studentResponses: {},
+                  checkpointId: threadId,
+                  isActive: false,
+                },
+                update: {
+                  visibleBlocks: (blocksToEmit as any[]).map((b: any) => b.block_id).filter(Boolean),
+                  updatedAt: new Date(),
+                },
+              }).catch(() => {});
             }
-
-            // Non-blocking: track session for branching state
-            prisma.lessonSession.upsert({
-              where: { userId_lessonId_isActive: { userId, lessonId: threadId, isActive: false } },
-              create: {
-                userId,
-                lessonId: threadId,
-                visibleBlocks: (blocksToEmit as any[]).map((b: any) => b.block_id).filter(Boolean),
-                completedBlocks: [],
-                studentResponses: {},
-                checkpointId: threadId,
-                isActive: false,
-              },
-              update: {
-                visibleBlocks: (blocksToEmit as any[]).map((b: any) => b.block_id).filter(Boolean),
-                updatedAt: new Date(),
-              },
-            }).catch(() => {});
-
+            
           } catch (err) {
             console.error('[Chat/LESSON] orchestrator error:', err);
-            controller.enqueue(encoder.encode(
-              `0:${JSON.stringify('\n\nI hit a snag building that lesson. Try again!')}\n`,
-            ));
-          } finally {
-            controller.close();
+            dataStream.writeMessageAnnotation({ 
+              status: 'I hit a snag building that lesson. Try again!' 
+            });
           }
-        },
-      });
-
-      return new Response(lessonStreamResponse, {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Vercel-AI-Data-Stream': 'v1' },
+        }
       });
     }
 
