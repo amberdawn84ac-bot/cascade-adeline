@@ -32,6 +32,7 @@ import PrimarySourceBlock from '@/components/lessons/blocks/PrimarySourceBlock';
 import { InfographicPosterCard } from './visual-artifacts/InfographicPosterCard';
 import { AnimalInfographicCard } from './visual-artifacts/AnimalInfographicCard';
 import { IllustratedRecipeCard } from './visual-artifacts/IllustratedRecipeCard';
+import { VisualDeepDiveCard } from './visual-artifacts/VisualDeepDiveCard';
 
 type GenUIPayload = {
   component: string;
@@ -71,6 +72,7 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   InfographicPosterCard,
   AnimalInfographicCard,
   IllustratedRecipeCard,
+  VisualDeepDiveCard,
 };
 
 const INTENT_BORDER_COLORS: Record<string, string> = {
@@ -85,6 +87,7 @@ const INTENT_BORDER_COLORS: Record<string, string> = {
   InfographicPosterCard: '#2F4731',    // Palm Frond — visual learning
   AnimalInfographicCard: '#2F4731',    // Palm Frond — nature/science
   IllustratedRecipeCard: '#9A3F4A',    // Paradise — life skills
+  VisualDeepDiveCard: '#2F4731',       // Palm Frond — hybrid lesson
 };
 
 function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) {

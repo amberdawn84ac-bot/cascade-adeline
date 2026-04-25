@@ -11,7 +11,8 @@ export type RenderMode =
   | 'standard_lesson'
   | 'infographic_poster'
   | 'animal_infographic'
-  | 'illustrated_recipe';
+  | 'illustrated_recipe'
+  | 'visual_deep_dive';
 
 export interface InfographicSection {
   header: string;
@@ -60,10 +61,26 @@ export interface IllustratedRecipeData {
   style?: string;
 }
 
+export interface VisualDeepDiveSection {
+  header: string;
+  visual_summary: string[];
+  deep_explanation: string;
+  why_it_matters: string;
+  visual?: string;
+  activity?: string;
+}
+
+export interface VisualDeepDiveData {
+  title: string;
+  subtitle?: string;
+  sections: VisualDeepDiveSection[];
+}
+
 export type VisualArtifactData =
   | { mode: 'infographic_poster'; data: InfographicPosterData }
   | { mode: 'animal_infographic'; data: AnimalInfographicData }
-  | { mode: 'illustrated_recipe'; data: IllustratedRecipeData };
+  | { mode: 'illustrated_recipe'; data: IllustratedRecipeData }
+  | { mode: 'visual_deep_dive'; data: VisualDeepDiveData };
 
 // ─────────────────────────────────────────────────────────────────────────────
 

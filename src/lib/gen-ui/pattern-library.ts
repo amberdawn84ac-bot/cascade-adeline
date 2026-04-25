@@ -419,6 +419,39 @@ export const UI_PATTERNS: UIPattern[] = [
       style: 'hand-drawn farmhouse',
     },
   },
+  {
+    id: 'visual-deep-dive',
+    name: 'Visual Deep Dive',
+    component: 'VisualDeepDiveCard',
+    description: 'Hybrid infographic-lesson — looks like a poster, teaches like a full lesson. Each section has a visual summary, deep explanation, real-world connection, and optional activity.',
+    tags: ['lesson', 'deep', 'explain', 'teach', 'visual', 'learn', 'study', 'explore'],
+    propsSchema: z.object({
+      title: z.string(),
+      subtitle: z.string().optional(),
+      sections: z.array(z.object({
+        header: z.string(),
+        visual_summary: z.array(z.string()),
+        deep_explanation: z.string(),
+        why_it_matters: z.string(),
+        visual: z.string().optional(),
+        activity: z.string().optional(),
+      })).min(3).max(7),
+    }),
+    example: {
+      title: 'How Photosynthesis Works',
+      subtitle: 'Plants turning light into food — and why it feeds the whole earth',
+      sections: [
+        {
+          header: 'Capturing Light',
+          visual_summary: ['Leaves absorb sunlight', 'Chlorophyll = the green molecule that does it'],
+          deep_explanation: 'Chlorophyll molecules inside leaf cells absorb red and blue light from the sun, reflecting green light back to our eyes. This absorbed energy powers the first stage of photosynthesis, splitting water molecules into hydrogen and oxygen.',
+          why_it_matters: 'Every breath you take depends on this — the oxygen in the air is the "waste product" plants release while capturing light.',
+          visual: 'cross-section of leaf cell showing chloroplasts absorbing light rays',
+          activity: 'Hold a leaf up to bright sunlight. What colour does it transmit? Sketch what you see.',
+        },
+      ],
+    },
+  },
 ];
 
 export function findPatternByTags(tags: string[]): UIPattern | null {

@@ -13,6 +13,7 @@ const requestSchema = z.object({
     'infographic_poster',
     'animal_infographic',
     'illustrated_recipe',
+    'visual_deep_dive',
   ] as const),
   gradeLevel: z.string().optional(),
   subject: z.string().optional(),
