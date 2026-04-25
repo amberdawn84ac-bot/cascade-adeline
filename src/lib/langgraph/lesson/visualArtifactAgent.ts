@@ -100,7 +100,7 @@ Render Mode: INFOGRAPHIC POSTER
 Render Mode: ANIMAL INFOGRAPHIC
 - Feature a single animal with a bold hero fact (≤12 words)
 - Stats: 4–6 quick facts (speed, diet, lifespan, habitat, size, etc.)
-- Sections: Habitat, Diet, Adaptations, Biblical Connection (2–4 bullets each)
+- Sections: Habitat, Diet, Adaptations (2–4 bullets each) — add a biblical connection section only if it arises naturally from the topic
 - 2–4 surprising fun facts at the bottom
 - Illustration style: clean, labeled, educational`,
 
@@ -127,7 +127,7 @@ Architecture per section:
 Rules:
 - Section headers: max 4 words, noun phrase (e.g. "Root Systems", "Follow the Water")
 - Do NOT repeat the same information across visual_summary and deep_explanation — they are separate layers of depth
-- Include biblical connection in at least one section's why_it_matters
+- A biblical connection in why_it_matters is welcome when it arises naturally — never force it
 - Must feel like a poster at first glance, but contain real teaching inside`,
   };
 
