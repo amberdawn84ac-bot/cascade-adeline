@@ -54,6 +54,7 @@ import GameBlock from './blocks/GameBlock';
 import WorksheetBlock from './blocks/WorksheetBlock';
 import ChoiceBlock from './blocks/ChoiceBlock';
 import PromptBlock from './blocks/PromptBlock';
+import VisualArtifactBlock from './blocks/VisualArtifactBlock';
 
 interface StreamingLessonRendererProps {
   userId: string;
@@ -81,6 +82,7 @@ const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   interactive_concept: TextBlock,
   vocab_tooltip: TextBlock,
   source_gap: TextBlock,
+  visual_artifact: VisualArtifactBlock,
 };
 
 export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLessonRendererProps) {

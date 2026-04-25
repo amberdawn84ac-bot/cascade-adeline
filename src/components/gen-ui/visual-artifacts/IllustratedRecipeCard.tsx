@@ -4,7 +4,7 @@ import { IllustratedRecipeData, RecipeIngredient, RecipeStep } from '@/types/les
 
 type Props = IllustratedRecipeData;
 
-export function IllustratedRecipeCard({ title, steps = [], ingredients = }: Props) {
+export function IllustratedRecipeCard({ title, steps = [], ingredients = [] }: Props) {
   return (
     <div
       style={{
