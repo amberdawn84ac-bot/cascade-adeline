@@ -1,9 +1,71 @@
 /**
  * Lesson System Types
- * 
+ *
  * Defines the structure for structured lessons with standards mapping,
  * student progress tracking, and primary source integration.
  */
+
+// ─── Visual Artifact Modes ────────────────────────────────────────────────────
+
+export type RenderMode =
+  | 'standard_lesson'
+  | 'infographic_poster'
+  | 'animal_infographic'
+  | 'illustrated_recipe';
+
+export interface InfographicSection {
+  header: string;
+  content: string[];
+  icon?: string;
+  visual?: string;
+}
+
+export interface InfographicPosterData {
+  title: string;
+  subtitle?: string;
+  sections: InfographicSection[];
+  colorPalette?: string[];
+  layout: 'vertical' | 'grid';
+  callToAction?: string;
+}
+
+export interface AnimalInfographicData {
+  animal: string;
+  heroFact: string;
+  stats: Record<string, string>;
+  sections: InfographicSection[];
+  funFacts?: string[];
+  illustrationStyle?: string;
+}
+
+export interface RecipeIngredient {
+  name: string;
+  amount: string;
+  icon?: string;
+}
+
+export interface RecipeStep {
+  step: number;
+  title: string;
+  instruction: string;
+  visual?: string;
+  tip?: string;
+}
+
+export interface IllustratedRecipeData {
+  title: string;
+  steps: RecipeStep[];
+  ingredients: RecipeIngredient[];
+  layout?: string;
+  style?: string;
+}
+
+export type VisualArtifactData =
+  | { mode: 'infographic_poster'; data: InfographicPosterData }
+  | { mode: 'animal_infographic'; data: AnimalInfographicData }
+  | { mode: 'illustrated_recipe'; data: IllustratedRecipeData };
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface LessonData {
   lessonId: string;
@@ -141,6 +203,7 @@ export interface LessonAssemblerState {
   topic: string;
   gradeLevel: string;
   lessonIntent: 'STRUCTURED_LESSON' | 'SCIENCE_EXPERIMENT';
+  renderMode?: RenderMode;
   environment?: StudentEnvironment;
   standardsGaps?: string[];
   zpdLevel?: string;

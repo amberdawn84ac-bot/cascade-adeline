@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const { studentQuery, lessonId } = await req.json();
+    const { studentQuery, lessonId, renderMode } = await req.json();
 
     // Get student profile — used as seed values (orchestrator node re-fetches full context)
     const studentProfile = await prisma.user.findUnique({
@@ -48,6 +48,7 @@ export async function POST(req: Request) {
             {
               studentQuery,
               userId: user.userId,
+              renderMode: renderMode || 'standard_lesson',
               studentProfile: {
                 gradeLevel: studentProfile?.gradeLevel || '8',
                 interests: (studentProfile?.interests as string[]) || [],

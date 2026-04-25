@@ -3,6 +3,8 @@ import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';
+import { RenderMode } from '@/types/lesson';
+import { visualArtifactAgent } from './visualArtifactAgent';
 
 const config = loadConfig();
 const model = new ChatOpenAI({
@@ -68,6 +70,10 @@ export const LessonState = Annotation.Root({
   } | undefined>({
     reducer: (_left: any, right: any) => right,
     default: () => undefined,
+  }),
+  renderMode: Annotation<RenderMode>({
+    reducer: (_left: RenderMode, right: RenderMode) => right,
+    default: () => 'standard_lesson',
   }),
 });
 
@@ -421,6 +427,7 @@ export const lessonOrchestrator = new StateGraph(LessonState)
   .addNode("sourceRetriever", sourceRetrieverAgent)
   .addNode("scriptureConnector", scriptureConnectorAgent)
   .addNode("lessonAssembler", lessonAssemblerAgent)
+  .addNode("visualArtifact", visualArtifactAgent)
   .addNode("pathRouter", pathRouterAgent)
   .addNode("assessment", assessmentAgent)
   .addEdge(START, "router")
@@ -428,16 +435,17 @@ export const lessonOrchestrator = new StateGraph(LessonState)
   .addEdge("router", "scriptureConnector")
   .addEdge("sourceRetriever", "lessonAssembler")
   .addEdge("scriptureConnector", "lessonAssembler")
-  .addEdge("lessonAssembler", "pathRouter")
+  // After assembly: generate visual artifact if requested, then route to assessment
+  .addConditionalEdges(
+    "lessonAssembler",
+    (state: LessonStateType) => state.renderMode !== 'standard_lesson' ? "visualArtifact" : "pathRouter",
+    { visualArtifact: "visualArtifact", pathRouter: "pathRouter" }
+  )
+  .addEdge("visualArtifact", "pathRouter")
   .addConditionalEdges(
     "pathRouter",
-    (state: LessonStateType) => {
-      return state.assessmentNeeded ? "assessment" : "end";
-    },
-    {
-      assessment: "assessment",
-      end: END
-    }
+    (state: LessonStateType) => state.assessmentNeeded ? "assessment" : "end",
+    { assessment: "assessment", end: END }
   )
   .addEdge("assessment", END)
   .compile({ checkpointer: _checkpointer });

@@ -28,6 +28,10 @@ import { TrackBloom } from './patterns/TrackBloom';
 import { LessonBlock } from './LessonBlock';
 import InvestigationBlock from '@/components/lessons/blocks/InvestigationBlock';
 import PrimarySourceBlock from '@/components/lessons/blocks/PrimarySourceBlock';
+// Visual artifact components
+import { InfographicPosterCard } from './visual-artifacts/InfographicPosterCard';
+import { AnimalInfographicCard } from './visual-artifacts/AnimalInfographicCard';
+import { IllustratedRecipeCard } from './visual-artifacts/IllustratedRecipeCard';
 
 type GenUIPayload = {
   component: string;
@@ -63,6 +67,10 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   LessonBlock,
   InvestigationBlock,
   PrimarySourceBlock,
+  // Visual artifact components
+  InfographicPosterCard,
+  AnimalInfographicCard,
+  IllustratedRecipeCard,
 };
 
 const INTENT_BORDER_COLORS: Record<string, string> = {
@@ -71,9 +79,12 @@ const INTENT_BORDER_COLORS: Record<string, string> = {
   ProjectImpactCard: '#2F4731',
   MissionBriefing: '#9A3F4A',
   Timeline: '#6366F1',
-  LessonBlock: '#2F4731',         // Palm Frond — lesson content
-  InvestigationBlock: '#3D1419',  // Fuschia — Follow the Money
-  PrimarySourceBlock: '#9A3F4A',  // Paradise — primary sources
+  LessonBlock: '#2F4731',              // Palm Frond — lesson content
+  InvestigationBlock: '#3D1419',       // Fuschia — Follow the Money
+  PrimarySourceBlock: '#9A3F4A',       // Paradise — primary sources
+  InfographicPosterCard: '#2F4731',    // Palm Frond — visual learning
+  AnimalInfographicCard: '#2F4731',    // Palm Frond — nature/science
+  IllustratedRecipeCard: '#9A3F4A',    // Paradise — life skills
 };
 
 function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) {
