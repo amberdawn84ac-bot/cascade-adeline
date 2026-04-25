@@ -316,6 +316,142 @@ export const UI_PATTERNS: UIPattern[] = [
       unit: 'standards',
     },
   },
+  // Visual artifact patterns
+  {
+    id: 'infographic-poster',
+    name: 'Infographic Poster',
+    component: 'InfographicPosterCard',
+    description: 'Visual poster with structured sections, bold headers, and minimal text — designed for one-glance learning',
+    tags: ['visual', 'infographic', 'poster', 'design', 'overview', 'summary'],
+    propsSchema: z.object({
+      title: z.string(),
+      subtitle: z.string().optional(),
+      sections: z.array(z.object({
+        header: z.string(),
+        content: z.array(z.string()),
+        icon: z.string().optional(),
+        visual: z.string().optional(),
+      })).min(2).max(8),
+      colorPalette: z.array(z.string()).optional(),
+      layout: z.enum(['vertical', 'grid']),
+      callToAction: z.string().optional(),
+    }),
+    example: {
+      title: 'The Water Cycle',
+      subtitle: 'How water moves through our world',
+      sections: [
+        { header: 'Evaporation', content: ['Sun heats surface water', 'Water becomes vapor'], icon: '☀️', visual: 'arrow rising from water' },
+        { header: 'Condensation', content: ['Vapor cools in atmosphere', 'Forms clouds and fog'], icon: '☁️' },
+        { header: 'Precipitation', content: ['Water falls as rain or snow', 'Returns to earth'], icon: '🌧️' },
+      ],
+      layout: 'vertical',
+      callToAction: 'Collect rainwater today and measure it!',
+    },
+  },
+  {
+    id: 'animal-infographic',
+    name: 'Animal Infographic',
+    component: 'AnimalInfographicCard',
+    description: 'Visual animal profile with stats, habitat, adaptations, and fun facts — styled for education',
+    tags: ['animal', 'nature', 'biology', 'wildlife', 'science', 'creature'],
+    propsSchema: z.object({
+      animal: z.string(),
+      heroFact: z.string(),
+      stats: z.record(z.string()),
+      sections: z.array(z.object({
+        header: z.string(),
+        content: z.array(z.string()),
+        icon: z.string().optional(),
+        visual: z.string().optional(),
+      })).min(2).max(6),
+      funFacts: z.array(z.string()).optional(),
+      illustrationStyle: z.string().optional(),
+    }),
+    example: {
+      animal: 'Red Fox',
+      heroFact: 'Fast, adaptable predator found on every continent except Antarctica',
+      stats: { Speed: '30 mph', Diet: 'omnivore', Lifespan: '3–5 years', Weight: '8–15 lbs' },
+      sections: [
+        { header: 'Habitat', content: ['Forests and woodlands', 'Grasslands and farmland', 'Suburban areas'], visual: 'map silhouette' },
+        { header: 'Adaptations', content: ['Sharp hearing detects prey underground', 'Night vision for hunting at dusk'], visual: 'labeled body diagram' },
+      ],
+      funFacts: ['Uses Earth\'s magnetic field to hunt', 'Can make 40 different sounds'],
+    },
+  },
+  {
+    id: 'illustrated-recipe',
+    name: 'Illustrated Recipe',
+    component: 'IllustratedRecipeCard',
+    description: 'Step-by-step recipe card with ingredients, illustrated steps, and tips — farmhouse style',
+    tags: ['recipe', 'cooking', 'life-skills', 'food', 'baking', 'how-to', 'steps'],
+    propsSchema: z.object({
+      title: z.string(),
+      steps: z.array(z.object({
+        step: z.number(),
+        title: z.string(),
+        instruction: z.string(),
+        visual: z.string().optional(),
+        tip: z.string().optional(),
+      })).min(3).max(12),
+      ingredients: z.array(z.object({
+        name: z.string(),
+        amount: z.string(),
+        icon: z.string().optional(),
+      })).min(1).max(20),
+      layout: z.string().optional(),
+      style: z.string().optional(),
+    }),
+    example: {
+      title: 'Sourdough Bread',
+      ingredients: [
+        { name: 'Bread flour', amount: '3 cups', icon: '🌾' },
+        { name: 'Sourdough starter', amount: '½ cup', icon: '🫙' },
+        { name: 'Salt', amount: '1½ tsp', icon: '🧂' },
+        { name: 'Water', amount: '1¼ cups', icon: '💧' },
+      ],
+      steps: [
+        { step: 1, title: 'Mix', instruction: 'Combine flour, water, and starter until shaggy', visual: 'bowl with mixing arrows', tip: 'Use filtered water for best results' },
+        { step: 2, title: 'Autolyse', instruction: 'Cover and rest 30 minutes', visual: 'covered bowl with timer' },
+        { step: 3, title: 'Add salt', instruction: 'Add salt and fold into dough' },
+        { step: 4, title: 'Bulk ferment', instruction: 'Fold every 30 minutes for 4 hours', tip: 'Dough should be jiggly and doubled' },
+        { step: 5, title: 'Shape & Bake', instruction: 'Shape loaf, refrigerate overnight, bake at 500°F in Dutch oven' },
+      ],
+      style: 'hand-drawn farmhouse',
+    },
+  },
+  {
+    id: 'visual-deep-dive',
+    name: 'Visual Deep Dive',
+    component: 'VisualDeepDiveCard',
+    description: 'Hybrid infographic-lesson — looks like a poster, teaches like a full lesson. Each section has a visual summary, deep explanation, real-world connection, and optional activity.',
+    tags: ['lesson', 'deep', 'explain', 'teach', 'visual', 'learn', 'study', 'explore'],
+    propsSchema: z.object({
+      title: z.string(),
+      subtitle: z.string().optional(),
+      sections: z.array(z.object({
+        header: z.string(),
+        visual_summary: z.array(z.string()),
+        deep_explanation: z.string(),
+        why_it_matters: z.string(),
+        visual: z.string().optional(),
+        activity: z.string().optional(),
+      })).min(3).max(7),
+    }),
+    example: {
+      title: 'How Photosynthesis Works',
+      subtitle: 'Plants turning light into food — and why it feeds the whole earth',
+      sections: [
+        {
+          header: 'Capturing Light',
+          visual_summary: ['Leaves absorb sunlight', 'Chlorophyll = the green molecule that does it'],
+          deep_explanation: 'Chlorophyll molecules inside leaf cells absorb red and blue light from the sun, reflecting green light back to our eyes. This absorbed energy powers the first stage of photosynthesis, splitting water molecules into hydrogen and oxygen.',
+          why_it_matters: 'Every breath you take depends on this — the oxygen in the air is the "waste product" plants release while capturing light.',
+          visual: 'cross-section of leaf cell showing chloroplasts absorbing light rays',
+          activity: 'Hold a leaf up to bright sunlight. What colour does it transmit? Sketch what you see.',
+        },
+      ],
+    },
+  },
 ];
 
 export function findPatternByTags(tags: string[]): UIPattern | null {
