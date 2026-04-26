@@ -144,25 +144,23 @@ async function sourceRetrieverAgent(state: LessonStateType): Promise<Partial<Les
   const { keywords, subject_track } = state.routingDecision!;
   
   try {
-    // Query primary sources from database
+    // Query primary sources from database.
+    // Flatten all per-keyword field checks into a single OR array so Prisma
+    // generates one WHERE … OR … clause instead of deeply nested sub-selects.
+    const keywordConditions = keywords.flatMap((keyword: string) => [
+      { title: { contains: keyword, mode: 'insensitive' as const } },
+      { content: { contains: keyword, mode: 'insensitive' as const } },
+      { creator: { contains: keyword, mode: 'insensitive' as const } },
+    ]);
+
     const sources = await prisma.primarySource.findMany({
       where: {
         isActive: true,
-        OR: keywords.map((keyword: string) => ({
-          OR: [
-            { title: { contains: keyword, mode: 'insensitive' } },
-            { content: { contains: keyword, mode: 'insensitive' } },
-            { creator: { contains: keyword, mode: 'insensitive' } }
-          ]
-        })),
-        subjectTrack: {
-          in: [subject_track, 'general']
-        }
+        subjectTrack: { in: [subject_track, 'general'] },
+        OR: keywordConditions,
       },
       take: 5,
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' },
     });
 
     // If no sources found, create placeholder sources with AI

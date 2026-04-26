@@ -83,6 +83,13 @@ const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   vocab_tooltip: TextBlock,
   source_gap: TextBlock,
   visual_artifact: VisualArtifactBlock,
+  // Block types emitted by architectAgent / nodes pipeline
+  primary_text: TextBlock,
+  concept_text: TextBlock,
+  critical_thinking: PromptBlock,
+  diagram_viewer: InfographicBlock,
+  interactive_slider: WorksheetBlock,
+  animation: VideoBlock,
 };
 
 export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLessonRendererProps) {

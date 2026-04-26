@@ -15,7 +15,7 @@ interface VideoBlockProps {
     duration?: string;
     viewing_prompts?: string[];
     analysis_prompts?: string[];
-    interactive?: { viewingPrompts?: string[]; analysisPrompts?: string[]; prompts?: string[] };
+    interactive?: { viewingPrompts?: string[]; analysisPrompts?: string[]; prompts?: string[]; url?: string };
   };
   onResponse?: (response: any) => void;
   studentResponse?: any;
@@ -53,8 +53,13 @@ function toEmbedUrl(url: string): string | null {
 export default function VideoBlock({ blockData, onResponse, studentResponse }: VideoBlockProps) {
   const [notes, setNotes] = useState(studentResponse?.notes || '');
 
-  // Normalize: agent puts URL in content, legacy puts it in video_url
-  const rawUrl: string = blockData.video_url || blockData.content || '';
+  // Normalize: new mediaAgent puts URL in interactive.url + label in content;
+  // legacy agent puts URL directly in content; oldest format uses video_url.
+  const rawUrl: string =
+    blockData.interactive?.url ??
+    blockData.video_url ??
+    (typeof blockData.content === 'string' && blockData.content.startsWith('http') ? blockData.content : '') ??
+    '';
   const title: string =
     blockData.title ||
     blockData.metadata?.title ||

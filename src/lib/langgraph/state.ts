@@ -1,8 +1,22 @@
 import { Annotation } from "@langchain/langgraph";
 import { BaseMessage } from "@langchain/core/messages";
 
-// Define the intent enum
-export type Intent = 'CHAT' | 'INVESTIGATE' | 'LOG_CREDIT' | 'REFLECT' | 'GEN_UI' | 'OPPORTUNITY' | 'BRAINSTORM' | 'IMAGE_LOG' | 'VISION';
+// Define the intent enum — must stay in sync with nodes/router.ts routerSchema and langgraph/types.ts AdelineIntent
+export type Intent =
+  | 'CHAT'
+  | 'INVESTIGATE'
+  | 'LOG_CREDIT'
+  | 'REFLECT'
+  | 'GEN_UI'
+  | 'OPPORTUNITY'
+  | 'BRAINSTORM'
+  | 'IMAGE_LOG'
+  | 'VISION'
+  | 'LIFE_LOG'
+  | 'AUDIO_LOG'
+  | 'ASSESS'
+  | 'ANALOGY'
+  | 'LESSON';
 
 // Define the main state interface
 export const AdelineState = Annotation.Root({

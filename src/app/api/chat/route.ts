@@ -1,5 +1,12 @@
 import { NextRequest, after } from 'next/server';
-import { streamText, experimental_transcribe as transcribeAudio } from 'ai';
+import { streamText } from 'ai';
+// experimental_transcribe was introduced in AI SDK v4 and may be renamed in
+// future majors. Import defensively so the rest of the route still loads even
+// if the symbol is absent in the installed version.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { experimental_transcribe: transcribeAudio } = require('ai') as {
+  experimental_transcribe?: (...args: unknown[]) => Promise<{ text: string }>;
+};
 import { getSessionUser } from '@/lib/auth';
 import { maskPII } from '@/lib/safety/pii-masker';
 import { moderateContent } from '@/lib/safety/content-moderator';
@@ -301,7 +308,7 @@ export async function POST(req: NextRequest) {
               
               // Non-blocking: track session for branching state
               prisma.lessonSession.upsert({
-                where: { userId_lessonId_isActive: { userId, lessonId: threadId, isActive: false } },
+                where: { userId_lessonId_isActive: { userId, lessonId: threadId, isActive: true } },
                 create: {
                   userId,
                   lessonId: threadId,
@@ -309,7 +316,7 @@ export async function POST(req: NextRequest) {
                   completedBlocks: [],
                   studentResponses: {},
                   checkpointId: threadId,
-                  isActive: false,
+                  isActive: true,
                 },
                 update: {
                   visibleBlocks: (blocksToEmit as any[]).map((b: any) => b.block_id).filter(Boolean),
@@ -358,17 +365,21 @@ export async function POST(req: NextRequest) {
 
     // 5.5 Media processing: transcribe audio / attach image for vision before streaming
     if (intent === 'AUDIO_LOG' && audioBase64) {
-      try {
-        const transcriptResult = await transcribeAudio({
-          model: getTranscriptionModel(),
-          audio: Buffer.from(audioBase64, 'base64'),
-        });
-        const lastMsg = streamMessages[streamMessages.length - 1];
-        lastMsg.content = `[Voice recording transcription]: ${transcriptResult.text}${
-          lastMsg.content ? `\n\nStudent note: ${lastMsg.content}` : ''
-        }`;
-      } catch (err) {
-        console.warn('[Chat] Audio transcription failed, proceeding with text only:', err);
+      if (!transcribeAudio) {
+        console.warn('[Chat] experimental_transcribe not available in this AI SDK version — skipping audio transcription');
+      } else {
+        try {
+          const transcriptResult = await transcribeAudio({
+            model: getTranscriptionModel(),
+            audio: Buffer.from(audioBase64, 'base64'),
+          });
+          const lastMsg = streamMessages[streamMessages.length - 1];
+          lastMsg.content = `[Voice recording transcription]: ${transcriptResult.text}${
+            lastMsg.content ? `\n\nStudent note: ${lastMsg.content}` : ''
+          }`;
+        } catch (err) {
+          console.warn('[Chat] Audio transcription failed, proceeding with text only:', err);
+        }
       }
     }
 
