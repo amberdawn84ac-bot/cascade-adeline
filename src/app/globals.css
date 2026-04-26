@@ -165,6 +165,12 @@
   }
 }
 
+@layer utilities {
+  .font-emilys-candy {
+    font-family: var(--font-emilys-candy), cursive;
+  }
+}
+
 /* Life of Fred Typography - Custom Prose Theme */
 @layer components {
   .prose {

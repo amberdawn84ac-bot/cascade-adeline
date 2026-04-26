@@ -98,7 +98,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
             height={32} 
             className="rounded-lg -rotate-3 shadow-sm"
           />
-          <span className="font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+          <span className="font-bold text-[#2F4731] font-emilys-candy">
             Dear Adeline
           </span>
         </Link>
@@ -125,7 +125,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               className="rounded-xl -rotate-3 shadow-md border-2 border-white"
             />
             <div className="flex flex-col">
-              <span className="font-bold text-xl text-[#2F4731] leading-none" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+              <span className="font-bold text-xl text-[#2F4731] leading-none font-emilys-candy">
                 Dear Adeline
               </span>
               <span className="text-[10px] font-black uppercase tracking-widest text-[#BD6809] mt-1">

@@ -73,7 +73,7 @@ export function JournalTimeline({ groupedActivities }: JournalTimelineProps) {
           <div key={dateLabel} className="relative">
             {/* Date Header */}
             <div className="sticky top-0 z-10 bg-[#FFFEF7]/95 backdrop-blur-sm py-3 mb-4 border-b-2 border-[#E7DAC3]">
-              <h2 className="text-2xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+              <h2 className="text-2xl font-bold text-[#2F4731] font-emilys-candy">
                 {dateLabel}
               </h2>
             </div>

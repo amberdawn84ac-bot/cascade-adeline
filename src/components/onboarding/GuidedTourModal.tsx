@@ -129,8 +129,7 @@ export function GuidedTourModal() {
           {/* Content */}
           <div className="text-center mb-8">
             <h2 
-              className="text-3xl font-bold text-[#2F4731] mb-4" 
-              style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}
+              className="text-3xl font-bold text-[#2F4731] mb-4 font-emilys-candy"
             >
               {step.title}
             </h2>

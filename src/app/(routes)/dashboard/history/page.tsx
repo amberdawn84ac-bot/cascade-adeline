@@ -226,7 +226,7 @@ export default function HistoryPage() {
     <div className="flex flex-col h-full bg-[#FAF8F2]">
       {/* Header */}
       <div className="p-6 border-b border-[#E7DAC3] bg-[#FFFEF7]">
-        <h1 className="text-3xl font-bold text-[#2F4731] flex items-center gap-3" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+        <h1 className="text-3xl font-bold text-[#2F4731] flex items-center gap-3 font-emilys-candy">
           <ScrollText className="w-8 h-8" /> Truth-Based History
         </h1>
         <p className="text-[#2F4731]/70 text-sm mt-1 italic">
@@ -259,6 +259,7 @@ export default function HistoryPage() {
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value as Category)}
                   className="w-full px-4 py-2 rounded-lg border border-[#E7DAC3] focus:border-[#BD6809] focus:outline-none text-sm appearance-none bg-white cursor-pointer"
+                  aria-label="Filter by category"
                 >
                   {categories.map(cat => (
                     <option key={cat} value={cat}>
@@ -354,10 +355,10 @@ export default function HistoryPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               {completedEvents.has(event.id) && (
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" title="Credits earned!" />
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                               )}
                               {isSaving.has(event.id) && (
-                                <Clock className="w-5 h-5 text-[#BD6809] animate-spin flex-shrink-0" title="Saving..." />
+                                <Clock className="w-5 h-5 text-[#BD6809] animate-spin flex-shrink-0" />
                               )}
                               {isExpanded ? (
                                 <ChevronUp className="w-5 h-5 text-[#2F4731]/40 flex-shrink-0" />
