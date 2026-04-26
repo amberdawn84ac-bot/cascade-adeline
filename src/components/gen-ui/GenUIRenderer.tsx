@@ -156,8 +156,6 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     }
   }, [payload?.component]);
 
-  console.log('[GenUIRenderer] 🚀 GenUIRenderer called with payload:', payload);
-  
   if (!payload) {
     console.log('[GenUIRenderer] No payload provided, returning null');
     return null;
