@@ -31,6 +31,7 @@ const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: 
 
 const NAV_ITEMS = [
   { label: 'My Learning Plan', href: '/dashboard/journey', icon: BookOpen },
+  { label: 'History', href: '/dashboard/history', icon: ScrollText },
   { label: 'Opportunities', href: '/dashboard/community-board', icon: Briefcase },
   { label: 'Future Prep', href: '/dashboard/college-prep', icon: MapPin },
 ];

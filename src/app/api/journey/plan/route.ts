@@ -169,7 +169,7 @@ LEARNING MILESTONES FOR THIS SCHOOL YEAR (${TOTAL_CREDITS_NEEDED} total, each = 
 - Science & Nature: 1 milestone
 - Social Studies / World Around Us: 1 milestone
 - Bible / Scripture Study: 1 milestone
-- Homesteading / Domestic Arts: 1 milestone (cooking, gardening, basic life skills)
+- Homesteading: 1 milestone (cooking, gardening, basic life skills)
 
 These are the CORE subjects for this grade level this year. Keep it simple and age-appropriate.
 ` : schoolLevel === 'middle' ? `
@@ -190,7 +190,7 @@ LEARNING MILESTONES FOR THIS SCHOOL YEAR (${TOTAL_CREDITS_NEEDED} total, each = 
 - Science: 1 milestone
 - History/Social Studies: 1 milestone
 - Bible / Scripture Study: 1 milestone
-- Homesteading / Domestic Arts: 1 milestone (cooking, sewing, gardening, household management)
+- Homesteading: 1 milestone (cooking, sewing, gardening, household management)
 - Elective (tied to interests): 1 milestone
 
 These are the CORE subjects for this grade level this year.
@@ -203,7 +203,7 @@ GRADUATION REQUIREMENTS (${TOTAL_CREDITS_NEEDED} individual 1-credit courses):
 - Science: 3 courses
 - History/Social Studies: 3 courses
 - Bible / Scripture Study: 4 courses (one per year)
-- Homesteading / Domestic Arts: 2 courses (cooking, sewing, budgeting, household management)
+- Homesteading: 2 courses (cooking, sewing, budgeting, household management)
 - Electives: 3 courses (map directly to student interests)
 - Trade/Business/CLEP/Dual Enrollment: 1 course
 - Character/Service: 1 course

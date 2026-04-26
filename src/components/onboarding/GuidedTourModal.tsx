@@ -20,8 +20,8 @@ const TOUR_STEPS: TourStep[] = [
     highlight: 'Let\'s get started!'
   },
   {
-    title: 'The 8 Integrated Tracks',
-    description: 'Instead of boring subjects, you learn through 8 real-world tracks:\n\n1. God\'s Creation Science\n2. Truth-Based History\n3. Mathematical Thinking\n4. Literary Arts\n5. Domestic Arts\n6. Health & Naturopathy\n7. Trades & Entrepreneurship\n8. Civic Engagement & Justice\n\nMost projects touch multiple tracks at once — just like real life!',
+    title: 'The 10 Integrated Tracks',
+    description: 'Instead of boring subjects, you learn through 10 real-world tracks:\n\n1. God\'s Creation Science\n2. Truth-Based History\n3. Mathematical Thinking\n4. Literary Arts\n5. Homesteading\n6. Health & Naturopathy\n7. Trades & Entrepreneurship\n8. Civic Engagement & Justice\n9. Applied Math\n10. Creative Economics\n\nMost projects touch multiple tracks at once — just like real life!',
     illustration: '🌿',
     highlight: 'Cross-curricular learning'
   },

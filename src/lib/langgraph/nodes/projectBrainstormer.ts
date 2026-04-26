@@ -25,22 +25,24 @@ export async function projectBrainstormer(state: AdelineStateType): Promise<Part
     const modeInstructions = learningMode === 'expedition'
       ? `
 LEARNING MODE: EXPEDITION
-MANDATORY: Every project idea MUST be cross-curricular — combining 2 or more of the 8 INTEGRATED TRACKS in a single project.
+MANDATORY: Every project idea MUST be cross-curricular — combining 2 or more of the 10 INTEGRATED TRACKS in a single project.
 
-THE 8 TRACKS:
+THE 10 TRACKS:
 1. God's Creation Science — Biology, Chemistry, Physics, Earth Science
 2. Truth-Based History — Primary source investigation, narrative gap analysis
 3. Mathematical Thinking — Real-world problem solving, data analysis, business math
 4. Literary Arts — Reading, writing, rhetoric, public speaking
-5. Domestic Arts — Cooking, sewing, homesteading, household management
+5. Homesteading — Cooking, sewing, gardening, household management, food preservation
 6. Health & Naturopathy — Nutrition, herbalism, fitness, natural remedies
 7. Trades & Entrepreneurship — Business, skilled trades, apprenticeships
 8. Civic Engagement & Justice — Government, economics, social justice, community service
+9. Applied Math — Practical mathematics for real-world applications, measurement, construction math, financial calculations
+10. Creative Economics — Understanding money systems, personal finance, market dynamics, economic thinking
 
 CROSS-TRACK PROJECT EXAMPLES:
-- Building a raised garden bed: Track 1 (Science - soil testing), Track 3 (Math - calculate lumber/volume), Track 2 (History - research crop origins), Track 4 (ELA - write planting plan), Track 5 (Domestic Arts - garden design)
-- Starting a baking business: Track 5 (Domestic Arts - baking), Track 3 (Math - pricing/profit), Track 7 (Entrepreneurship - business plan), Track 4 (ELA - marketing copy), Track 6 (Health - nutrition analysis)
-- Community justice project: Track 8 (Civic Engagement - identify issue), Track 2 (History - research precedents), Track 4 (ELA - write proposal), Track 3 (Math - budget analysis)
+- Building a raised garden bed: Track 1 (Science - soil testing), Track 3 (Math - calculate lumber/volume), Track 2 (History - research crop origins), Track 4 (ELA - write planting plan), Track 5 (Homesteading - garden design), Track 9 (Applied Math - measuring and layout)
+- Starting a baking business: Track 5 (Homesteading - baking), Track 3 (Math - pricing/profit), Track 7 (Entrepreneurship - business plan), Track 4 (ELA - marketing copy), Track 6 (Health - nutrition analysis), Track 10 (Creative Economics - market analysis)
+- Community justice project: Track 8 (Civic Engagement - identify issue), Track 2 (History - research precedents), Track 4 (ELA - write proposal), Track 3 (Math - budget analysis), Track 10 (Creative Economics - economic impact)
 
 Each project MUST explicitly state: "This project integrates Track X (how), Track Y (how), and Track Z (how)." Single-track projects are NOT acceptable in Expedition mode.`
       : `

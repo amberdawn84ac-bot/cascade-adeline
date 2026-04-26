@@ -22,16 +22,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { title, type, materials, instructions, tips } = SaveProjectSchema.parse(body);
 
-    // Create a new transcript entry for the domestic arts project
+    // Create a new transcript entry for the homesteading project
     const transcriptEntry = await prisma.transcriptEntry.create({
       data: {
         userId: user.userId,
         activityName: title,
-        mappedSubject: 'Domestic Arts',
+        mappedSubject: 'Homesteading',
         creditsEarned: 0, // Will be updated when photo is uploaded
         dateCompleted: new Date(),
         notes: `Type: ${type}\nMaterials: ${materials.join(', ')}\nInstructions: ${instructions.slice(0, 3).join('; ')}`,
-        approvedById: user.userId, // Auto-approve for domestic arts projects
+        approvedById: user.userId, // Auto-approve for homesteading projects
       },
     });
 
