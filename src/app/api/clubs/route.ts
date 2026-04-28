@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { getUserSubscription } from '@/lib/subscription';
-import { TIER_LIMITS, TierName } from '@/lib/stripe';
+import { TIER_LIMITS } from '@/lib/tiers';
+import type { TierName } from '@/lib/tiers';
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();

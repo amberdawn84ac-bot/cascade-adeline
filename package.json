@@ -24,11 +24,13 @@
     "@ai-sdk/google": "^3.0.24",
     "@ai-sdk/openai": "^3.0.26",
     "@ai-sdk/react": "^1.1.12",
-    "@langchain/google-genai": "^0.2.1",
-    "@langchain/langgraph": "^0.0.12",
+    "@langchain/core": "^1.1.42",
+    "@langchain/google-genai": "^2.1.29",
+    "@langchain/langgraph": "^1.2.9",
     "@langchain/openai": "^1.2.9",
     "@nanostores/react": "github:ai/react",
     "@prisma/adapter-pg": "^7.4.2",
+    "@react-email/render": "^2.0.7",
     "@react-pdf/renderer": "^4.3.0",
     "@stripe/react-stripe-js": "^5.6.1",
     "@stripe/stripe-js": "^8.9.0",
@@ -73,6 +75,7 @@
     "sonner": "^2.0.7",
     "stripe": "^20.4.1",
     "tailwind-merge": "^3.4.0",
+    "uuid": "^11.1.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
