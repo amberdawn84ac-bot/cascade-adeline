@@ -1,11 +1,11 @@
 -- Step 1: Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Step 2: Add SourceType enum value if not exists
-DO $$ 
+-- Step 2: Create SourceType enum if not exists
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'CURATED' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'SourceType')) THEN
-        ALTER TYPE "SourceType" ADD VALUE 'CURATED';
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SourceType') THEN
+        CREATE TYPE "SourceType" AS ENUM ('PRIMARY', 'CURATED', 'SECONDARY', 'MAINSTREAM');
     END IF;
 END $$;
 
@@ -63,3 +63,73 @@ CREATE INDEX IF NOT EXISTS "investigation_sources_investigationId_idx" ON "inves
 CREATE INDEX IF NOT EXISTS "share_links_investigationId_idx" ON "share_links"("investigationId");
 CREATE INDEX IF NOT EXISTS "share_links_createdBy_idx" ON "share_links"("createdBy");
 CREATE INDEX IF NOT EXISTS "share_links_expiresAt_idx" ON "share_links"("expiresAt");
+
+-- Step 9: Enable Row Level Security (RLS)
+ALTER TABLE "investigations" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "investigation_sources" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "share_links" ENABLE ROW LEVEL SECURITY;
+
+-- Step 10: Create RLS policies for investigations
+-- Users can only view their own investigations
+CREATE POLICY "Users can view own investigations" 
+ON "investigations" FOR SELECT 
+USING (auth.uid()::text = "userId");
+
+-- Users can only insert their own investigations
+CREATE POLICY "Users can insert own investigations" 
+ON "investigations" FOR INSERT 
+WITH CHECK (auth.uid()::text = "userId");
+
+-- Users can only update their own investigations
+CREATE POLICY "Users can update own investigations" 
+ON "investigations" FOR UPDATE 
+USING (auth.uid()::text = "userId");
+
+-- Users can only delete their own investigations
+CREATE POLICY "Users can delete own investigations" 
+ON "investigations" FOR DELETE 
+USING (auth.uid()::text = "userId");
+
+-- Step 11: Create RLS policies for investigation_sources
+-- Users can only view sources from their own investigations
+CREATE POLICY "Users can view own investigation sources" 
+ON "investigation_sources" FOR SELECT 
+USING (
+  EXISTS (
+    SELECT 1 FROM "investigations" 
+    WHERE "investigations".id = "investigation_sources"."investigationId" 
+    AND "investigations"."userId" = auth.uid()::text
+  )
+);
+
+-- Users can only insert sources for their own investigations
+CREATE POLICY "Users can insert own investigation sources" 
+ON "investigation_sources" FOR INSERT 
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM "investigations" 
+    WHERE "investigations".id = "investigation_sources"."investigationId" 
+    AND "investigations"."userId" = auth.uid()::text
+  )
+);
+
+-- Step 12: Create RLS policies for share_links
+-- Users can only view share links they created
+CREATE POLICY "Users can view own share links" 
+ON "share_links" FOR SELECT 
+USING (auth.uid()::text = "createdBy");
+
+-- Users can only insert their own share links
+CREATE POLICY "Users can insert own share links" 
+ON "share_links" FOR INSERT 
+WITH CHECK (auth.uid()::text = "createdBy");
+
+-- Users can only update their own share links
+CREATE POLICY "Users can update own share links" 
+ON "share_links" FOR UPDATE 
+USING (auth.uid()::text = "createdBy");
+
+-- Users can only delete their own share links
+CREATE POLICY "Users can delete own share links" 
+ON "share_links" FOR DELETE 
+USING (auth.uid()::text = "createdBy");
