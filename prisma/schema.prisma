@@ -126,6 +126,7 @@ model User {
   environment             StudentEnvironment?
   lessonSessions          LessonSession[]
 
+  @@map("users")
   @@index([email])
   @@index([role])
   @@index([parentId])
