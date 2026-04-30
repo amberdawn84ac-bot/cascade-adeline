@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, RotateCcw, GripVertical } from 'lucide-react';
+import { useGenUITelemetry } from '@/hooks/useGenUITelemetry';
+import { useGenUIRemediation } from '@/contexts/GenUIRemediationContext';
 
 export interface TimelineEvent {
   id: string;
@@ -16,6 +18,11 @@ export interface DragTimelineCardProps {
   title: string;
   events: TimelineEvent[];
   onComplete?: (correct: boolean, attempts: number, timeMs: number) => void;
+  // Pedagogical state props
+  componentId?: string;
+  difficultyLevel?: 'intro' | 'standard' | 'challenge';
+  isScaffolded?: boolean;
+  maxAttempts?: number;
 }
 
 const CREAM = '#FFFEF7';
@@ -32,13 +39,25 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a;
 }
 
-export function DragTimelineCard({ title, events, onComplete }: DragTimelineCardProps) {
+export function DragTimelineCard({ 
+  title, 
+  events, 
+  onComplete,
+  componentId = `timeline-${Date.now()}`,
+  difficultyLevel = 'standard',
+  isScaffolded = false,
+  maxAttempts = 3,
+}: DragTimelineCardProps) {
   const [items, setItems] = useState<TimelineEvent[]>(() => shuffleArray(events));
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const [startTime] = useState(Date.now());
+  const startTimeRef = useRef(Date.now());
+
+  // Dual dispatch hooks
+  const { dispatch: dispatchTelemetry } = useGenUITelemetry(componentId, 'DragTimelineCard');
+  const { requestRemediation } = useGenUIRemediation();
 
   const correctIds = events.map((e) => e.id);
   const currentIds = items.map((e) => e.id);
@@ -73,7 +92,34 @@ export function DragTimelineCard({ title, events, onComplete }: DragTimelineCard
     const newAttempts = attempts + 1;
     setAttempts(newAttempts);
     setChecked(true);
-    onComplete?.(isCorrect, newAttempts, Date.now() - startTime);
+    
+    const timeMs = Date.now() - startTimeRef.current;
+    
+    // Fire legacy callback
+    onComplete?.(isCorrect, newAttempts, timeMs);
+    
+    // DUAL DISPATCH:
+    // 1. Fire-and-forget telemetry for persistent mastery tracking
+    dispatchTelemetry({
+      type: isCorrect ? 'complete' : 'attempt',
+      correct: isCorrect,
+      attemptNumber: newAttempts,
+      score: isCorrect ? 100 : Math.round((correctIds.filter((id, i) => currentIds[i] === id).length / correctIds.length) * 100),
+      timeMs,
+      difficultyLevel,
+      isScaffolded,
+    });
+    
+    // 2. Real-time remediation if student is stuck
+    if (!isCorrect && newAttempts >= maxAttempts) {
+      requestRemediation({
+        type: 'student_stuck',
+        componentType: 'DragTimelineCard',
+        componentId,
+        failedAttempts: newAttempts,
+        concept: title,
+      });
+    }
   };
 
   const handleReset = () => {

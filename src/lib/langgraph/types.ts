@@ -10,7 +10,24 @@ export type AdelineIntent =
   | 'AUDIO_LOG'
   | 'ASSESS'
   | 'ANALOGY'
-  | 'LESSON';
+  | 'LESSON'
+  | 'REMEDIATION';
+
+/**
+ * Remediation types triggered by GenUI component interactions.
+ * These are parsed from [REMEDIATION:TYPE] prefixed messages.
+ */
+export type RemediationType = 'STUCK' | 'HINT' | 'SCAFFOLD' | 'MISCONCEPTION' | 'GENERAL';
+
+export interface RemediationContext {
+  type: RemediationType;
+  componentType?: string;
+  componentId?: string;
+  failedAttempts?: number;
+  hintLevel?: number;
+  misconception?: string;
+  concept?: string;
+}
 
 export interface LifeCreditMapping {
   activity: string;

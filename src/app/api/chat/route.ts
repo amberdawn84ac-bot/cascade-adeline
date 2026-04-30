@@ -20,7 +20,7 @@ import { router as adelineRouter } from '@/lib/langgraph/router';
 import { lifeCreditLogger } from '@/lib/langgraph/lifeCreditLogger';
 import { lessonOrchestrator } from '@/lib/langgraph/lesson/lessonOrchestrator';
 import { subjectFromQuery } from '@/lib/langgraph/lesson/subjectFromQuery';
-import { AdelineGraphState } from '@/lib/langgraph/types';
+import { AdelineGraphState, RemediationContext } from '@/lib/langgraph/types';
 import { getStudentContext } from '@/lib/learning/student-context';
 import redis from '@/lib/redis';
 import prisma from '@/lib/db';
@@ -52,7 +52,7 @@ function getIntentContext(intent: string | undefined): string {
 }
 
 // Which GenUI component to surface based on intent
-function getGenUIPayload(intent: string | undefined, prompt: string): object | null {
+function getGenUIPayload(intent: string | undefined, prompt: string, metadata?: Record<string, unknown>): object | null {
   switch (intent) {
     case 'INVESTIGATE':
       return { component: 'InvestigationBoard', props: { query: prompt } };
@@ -60,8 +60,85 @@ function getGenUIPayload(intent: string | undefined, prompt: string): object | n
       return { component: 'TranscriptCard', props: { activityDescription: prompt } };
     case 'BRAINSTORM':
       return { component: 'ProjectImpactCard', props: { suggestion: prompt } };
+    case 'REMEDIATION':
+      return getRemediationComponent(metadata?.remediationContext as RemediationContext | undefined);
     default:
       return null;
+  }
+}
+
+/**
+ * Select the appropriate remediation component based on the remediation context.
+ * This is the core of the bidirectional GenUI loop — when a student struggles,
+ * we stream back a scaffolded component to help them.
+ */
+function getRemediationComponent(context: RemediationContext | undefined): object | null {
+  if (!context) return null;
+
+  switch (context.type) {
+    case 'STUCK':
+      // Student failed multiple times — provide a scaffolded flashcard or concept map
+      if ((context.failedAttempts ?? 0) >= 3) {
+        return {
+          component: 'Flashcard',
+          props: {
+            term: context.concept || 'Key Concept',
+            definition: 'Let me break this down for you...',
+            isScaffolded: true,
+            difficultyLevel: 'intro',
+          },
+        };
+      }
+      // Fewer failures — try an interactive concept map
+      return {
+        component: 'InteractiveConceptMap',
+        props: {
+          title: 'Let\'s map this out together',
+          isScaffolded: true,
+          difficultyLevel: 'intro',
+        },
+      };
+
+    case 'HINT':
+      // Student requested a hint — provide progressive disclosure
+      return {
+        component: 'MnemonicCard',
+        props: {
+          hintLevel: context.hintLevel ?? 1,
+          isScaffolded: true,
+        },
+      };
+
+    case 'SCAFFOLD':
+      // Student explicitly asked for scaffolding — break into steps
+      return {
+        component: 'StepList',
+        props: {
+          title: 'Let\'s break this into smaller steps',
+          isScaffolded: true,
+          difficultyLevel: 'intro',
+        },
+      };
+
+    case 'MISCONCEPTION':
+      // Student has a specific misconception — address it directly
+      return {
+        component: 'AnalogyCard',
+        props: {
+          misconception: context.misconception,
+          isScaffolded: true,
+        },
+      };
+
+    default:
+      // Generic remediation — provide a concept review
+      return {
+        component: 'Flashcard',
+        props: {
+          isScaffolded: true,
+          difficultyLevel: 'intro',
+        },
+      };
   }
 }
 
@@ -355,7 +432,8 @@ export async function POST(req: NextRequest) {
       buildSystemPrompt(config) + studentCtx.systemPromptAddendum + memoryContext + getIntentContext(intent);
 
     // 4. GenUI payload (pure intent mapping — no LLM call needed)
-    const genUIPayload = getGenUIPayload(intent, maskedContent.masked);
+    // Pass metadata for REMEDIATION intent to select appropriate scaffolded component
+    const genUIPayload = getGenUIPayload(intent, maskedContent.masked, routedState.metadata);
 
     // 5. Prepare message history for the LLM
     const streamMessages = messages.map((m: { role: string; content: unknown }) => ({

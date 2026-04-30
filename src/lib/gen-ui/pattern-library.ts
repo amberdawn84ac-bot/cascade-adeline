@@ -1,5 +1,28 @@
 import { z } from 'zod';
 
+/**
+ * Base pedagogical state schema that ALL interactive components should extend.
+ * These fields enable the LLM to instantiate components with appropriate scaffolding
+ * based on the student's prior context and detected learning gaps.
+ */
+export const PedagogicalStateSchema = z.object({
+  /** Difficulty level for adaptive learning */
+  difficultyLevel: z.enum(['intro', 'standard', 'challenge']).default('standard'),
+  /** Whether to show scaffolded hints/guidance */
+  isScaffolded: z.boolean().default(false),
+  /** Known misconceptions from previous interactions */
+  previousMisconceptions: z.array(z.string()).optional(),
+  /** Progressive hint level (0 = no hints, 3 = maximum scaffolding) */
+  hintLevel: z.number().min(0).max(3).default(0),
+  /** Maximum attempts before triggering remediation */
+  maxAttempts: z.number().optional(),
+  /** Unique identifier for telemetry tracking */
+  componentId: z.string().optional(),
+});
+
+/** Type for pedagogical state props */
+export type PedagogicalState = z.infer<typeof PedagogicalStateSchema>;
+
 export interface UIPattern {
   id: string;
   name: string;
@@ -8,6 +31,8 @@ export interface UIPattern {
   tags: string[];
   propsSchema: z.ZodSchema;
   example: Record<string, unknown>;
+  /** Whether this is an interactive component that supports pedagogical state */
+  isInteractive?: boolean;
 }
 
 export const UI_PATTERNS: UIPattern[] = [
@@ -489,6 +514,7 @@ export const UI_PATTERNS: UIPattern[] = [
     component: 'DragTimelineCard',
     description: 'Active sequencing: student drags events into chronological order before the timeline is revealed',
     tags: ['timeline', 'sequence', 'drag', 'sort', 'history', 'order', 'active'],
+    isInteractive: true,
     propsSchema: z.object({
       title: z.string(),
       events: z.array(z.object({
@@ -498,7 +524,7 @@ export const UI_PATTERNS: UIPattern[] = [
         description: z.string(),
         connection: z.string().optional(),
       })),
-    }),
+    }).merge(PedagogicalStateSchema),
     example: {
       title: 'Order the events of the American Revolution',
       events: [
@@ -506,6 +532,8 @@ export const UI_PATTERNS: UIPattern[] = [
         { id: 'b', date: '1775', title: 'Lexington & Concord', description: 'First military battles of the revolution' },
         { id: 'c', date: '1776', title: 'Declaration of Independence', description: 'Colonies formally declared independence from Britain' },
       ],
+      difficultyLevel: 'standard',
+      isScaffolded: false,
     },
   },
   {
@@ -514,13 +542,14 @@ export const UI_PATTERNS: UIPattern[] = [
     component: 'CalibratedQuiz',
     description: 'Metacognitive quiz: student answers, rates confidence, then receives Glow (strength) and Grow (improvement) feedback',
     tags: ['quiz', 'assessment', 'metacognition', 'feedback', 'calibration', 'glow', 'grow'],
+    isInteractive: true,
     propsSchema: z.object({
       question: z.string(),
       options: z.array(z.string()).min(2).max(5),
       correctIndex: z.number().min(0),
       glow: z.string(),
       grow: z.string(),
-    }),
+    }).merge(PedagogicalStateSchema),
     example: {
       question: 'What is the primary purpose of the Bill of Rights?',
       options: [
@@ -532,6 +561,8 @@ export const UI_PATTERNS: UIPattern[] = [
       correctIndex: 1,
       glow: 'You understand that the Constitution creates the government structure — that\'s the right framework.',
       grow: 'The Bill of Rights specifically limits what the government can do to individuals — it\'s a list of protections, not powers.',
+      difficultyLevel: 'standard',
+      isScaffolded: false,
     },
   },
   {

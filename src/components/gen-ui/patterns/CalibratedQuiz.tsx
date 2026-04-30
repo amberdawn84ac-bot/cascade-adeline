@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, ThumbsUp, TrendingUp } from 'lucide-react';
+import { useGenUITelemetry } from '@/hooks/useGenUITelemetry';
+import { useGenUIRemediation } from '@/contexts/GenUIRemediationContext';
 
 export interface CalibratedQuizProps {
   question: string;
@@ -11,6 +13,11 @@ export interface CalibratedQuizProps {
   glow: string;
   grow: string;
   onAnswer?: (isCorrect: boolean, confidence: 'guessing' | 'somewhat' | 'sure') => void;
+  // Pedagogical state props
+  componentId?: string;
+  difficultyLevel?: 'intro' | 'standard' | 'challenge';
+  isScaffolded?: boolean;
+  maxAttempts?: number;
 }
 
 type Stage = 'answer' | 'confidence' | 'result';
@@ -32,10 +39,20 @@ export function CalibratedQuiz({
   glow,
   grow,
   onAnswer,
+  componentId = `quiz-${Date.now()}`,
+  difficultyLevel = 'standard',
+  isScaffolded = false,
+  maxAttempts = 3,
 }: CalibratedQuizProps) {
   const [stage, setStage] = useState<Stage>('answer');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [confidence, setConfidence] = useState<'guessing' | 'somewhat' | 'sure' | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const startTimeRef = useRef(Date.now());
+
+  // Dual dispatch hooks
+  const { dispatch: dispatchTelemetry } = useGenUITelemetry(componentId, 'CalibratedQuiz');
+  const { requestRemediation } = useGenUIRemediation();
 
   const isCorrect = selectedIndex === correctIndex;
 
@@ -46,9 +63,51 @@ export function CalibratedQuiz({
   };
 
   const handleSelectConfidence = (level: 'guessing' | 'somewhat' | 'sure') => {
+    const newAttemptCount = attemptCount + 1;
+    setAttemptCount(newAttemptCount);
     setConfidence(level);
     setStage('result');
-    onAnswer?.(selectedIndex === correctIndex, level);
+    
+    const correct = selectedIndex === correctIndex;
+    
+    // Fire legacy callback
+    onAnswer?.(correct, level);
+    
+    // DUAL DISPATCH:
+    // 1. Fire-and-forget telemetry for persistent mastery tracking
+    dispatchTelemetry({
+      type: correct ? 'complete' : 'attempt',
+      correct,
+      attemptNumber: newAttemptCount,
+      score: correct ? 100 : 0,
+      timeMs: Date.now() - startTimeRef.current,
+      difficultyLevel,
+      isScaffolded,
+      metadata: { confidence: level },
+    });
+    
+    // 2. Real-time remediation if student is struggling
+    // Trigger if: wrong answer + high confidence (misconception) OR multiple failures
+    if (!correct) {
+      if (level === 'sure') {
+        // Confidently wrong — clear misconception, request immediate help
+        requestRemediation({
+          type: 'concept_confused',
+          componentType: 'CalibratedQuiz',
+          componentId,
+          misconception: `Student was confident but wrong on: "${question}"`,
+        });
+      } else if (newAttemptCount >= maxAttempts) {
+        // Multiple failures — student is stuck
+        requestRemediation({
+          type: 'student_stuck',
+          componentType: 'CalibratedQuiz',
+          componentId,
+          failedAttempts: newAttemptCount,
+          concept: question,
+        });
+      }
+    }
   };
 
   const calibrationNote = () => {
