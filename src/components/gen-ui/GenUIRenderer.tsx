@@ -38,6 +38,9 @@ import { InteractiveConceptMap } from './patterns/InteractiveConceptMap';
 import { DragTimelineCard } from './patterns/DragTimelineCard';
 import { CalibratedQuiz } from './patterns/CalibratedQuiz';
 import { MnemonicCard } from './patterns/MnemonicCard';
+// LearnLM multimodal components
+import { NarratedSlideCard } from './patterns/NarratedSlideCard';
+import { IllustratedTextBlock } from './patterns/IllustratedTextBlock';
 
 type GenUIPayload = {
   component: string;
@@ -84,6 +87,9 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   DragTimelineCard,
   CalibratedQuiz,
   MnemonicCard,
+  // LearnLM multimodal components
+  NarratedSlideCard,
+  IllustratedTextBlock,
 };
 
 const INTENT_BORDER_COLORS: Record<string, string> = {
@@ -105,6 +111,8 @@ const INTENT_BORDER_COLORS: Record<string, string> = {
   DragTimelineCard: '#6366F1',         // Indigo — active sequencing
   CalibratedQuiz: '#9A3F4A',           // Paradise — metacognition
   MnemonicCard: '#6A4C93',             // Deep Purple — memory encoding
+  NarratedSlideCard: '#2F4731',         // Palm Frond — audio narration
+  IllustratedTextBlock: '#2F4731',      // Palm Frond — dual coding
 };
 
 function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) {
