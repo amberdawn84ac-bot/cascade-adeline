@@ -1,12 +1,14 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { validateEnv } = await import('@/lib/env-validator');
-    try {
-      validateEnv();
-    } catch (err) {
-      // Log the error but don't crash the server — let individual routes fail
-      // with actionable messages rather than a cold-start SIGTERM.
-      console.error('[Instrumentation] Environment validation failed:', err);
+    const { checkEnv } = await import('@/lib/env-validator');
+    const envCheck = checkEnv();
+    
+    if (!envCheck.valid) {
+      // Log warnings but don't crash - env vars may be loaded at request time
+      console.warn('[Instrumentation] Environment check warnings:', envCheck.errors.join(', '));
+      console.warn('[Instrumentation] Some features may be unavailable until env vars are configured');
+    } else {
+      console.log('[Instrumentation] ✅ Environment check passed');
     }
   }
 }
