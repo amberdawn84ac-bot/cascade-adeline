@@ -566,6 +566,69 @@ export const UI_PATTERNS: UIPattern[] = [
       tip: 'Visualize your mother actually serving nachos in space!',
     },
   },
+  {
+    id: 'narrated-slide',
+    name: 'Narrated Slide Card',
+    component: 'NarratedSlideCard',
+    description: 'Dual coding (audio): slides with bullet points and a browser TTS voiceover script for each slide',
+    tags: ['narrate', 'audio', 'slides', 'voiceover', 'listen', 'dual-coding', 'multimodal'],
+    propsSchema: z.object({
+      title: z.string(),
+      slides: z.array(z.object({
+        title: z.string(),
+        bullets: z.array(z.string()),
+        voiceover: z.string(),
+        visual: z.string().optional(),
+      })).min(1),
+      audioUrls: z.array(z.string()).optional(),
+    }),
+    example: {
+      title: 'The Water Cycle',
+      slides: [
+        {
+          title: 'Evaporation',
+          bullets: ['Heat from the sun causes water to turn into vapour', 'Water rises into the atmosphere'],
+          voiceover: 'When the sun heats the surface of oceans, lakes, and rivers, water molecules gain enough energy to escape into the air as invisible water vapour. This is called evaporation — the first step of the water cycle.',
+          visual: 'Sun rays hitting a lake surface with upward arrows showing water vapour rising',
+        },
+        {
+          title: 'Condensation & Precipitation',
+          bullets: ['Water vapour cools and forms clouds', 'When clouds get heavy enough, precipitation falls'],
+          voiceover: 'As water vapour rises higher into the atmosphere, it cools and condenses into tiny water droplets, forming clouds. When enough droplets combine, they fall back to Earth as rain, snow, or hail — completing the cycle.',
+          visual: 'Cloud forming from rising vapour, then rain falling back to earth',
+        },
+      ],
+    },
+  },
+  {
+    id: 'illustrated-text',
+    name: 'Illustrated Text Block',
+    component: 'IllustratedTextBlock',
+    description: 'Dual coding (visual): chunked explanatory text paired with AI-generated DALL-E illustrations for each chunk',
+    tags: ['illustrate', 'image', 'visual', 'text', 'dual-coding', 'picture', 'diagram'],
+    propsSchema: z.object({
+      title: z.string().optional(),
+      subject: z.string().optional(),
+      chunks: z.array(z.object({
+        text: z.string(),
+        illustrationPrompt: z.string().optional(),
+      })).min(1),
+    }),
+    example: {
+      title: 'How DNA Replication Works',
+      subject: 'Biology',
+      chunks: [
+        {
+          text: 'DNA replication begins when an enzyme called helicase unwinds the double helix by breaking the hydrogen bonds between base pairs, creating a replication fork.',
+          illustrationPrompt: 'Helicase enzyme unwinding a DNA double helix at the replication fork',
+        },
+        {
+          text: 'DNA polymerase then reads each template strand and adds complementary nucleotides, building two new identical DNA molecules from the original.',
+          illustrationPrompt: 'DNA polymerase adding nucleotides to a growing DNA strand using a template',
+        },
+      ],
+    },
+  },
 ];
 
 export function findPatternByTags(tags: string[]): UIPattern | null {

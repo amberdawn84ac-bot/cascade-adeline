@@ -117,6 +117,12 @@ async function retrievePatternFromLibrary(state: AdelineGraphState): Promise<{ p
   if (prompt.toLowerCase().includes('memorize') || prompt.toLowerCase().includes('remember') || prompt.toLowerCase().includes('mnemonic') || prompt.toLowerCase().includes('acronym')) {
     tags.push('memory', 'mnemonic', 'memorize');
   }
+  if (prompt.toLowerCase().includes('narrate') || prompt.toLowerCase().includes('listen') || prompt.toLowerCase().includes('voiceover') || prompt.toLowerCase().includes('audio')) {
+    tags.push('narrate', 'audio', 'slides', 'dual-coding');
+  }
+  if (prompt.toLowerCase().includes('illustrate') || prompt.toLowerCase().includes('picture') || prompt.toLowerCase().includes('diagram') || prompt.toLowerCase().includes('show me')) {
+    tags.push('illustrate', 'image', 'visual', 'dual-coding');
+  }
   if (prompt.toLowerCase().includes('compare') || prompt.toLowerCase().includes('versus')) {
     tags.push('comparison', 'analysis');
   }
