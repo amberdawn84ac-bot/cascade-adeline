@@ -271,7 +271,6 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
     if (!BlockComponent) return null;
 
     const props: any = {
-      key: block.block_id,
       blockData: block,
       onResponse: (response: any) => handleResponse(block.block_id, response),
       studentResponse: studentResponses[block.block_id],
@@ -281,6 +280,7 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
     return (
       <BlockErrorBoundary key={block.block_id} blockId={block.block_id}>
         <div
+          key={block.block_id}
           className="animate-[fadeSlideIn_0.4s_ease-out]"
         >
           <BlockComponent {...props} />
