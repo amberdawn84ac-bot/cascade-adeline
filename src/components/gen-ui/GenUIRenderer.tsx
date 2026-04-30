@@ -33,6 +33,11 @@ import { InfographicPosterCard } from './visual-artifacts/InfographicPosterCard'
 import { AnimalInfographicCard } from './visual-artifacts/AnimalInfographicCard';
 import { IllustratedRecipeCard } from './visual-artifacts/IllustratedRecipeCard';
 import { VisualDeepDiveCard } from './visual-artifacts/VisualDeepDiveCard';
+// LearnLM active learning components
+import { InteractiveConceptMap } from './patterns/InteractiveConceptMap';
+import { DragTimelineCard } from './patterns/DragTimelineCard';
+import { CalibratedQuiz } from './patterns/CalibratedQuiz';
+import { MnemonicCard } from './patterns/MnemonicCard';
 
 type GenUIPayload = {
   component: string;
@@ -73,6 +78,12 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   AnimalInfographicCard,
   IllustratedRecipeCard,
   VisualDeepDiveCard,
+  // LearnLM active learning components
+  ConceptMap: InteractiveConceptMap,
+  InteractiveConceptMap,
+  DragTimelineCard,
+  CalibratedQuiz,
+  MnemonicCard,
 };
 
 const INTENT_BORDER_COLORS: Record<string, string> = {
@@ -88,6 +99,12 @@ const INTENT_BORDER_COLORS: Record<string, string> = {
   AnimalInfographicCard: '#2F4731',    // Palm Frond — nature/science
   IllustratedRecipeCard: '#9A3F4A',    // Paradise — life skills
   VisualDeepDiveCard: '#2F4731',       // Palm Frond — hybrid lesson
+  // LearnLM components
+  ConceptMap: '#6A4C93',               // Deep Purple — schema building
+  InteractiveConceptMap: '#6A4C93',
+  DragTimelineCard: '#6366F1',         // Indigo — active sequencing
+  CalibratedQuiz: '#9A3F4A',           // Paradise — metacognition
+  MnemonicCard: '#6A4C93',             // Deep Purple — memory encoding
 };
 
 function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) {

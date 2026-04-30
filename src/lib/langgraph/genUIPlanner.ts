@@ -102,8 +102,20 @@ async function retrievePatternFromLibrary(state: AdelineGraphState): Promise<{ p
   if (prompt.toLowerCase().includes('quiz') || prompt.toLowerCase().includes('question')) {
     tags.push('quiz', 'interactive');
   }
+  if (prompt.toLowerCase().includes('calibrat') || prompt.toLowerCase().includes('glow') || prompt.toLowerCase().includes('grow')) {
+    tags.push('quiz', 'metacognition', 'calibration');
+  }
   if (prompt.toLowerCase().includes('timeline') || /\d{4}/.test(prompt)) {
     tags.push('history', 'chronology');
+  }
+  if (prompt.toLowerCase().includes('order') || prompt.toLowerCase().includes('sequence') || prompt.toLowerCase().includes('sort')) {
+    tags.push('timeline', 'sequence', 'drag', 'sort');
+  }
+  if (prompt.toLowerCase().includes('concept map') || prompt.toLowerCase().includes('mind map') || prompt.toLowerCase().includes('schema')) {
+    tags.push('concept', 'schema', 'map', 'active');
+  }
+  if (prompt.toLowerCase().includes('memorize') || prompt.toLowerCase().includes('remember') || prompt.toLowerCase().includes('mnemonic') || prompt.toLowerCase().includes('acronym')) {
+    tags.push('memory', 'mnemonic', 'memorize');
   }
   if (prompt.toLowerCase().includes('compare') || prompt.toLowerCase().includes('versus')) {
     tags.push('comparison', 'analysis');
