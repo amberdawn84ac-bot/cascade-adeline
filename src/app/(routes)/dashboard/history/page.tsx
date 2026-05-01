@@ -223,7 +223,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#FAF8F2]">
+    <div className="min-h-screen bg-[#FAF8F2]">
       {/* Header */}
       <div className="p-6 border-b border-[#E7DAC3] bg-[#FFFEF7]">
         <h1 className="text-3xl font-bold text-[#2F4731] flex items-center gap-3 font-emilys-candy">
@@ -234,7 +234,7 @@ export default function HistoryPage() {
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div>
         <div className="p-6 max-w-6xl mx-auto space-y-6">
           <StudentStatusBar />
 

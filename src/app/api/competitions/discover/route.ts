@@ -43,11 +43,39 @@ export async function POST(req: NextRequest) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
+  // Fetch real competition listings from the web to ground the AI response
+  const tavilyApiKey = process.env.TAVILY_API_KEY;
+  let tavilyContext = '';
+  if (tavilyApiKey) {
+    try {
+      const tavilyRes = await fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: tavilyApiKey,
+          query: `student competition scholarship contest ${currentYear} deadline grade ${grade} ${studentInterests.slice(0, 3).join(' ')}`,
+          search_depth: 'basic',
+          max_results: 6,
+        }),
+      });
+      if (tavilyRes.ok) {
+        const tavilyData = await tavilyRes.json();
+        tavilyContext = ((tavilyData.results ?? []) as Array<{ title: string; url: string; content: string }>)
+          .map(r => `- ${r.title} (${r.url}): ${r.content.slice(0, 200)}`)
+          .join('\n');
+      }
+    } catch {
+      // Fall through to AI-only generation
+    }
+  }
+
   const config = loadConfig();
   const result = await generateObject({
     model: getModel(config.models.default),
     schema: competitionSchema,
-    prompt: `You are a competition research assistant. Search your knowledge for current STEM competitions, science fairs, and academic challenges that are:
+    prompt: `You are a competition research assistant helping a homeschool student find real, current competitions and scholarships.
+${tavilyContext ? `\nHere are current competition listings found on the web today — use these as seeds and verify eligibility details from your knowledge:\n${tavilyContext}\n` : ''}
+Find STEM competitions, science fairs, and academic challenges that are:
 
 1. **Age-appropriate**: For a student who is ${age} years old in grade ${grade}
 2. **Currently active**: Deadlines in ${currentYear} (we're currently in month ${currentMonth})
@@ -58,7 +86,7 @@ CRITICAL REQUIREMENTS:
 - Filter by age: only include competitions where ${age} falls within the age range
 - Filter by grade: only include competitions where grade ${grade} is eligible
 - Include a mix of local, national, and international opportunities
-- Prioritize well-known, established competitions
+- Prioritize well-known, established competitions with real URLs
 - Include specific, actionable eligibility rules
 
 Return 8-12 competitions that this student is actually eligible for RIGHT NOW.
