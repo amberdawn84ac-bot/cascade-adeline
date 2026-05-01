@@ -75,11 +75,12 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
 
   useEffect(() => { loadPlan(); }, []);
 
-  const loadPlan = async () => {
+  const loadPlan = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/journey/plan');
+      const url = forceRefresh ? '/api/journey/plan?refresh=true' : '/api/journey/plan';
+      const res = await fetch(url);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError((body as any).details || (body as any).error || `Error ${res.status}`);
@@ -154,7 +155,7 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
         <p className="text-red-900 font-bold text-sm">Couldn't load your learning plan.</p>
         <p className="text-red-700 text-xs font-mono bg-red-100 p-2 rounded">{error}</p>
         <div className="flex justify-center gap-3">
-          <button onClick={loadPlan} className="bg-[#2F4731] text-white px-4 py-1.5 rounded-xl text-sm font-bold hover:bg-[#BD6809] transition-colors">
+          <button onClick={() => loadPlan(true)} className="bg-[#2F4731] text-white px-4 py-1.5 rounded-xl text-sm font-bold hover:bg-[#BD6809] transition-colors">
             Try Again
           </button>
           <Link href="/dashboard/journey" className="border-2 border-[#2F4731] text-[#2F4731] px-4 py-1.5 rounded-xl text-sm font-bold hover:bg-[#E7DAC3] transition-colors">
@@ -175,7 +176,7 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
           </Link>{' '}
           to add them.
         </p>
-        <button onClick={loadPlan} className="flex items-center gap-1.5 mx-auto text-xs text-[#2F4731]/50 hover:text-[#2F4731] transition-colors">
+        <button onClick={() => loadPlan(true)} className="flex items-center gap-1.5 mx-auto text-xs text-[#2F4731]/50 hover:text-[#2F4731] transition-colors">
           <RefreshCw className="w-3 h-3" /> Refresh plan
         </button>
       </div>
@@ -193,7 +194,7 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
               <h2 className="text-xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                 In Progress
               </h2>
-              <button onClick={loadPlan} className="ml-auto text-[#2F4731]/30 hover:text-[#2F4731]/60 transition-colors" title="Refresh">
+              <button onClick={() => loadPlan(true)} className="ml-auto text-[#2F4731]/30 hover:text-[#2F4731]/60 transition-colors" title="Refresh">
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -304,7 +305,7 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
                 </h3>
                 <p className="text-white/60 text-xs mt-1">{lessonCourse.subject}</p>
               </div>
-              <button onClick={closeLesson} className="text-white/60 hover:text-white ml-4 flex-shrink-0">
+              <button onClick={closeLesson} className="text-white/60 hover:text-white ml-4 flex-shrink-0" aria-label="Close lesson">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -460,7 +461,7 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
                           className="flex-1 text-sm border border-[#E7DAC3] rounded-xl px-3 py-2 focus:outline-none focus:border-[#2F4731]"
                         />
                         <button type="submit" disabled={isLessonChatLoading || !lessonInput.trim()}
-                          className="p-2 bg-[#2F4731] text-white rounded-xl hover:bg-[#BD6809] transition-colors disabled:opacity-40">
+                          className="p-2 bg-[#2F4731] text-white rounded-xl hover:bg-[#BD6809] transition-colors disabled:opacity-40" aria-label="Send message">
                           <Send className="w-4 h-4" />
                         </button>
                       </form>
