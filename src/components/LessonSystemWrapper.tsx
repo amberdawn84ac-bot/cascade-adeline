@@ -6,6 +6,7 @@ import { FloatingBeeBubble } from './FloatingBeeBubble';
 import { usePathname } from 'next/navigation';
 import { useLessonStream } from '@/hooks/useLessonStream';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { GenUIRemediationProvider } from '@/contexts/GenUIRemediationContext';
 
 export function LessonSystemWrapper({ userId }: { userId?: string }) {
   const pathname = usePathname();
@@ -41,7 +42,7 @@ export function LessonSystemWrapper({ userId }: { userId?: string }) {
   };
 
   return (
-    <>
+    <GenUIRemediationProvider>
       {/* Floating Bee Bubble — always visible on authenticated pages */}
       <FloatingBeeBubble
         userId={userId}
@@ -64,7 +65,7 @@ export function LessonSystemWrapper({ userId }: { userId?: string }) {
           onBlockResponse={handleBlockResponse}
         />
       )}
-    </>
+    </GenUIRemediationProvider>
   );
 }
 

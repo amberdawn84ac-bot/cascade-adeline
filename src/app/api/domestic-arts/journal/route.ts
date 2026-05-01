@@ -10,11 +10,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch user's domestic arts projects from transcript entries
+    // Fetch user's homesteading projects from transcript entries
     const projects = await prisma.transcriptEntry.findMany({
       where: {
         userId: user.userId,
-        mappedSubject: 'Domestic Arts',
+        mappedSubject: 'Homesteading',
         approvedById: { not: null },
       },
       select: {

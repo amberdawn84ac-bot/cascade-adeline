@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { X, Send, Sparkles } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
 import { GenUIRenderer } from './gen-ui/GenUIRenderer';
+import { useGenUIRemediation } from '@/contexts/GenUIRemediationContext';
 
 interface FloatingBeeBubbleProps {
   onLessonStream?: (blocks: any[]) => void;
@@ -22,10 +23,21 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
   const bubbleRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
+  // Get remediation context for bidirectional GenUI communication
+  const remediationContext = useGenUIRemediation();
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, append } = useChat({
     api: '/api/chat',
     body: { userId, contextType: 'general' },
   });
+
+  // Register append handler for remediation context — allows GenUI components
+  // to inject messages that trigger LangGraph to stream remediation components
+  useEffect(() => {
+    if (remediationContext && append) {
+      remediationContext.registerAppendHandler(append);
+    }
+  }, [remediationContext, append]);
 
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,6 +228,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
               type="submit"
               disabled={isLoading || !input.trim()}
               className="bg-[#BD6809] text-white rounded-full p-2 hover:bg-[#2F4731] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              aria-label="Send message"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -274,6 +287,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
             <button
               onClick={() => setIsOpen(false)}
               className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
+              aria-label="Close chat"
             >
               <X className="w-5 h-5" />
             </button>
@@ -362,6 +376,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
                 type="submit"
                 disabled={isLoading || !input.trim()}
                 className="bg-[#BD6809] text-white rounded-full p-2 hover:bg-[#2F4731] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                aria-label="Send message"
               >
                 <Send className="w-5 h-5" />
               </button>

@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: 'Analyze this domestic arts project photo and provide details about what was created, skills demonstrated, and suggested fractional credits to award.',
+              text: 'Analyze this homesteading project photo and provide details about what was created, skills demonstrated, and suggested fractional credits to award.',
             },
             {
               type: 'image_url',
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       metadata: {
         timestamp: new Date().toISOString(),
         user_role: user.role,
-        request_type: 'domestic_arts_photo_analysis',
+        request_type: 'homesteading_photo_analysis',
         projectId,
       },
     } as any;
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const result = await adelineBrainRunnable.invoke(initialState);
 
     // Extract credits from the vision analysis
-    let creditsAwarded = 0.25; // Default fractional credit for domestic arts
+    let creditsAwarded = 0.25; // Default fractional credit for homesteading
     const analysisText = result.response_content;
     
     // Try to extract credit amount from the response
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 
     // Trigger reflection coach for the completed activity
     const reflectionState = {
-      messages: [new HumanMessage(`I completed a domestic arts project and earned ${creditsAwarded} credits. Help me reflect on what I learned and accomplished.`)],
+      messages: [new HumanMessage(`I completed a homesteading project and earned ${creditsAwarded} credits. Help me reflect on what I learned and accomplished.`)],
       userId: user.userId,
       intent: 'REFLECT' as const,
       missing_info: [],
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       metadata: {
         timestamp: new Date().toISOString(),
         user_role: user.role,
-        request_type: 'domestic_arts_reflection',
+        request_type: 'homesteading_reflection',
         creditsEarned: creditsAwarded,
       },
     };

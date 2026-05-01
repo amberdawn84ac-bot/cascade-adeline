@@ -54,6 +54,7 @@ import GameBlock from './blocks/GameBlock';
 import WorksheetBlock from './blocks/WorksheetBlock';
 import ChoiceBlock from './blocks/ChoiceBlock';
 import PromptBlock from './blocks/PromptBlock';
+import VisualArtifactBlock from './blocks/VisualArtifactBlock';
 
 interface StreamingLessonRendererProps {
   userId: string;
@@ -81,6 +82,14 @@ const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   interactive_concept: TextBlock,
   vocab_tooltip: TextBlock,
   source_gap: TextBlock,
+  visual_artifact: VisualArtifactBlock,
+  // Block types emitted by architectAgent / nodes pipeline
+  primary_text: TextBlock,
+  concept_text: TextBlock,
+  critical_thinking: PromptBlock,
+  diagram_viewer: InfographicBlock,
+  interactive_slider: WorksheetBlock,
+  animation: VideoBlock,
 };
 
 export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLessonRendererProps) {
@@ -262,7 +271,6 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
     if (!BlockComponent) return null;
 
     const props: any = {
-      key: block.block_id,
       blockData: block,
       onResponse: (response: any) => handleResponse(block.block_id, response),
       studentResponse: studentResponses[block.block_id],
@@ -272,6 +280,7 @@ export function StreamingLessonRenderer({ userId, onBlockResponse }: StreamingLe
     return (
       <BlockErrorBoundary key={block.block_id} blockId={block.block_id}>
         <div
+          key={block.block_id}
           className="animate-[fadeSlideIn_0.4s_ease-out]"
         >
           <BlockComponent {...props} />

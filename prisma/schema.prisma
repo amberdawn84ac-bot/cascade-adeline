@@ -69,7 +69,7 @@ model User {
   pacingMultiplier        Float                     @default(1.0) @map("pacing_multiplier")
   targetGraduationYear    Int?                      @map("target_graduation_year")
   interests               String[]
-  learningStyle           String                    @default("EXPEDITION") // "EXPEDITION" (unified cross-curricular) or "CLASSIC" (siloed subjects with worksheets)
+  learningStyle           String                    @default("EXPEDITION")
   onboardingComplete      Boolean                   @default(false)
   coppaConsentAt          DateTime?                 @map("coppa_consent_at")
   coppaConsentBy          String?                   @map("coppa_consent_by") @db.Uuid
@@ -110,26 +110,27 @@ model User {
   subscription            Subscription?
   approvedEntries         TranscriptEntry[]         @relation("TranscriptApprover")
   transcriptEntries       TranscriptEntry[]
-  sourceGapRequests       SourceGapRequest[]
-  parent                  User?                     @relation("ParentToChild", fields: [parentId], references: [id])
-  children                User[]                    @relation("ParentToChild")
   userActivities          UserActivity[]            @relation("UserActivities")
   conceptMastery          UserConceptMastery[]
   mfaCredential           UserMFACredential?
-  investigations          Investigation[]
-  createdShareLinks       ShareLink[]               @relation("ShareLinkCreator")
-  cachedLessons           CachedLesson[]            @relation("CachedLessons")
-  dailyReflections        DailyReflection[]         @relation("StudentReflections")
   bookClubMemberships     BookClubMember[]
   bookClubPosts           BookClubPost[]
-  lessonProgress          StudentLessonProgress[]
-  environment             StudentEnvironment?
+  cachedLessons           CachedLesson[]            @relation("CachedLessons")
+  dailyReflections        DailyReflection[]         @relation("StudentReflections")
+  investigations          Investigation[]
   lessonSessions          LessonSession[]
+  createdShareLinks       ShareLink[]               @relation("ShareLinkCreator")
+  sourceGapRequests       SourceGapRequest[]
+  environment             StudentEnvironment?
+  lessonProgress          StudentLessonProgress[]
+  parent                  User?                     @relation("ParentToChild", fields: [parentId], references: [id])
+  children                User[]                    @relation("ParentToChild")
 
   @@index([email])
   @@index([role])
   @@index([parentId])
   @@index([dataDeletionRequestedAt])
+  @@map("users")
 }
 
 model Club {
@@ -846,6 +847,224 @@ model LivingBook {
   @@map("living_books")
 }
 
+model SourceGapRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  topic       String
+  subject     String
+  missingRole String    @map("missing_role")
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime? @map("resolved_at")
+  resolution  String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resolved])
+  @@map("source_gap_requests")
+}
+
+model CachedLesson {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  creditId    String   @map("credit_id")
+  gradeLevel  String   @default("") @map("grade_level")
+  subject     String
+  title       String
+  lessonData  Json     @map("lesson_data")
+  generatedAt DateTime @default(now()) @map("generated_at")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User     @relation("CachedLessons", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, creditId, gradeLevel])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("cached_lessons")
+}
+
+model DailyReflection {
+  id        String   @id @default(uuid()) @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  date      DateTime
+  prompt    String
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  student   User     @relation("StudentReflections", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, date])
+  @@index([studentId])
+  @@index([date])
+  @@map("daily_reflections")
+}
+
+model BookClub {
+  id        String           @id @default(uuid()) @db.Uuid
+  name      String
+  bookId    String           @map("book_id")
+  bookTitle String           @map("book_title")
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  members   BookClubMember[]
+  posts     BookClubPost[]
+
+  @@index([active])
+  @@map("book_clubs")
+}
+
+model BookClubMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  clubId   String   @map("club_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  joinedAt DateTime @default(now()) @map("joined_at")
+  club     BookClub @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+  @@index([userId])
+  @@index([clubId])
+  @@map("book_club_members")
+}
+
+model BookClubPost {
+  id        String   @id @default(uuid()) @db.Uuid
+  clubId    String   @map("club_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  content   String
+  isAdeline Boolean  @default(false) @map("is_adeline")
+  chapter   String?  @map("chapter")
+  createdAt DateTime @default(now()) @map("created_at")
+  club      BookClub @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([clubId])
+  @@index([createdAt])
+  @@map("book_club_posts")
+}
+
+model Lesson {
+  id                String                  @id @default(uuid()) @db.Uuid
+  lessonId          String                  @unique @map("lesson_id")
+  title             String
+  subject           String
+  gradeLevel        String                  @map("grade_level")
+  lessonJson        Json                    @map("lesson_json")
+  contentBlocks     Json?                   @map("content_blocks")
+  standardsCodes    String[]                @map("standards_codes")
+  estimatedDuration Int                     @map("estimated_duration")
+  isActive          Boolean                 @default(true) @map("is_active")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  studentProgress   StudentLessonProgress[]
+
+  @@index([subject])
+  @@index([gradeLevel])
+  @@index([isActive])
+  @@map("lessons")
+}
+
+model StudentLessonProgress {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  lessonId    String    @map("lesson_id")
+  blockId     String    @map("block_id")
+  completed   Boolean   @default(false)
+  response    Json?
+  timeSpent   Int       @map("time_spent")
+  score       Float?
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  lesson      Lesson    @relation(fields: [lessonId], references: [lessonId], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId, blockId])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("student_lesson_progress")
+}
+
+model PrimarySource {
+  id            String   @id @default(uuid()) @db.Uuid
+  sourceId      String   @unique @map("source_id")
+  title         String
+  creator       String?
+  date          String?
+  sourceType    String   @map("source_type")
+  content       String
+  url           String?
+  collection    String?
+  rights        String
+  metadata      Json
+  isActive      Boolean  @default(true) @map("is_active")
+  isVerified    Boolean  @default(true) @map("is_verified")
+  subjectTrack  String   @default("general") @map("subject_track")
+  isAIGenerated Boolean  @default(false) @map("is_ai_generated")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([sourceType])
+  @@index([isActive])
+  @@index([subjectTrack])
+  @@index([isAIGenerated])
+  @@map("primary_sources")
+}
+
+model StudentEnvironment {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  location    String
+  resources   String[]
+  interests   String[]
+  constraints String[]
+  preferences Json
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_environments")
+}
+
+model ScriptureLibrary {
+  id               String   @id @default(uuid()) @db.Uuid
+  reference        String
+  translation      String   @default("ESV")
+  passage          String
+  hebrewGreekNotes String?  @map("hebrew_greek_notes")
+  topics           String[]
+  keywords         String[]
+  ethicalThemes    String[] @map("ethical_themes")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([reference])
+  @@index([topics])
+  @@index([isActive])
+  @@map("scripture_library")
+}
+
+model LessonSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  lessonId         String    @map("lesson_id")
+  visibleBlocks    String[]  @map("visible_blocks")
+  completedBlocks  String[]  @map("completed_blocks")
+  currentBranch    String?   @map("current_branch")
+  studentResponses Json      @default("{}") @map("student_responses")
+  checkpointId     String?   @map("checkpoint_id")
+  isActive         Boolean   @default(true) @map("is_active")
+  startedAt        DateTime  @default(now()) @map("started_at")
+  completedAt      DateTime? @map("completed_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId, isActive])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("lesson_sessions")
+}
+
 enum UserRole {
   STUDENT
   PARENT
@@ -885,23 +1104,6 @@ enum OpportunityType {
   SPELLING_BEE
   COMPETITION
   EVENT
-}
-
-model SourceGapRequest {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  topic       String
-  subject     String
-  missingRole String    @map("missing_role")
-  resolved    Boolean   @default(false)
-  resolvedAt  DateTime? @map("resolved_at")
-  resolution  String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([resolved])
-  @@map("source_gap_requests")
 }
 
 enum SourceType {
@@ -1000,210 +1202,4 @@ enum CompetitionType {
   WRITING
   ROBOTICS
   OTHER
-}
-
-model CachedLesson {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  creditId    String   @map("credit_id")
-  gradeLevel  String   @default("") @map("grade_level")
-  subject     String
-  title       String
-  lessonData  Json     @map("lesson_data")
-  generatedAt DateTime @default(now()) @map("generated_at")
-  expiresAt   DateTime @map("expires_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  user        User     @relation("CachedLessons", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, creditId, gradeLevel])
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("cached_lessons")
-}
-
-model DailyReflection {
-  id        String   @id @default(uuid()) @db.Uuid
-  studentId String   @map("student_id") @db.Uuid
-  date      DateTime
-  prompt    String
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
-  student   User     @relation("StudentReflections", fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@unique([studentId, date])
-  @@index([studentId])
-  @@index([date])
-  @@map("daily_reflections")
-}
-
-model BookClub {
-  id        String           @id @default(uuid()) @db.Uuid
-  name      String
-  bookId    String           @map("book_id")
-  bookTitle String           @map("book_title")
-  active    Boolean          @default(true)
-  createdAt DateTime         @default(now()) @map("created_at")
-  updatedAt DateTime         @updatedAt @map("updated_at")
-  members   BookClubMember[]
-  posts     BookClubPost[]
-
-  @@index([active])
-  @@map("book_clubs")
-}
-
-model BookClubMember {
-  id       String   @id @default(uuid()) @db.Uuid
-  clubId   String   @map("club_id") @db.Uuid
-  userId   String   @map("user_id") @db.Uuid
-  joinedAt DateTime @default(now()) @map("joined_at")
-  club     BookClub @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([clubId, userId])
-  @@index([userId])
-  @@index([clubId])
-  @@map("book_club_members")
-}
-
-model BookClubPost {
-  id        String   @id @default(uuid()) @db.Uuid
-  clubId    String   @map("club_id") @db.Uuid
-  userId    String?  @map("user_id") @db.Uuid
-  content   String   @db.Text
-  isAdeline Boolean  @default(false) @map("is_adeline")
-  chapter   String?  @map("chapter")
-  createdAt DateTime @default(now()) @map("created_at")
-  club      BookClub @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([clubId])
-  @@index([createdAt])
-  @@map("book_club_posts")
-}
-
-// Lesson System Models
-model Lesson {
-  id                String    @id @default(uuid()) @db.Uuid
-  lessonId          String    @unique @map("lesson_id")
-  title             String
-  subject           String
-  gradeLevel        String    @map("grade_level")
-  lessonJson        Json      @map("lesson_json")
-  contentBlocks     Json?     @map("content_blocks")
-  standardsCodes    String[]  @map("standards_codes")
-  estimatedDuration Int       @map("estimated_duration") // minutes
-  isActive          Boolean   @default(true) @map("is_active")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-
-  studentProgress   StudentLessonProgress[]
-
-  @@index([subject])
-  @@index([gradeLevel])
-  @@index([isActive])
-  @@map("lessons")
-}
-
-model StudentLessonProgress {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  lessonId        String   @map("lesson_id")
-  blockId         String   @map("block_id")
-  completed       Boolean  @default(false)
-  response        Json?
-  timeSpent       Int      @map("time_spent") // seconds
-  score           Float?
-  completedAt     DateTime? @map("completed_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  lesson          Lesson   @relation(fields: [lessonId], references: [lessonId], onDelete: Cascade)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, lessonId, blockId])
-  @@index([userId])
-  @@index([lessonId])
-  @@map("student_lesson_progress")
-}
-
-model PrimarySource {
-  id            String   @id @default(uuid()) @db.Uuid
-  sourceId      String   @unique @map("source_id")
-  title         String
-  creator       String?
-  date          String?
-  sourceType    String   @map("source_type") // document, photo, audio, artifact
-  content       String   // transcribed text
-  url           String?
-  collection    String?  // archive/library
-  rights        String   // public_domain, fair_use, cc_by
-  metadata      Json     // additional context, era, subjects
-  isActive      Boolean  @default(true) @map("is_active")
-  isVerified    Boolean  @default(true) @map("is_verified")
-  subjectTrack  String   @default("general") @map("subject_track")
-  isAIGenerated Boolean  @default(false) @map("is_ai_generated")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@index([sourceType])
-  @@index([isActive])
-  @@index([subjectTrack])
-  @@index([isAIGenerated])
-  @@map("primary_sources")
-}
-
-model StudentEnvironment {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @unique @map("user_id") @db.Uuid
-  location    String   // farm, apartment, urban, rural
-  resources   String[] // available tools, spaces
-  interests   String[]
-  constraints String[] // limitations, challenges
-  preferences Json     // learning style, etc.
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("student_environments")
-}
-
-model ScriptureLibrary {
-  id              String   @id @default(uuid()) @db.Uuid
-  reference       String   // e.g., "Genesis 1:1", "Leviticus 25:23"
-  translation     String   @default("ESV") // ESV, KJV, NASB, etc.
-  passage         String   @db.Text // Full text of the passage
-  hebrewGreekNotes String?  @map("hebrew_greek_notes") @db.Text
-  topics          String[] // For topical search
-  keywords        String[] // For semantic search
-  ethicalThemes   String[] @map("ethical_themes") // justice, stewardship, etc.
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  @@index([reference])
-  @@index([topics])
-  @@index([isActive])
-  @@map("scripture_library")
-}
-
-model LessonSession {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  lessonId        String   @map("lesson_id")
-  visibleBlocks   String[] @map("visible_blocks") // Current visible block IDs
-  completedBlocks String[] @map("completed_blocks")
-  currentBranch   String?  @map("current_branch") // Current branch path
-  studentResponses Json    @map("student_responses") @default("{}")
-  checkpointId    String?  @map("checkpoint_id") // Redis checkpoint key
-  isActive        Boolean  @default(true) @map("is_active")
-  startedAt       DateTime @default(now()) @map("started_at")
-  completedAt     DateTime? @map("completed_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, lessonId, isActive])
-  @@index([userId])
-  @@index([lessonId])
-  @@map("lesson_sessions")
 }

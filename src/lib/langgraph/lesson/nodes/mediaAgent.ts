@@ -8,11 +8,8 @@ const mediaSchema = z.object({
   videoSearchTerms: z.array(z.string()).min(1).max(2),
 });
 
-function buildImageUrl(term: string): string {
-  return `https://www.google.com/search?q=${encodeURIComponent(term)}&tbm=isch`;
-}
-
-function buildVideoUrl(term: string): string {
+// YouTube search link — renderer should open this in a new tab, not try to embed it
+function buildVideoSearchUrl(term: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(term)}`;
 }
 
@@ -43,18 +40,28 @@ Rules:
   ]);
 
   const blocks: LessonBlock[] = [
+    // Image blocks: store the search term as content so the renderer can show
+    // a labelled link rather than trying to embed a Google search results page.
     ...result.imageSearchTerms.map((term): LessonBlock => ({
       type: 'infographic',
-      content: buildImageUrl(term),
+      content: term,
+      interactive: {
+        url: `https://www.google.com/search?q=${encodeURIComponent(term)}&tbm=isch`,
+      } as LessonBlock['interactive'],
       metadata: {
         skills: [state.subject],
         zpd_level: state.gradeLevel,
         agent: 'mediaAgent',
       },
     })),
+    // Video blocks: store the search term and a YouTube search URL.
+    // The VideoBlock component should render a link-out, not an <iframe>.
     ...result.videoSearchTerms.map((term): LessonBlock => ({
       type: 'video',
-      content: buildVideoUrl(term),
+      content: term,
+      interactive: {
+        url: buildVideoSearchUrl(term),
+      } as LessonBlock['interactive'],
       metadata: {
         skills: [state.subject],
         zpd_level: state.gradeLevel,

@@ -3,6 +3,8 @@ import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import prisma from '@/lib/db';
 import { loadConfig } from '@/lib/config';
+import { RenderMode } from '@/types/lesson';
+import { visualArtifactAgent } from './visualArtifactAgent';
 
 const config = loadConfig();
 const model = new ChatOpenAI({
@@ -68,6 +70,10 @@ export const LessonState = Annotation.Root({
   } | undefined>({
     reducer: (_left: any, right: any) => right,
     default: () => undefined,
+  }),
+  renderMode: Annotation<RenderMode>({
+    reducer: (_left: RenderMode, right: RenderMode) => right,
+    default: () => 'standard_lesson',
   }),
 });
 
@@ -138,25 +144,23 @@ async function sourceRetrieverAgent(state: LessonStateType): Promise<Partial<Les
   const { keywords, subject_track } = state.routingDecision!;
   
   try {
-    // Query primary sources from database
+    // Query primary sources from database.
+    // Flatten all per-keyword field checks into a single OR array so Prisma
+    // generates one WHERE … OR … clause instead of deeply nested sub-selects.
+    const keywordConditions = keywords.flatMap((keyword: string) => [
+      { title: { contains: keyword, mode: 'insensitive' as const } },
+      { content: { contains: keyword, mode: 'insensitive' as const } },
+      { creator: { contains: keyword, mode: 'insensitive' as const } },
+    ]);
+
     const sources = await prisma.primarySource.findMany({
       where: {
         isActive: true,
-        OR: keywords.map((keyword: string) => ({
-          OR: [
-            { title: { contains: keyword, mode: 'insensitive' } },
-            { content: { contains: keyword, mode: 'insensitive' } },
-            { creator: { contains: keyword, mode: 'insensitive' } }
-          ]
-        })),
-        subjectTrack: {
-          in: [subject_track, 'general']
-        }
+        subjectTrack: { in: [subject_track, 'general'] },
+        OR: keywordConditions,
       },
       take: 5,
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' },
     });
 
     // If no sources found, create placeholder sources with AI
@@ -421,6 +425,7 @@ export const lessonOrchestrator = new StateGraph(LessonState)
   .addNode("sourceRetriever", sourceRetrieverAgent)
   .addNode("scriptureConnector", scriptureConnectorAgent)
   .addNode("lessonAssembler", lessonAssemblerAgent)
+  .addNode("visualArtifact", visualArtifactAgent)
   .addNode("pathRouter", pathRouterAgent)
   .addNode("assessment", assessmentAgent)
   .addEdge(START, "router")
@@ -428,16 +433,17 @@ export const lessonOrchestrator = new StateGraph(LessonState)
   .addEdge("router", "scriptureConnector")
   .addEdge("sourceRetriever", "lessonAssembler")
   .addEdge("scriptureConnector", "lessonAssembler")
-  .addEdge("lessonAssembler", "pathRouter")
+  // After assembly: generate visual artifact if requested, then route to assessment
+  .addConditionalEdges(
+    "lessonAssembler",
+    (state: LessonStateType) => state.renderMode !== 'standard_lesson' ? "visualArtifact" : "pathRouter",
+    { visualArtifact: "visualArtifact", pathRouter: "pathRouter" }
+  )
+  .addEdge("visualArtifact", "pathRouter")
   .addConditionalEdges(
     "pathRouter",
-    (state: LessonStateType) => {
-      return state.assessmentNeeded ? "assessment" : "end";
-    },
-    {
-      assessment: "assessment",
-      end: END
-    }
+    (state: LessonStateType) => state.assessmentNeeded ? "assessment" : "end",
+    { assessment: "assessment", end: END }
   )
   .addEdge("assessment", END)
   .compile({ checkpointer: _checkpointer });

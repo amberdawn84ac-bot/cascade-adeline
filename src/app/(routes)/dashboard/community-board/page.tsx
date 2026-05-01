@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Heart, MessageCircle, Share2, Loader2, Sparkles, Award, Calendar, ExternalLink, MapPin, DollarSign } from 'lucide-react';
+import { Users, Loader2, Sparkles, Calendar, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface Opportunity {
   id: string;
@@ -17,27 +17,71 @@ interface Opportunity {
   createdAt: string;
 }
 
+interface StudentProfile {
+  age?: number;
+  gradeLevel?: string;
+  interests?: string[];
+}
+
 export default function CommunityBoardPage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [studentProfile, setStudentProfile] = useState<StudentProfile>({});
+
+  const fetchOpportunities = async () => {
+    try {
+      const res = await fetch('/api/opportunities');
+      if (res.ok) {
+        const data = await res.json();
+        setOpportunities(data.opportunities || []);
+      }
+    } catch (error) {
+      console.error('Failed to load opportunities:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOpportunities = async () => {
-      try {
-        const res = await fetch('/api/opportunities');
-        if (res.ok) {
-          const data = await res.json();
-          setOpportunities(data.opportunities || []);
-        }
-      } catch (error) {
-        console.error('Failed to load opportunities:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchOpportunities();
+    // Fetch student profile for the discover button
+    fetch('/api/student/profile')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setStudentProfile({
+            age: data.age,
+            gradeLevel: data.gradeLevel,
+            interests: data.interests || [],
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const handleDiscover = async () => {
+    setIsDiscovering(true);
+    try {
+      const res = await fetch('/api/competitions/discover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentAge: studentProfile.age,
+          studentGrade: studentProfile.gradeLevel,
+          interests: studentProfile.interests,
+        }),
+      });
+      if (res.ok) {
+        // Refresh the opportunity list to show newly discovered items
+        await fetchOpportunities();
+      }
+    } catch (error) {
+      console.error('Failed to discover opportunities:', error);
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#FFFEF7]">
@@ -46,12 +90,24 @@ export default function CommunityBoardPage() {
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-4 mb-3">
             <Users className="w-12 h-12 text-[#BD6809]" />
-            <div>
+            <div className="flex-1">
               <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                 Community Board
               </h1>
               <p className="text-white/80 mt-1">Discover real-world opportunities: contests, scholarships, grants, and events for students like you.</p>
             </div>
+            <button
+              onClick={handleDiscover}
+              disabled={isDiscovering}
+              className="flex items-center gap-2 px-4 py-2 bg-[#BD6809] hover:bg-[#A55808] disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-colors shrink-0"
+            >
+              {isDiscovering ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {isDiscovering ? 'Searching...' : 'Find New'}
+            </button>
           </div>
         </div>
       </div>

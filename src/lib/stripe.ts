@@ -2,7 +2,18 @@ import 'server-only'
 
 import Stripe from 'stripe'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+let _stripe: Stripe | undefined;
+export const stripe: Stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    if (!_stripe) {
+      if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('STRIPE_SECRET_KEY is not set');
+      }
+      _stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    }
+    return (_stripe as any)[prop];
+  },
+});
 
 // Price IDs (set these after creating products in Stripe Dashboard)
 export const STRIPE_PRICES = {
@@ -15,44 +26,6 @@ export const STRIPE_PRICES = {
   EXTRA_STUDENT: process.env.STRIPE_PRICE_EXTRA_STUDENT || '',
 };
 
-export const TIER_LIMITS = {
-  FREE: {
-    messages: Infinity,
-    students: 1,
-    canCreateClubs: true,
-    hasParentDashboard: false,
-    hasTranscripts: false,
-    hasLearningPath: false,
-    hasJournal: false,
-  },
-  STUDENT: {
-    messages: Infinity,
-    students: 1,
-    canCreateClubs: true,
-    hasParentDashboard: false,
-    hasTranscripts: false,
-    hasLearningPath: true,
-    hasJournal: true,
-  },
-  PARENT: {
-    messages: Infinity,
-    students: 5,
-    canCreateClubs: true,
-    hasParentDashboard: true,
-    hasTranscripts: true,
-    hasLearningPath: true,
-    hasJournal: true,
-  },
-  TEACHER: {
-    messages: Infinity,
-    students: 40,
-    canCreateClubs: true,
-    hasParentDashboard: true,
-    hasTranscripts: true,
-    hasLearningPath: true,
-    hasJournal: true,
-  },
-} as const;
-
-export type TierName = keyof typeof TIER_LIMITS;
+export { TIER_LIMITS } from './tiers';
+export type { TierName } from './tiers';
 

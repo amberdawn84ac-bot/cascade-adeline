@@ -1,6 +1,6 @@
 import { generateText } from 'ai';
 import { loadConfig } from '../config';
-import { AdelineGraphState, AdelineIntent } from './types';
+import { AdelineGraphState, AdelineIntent, RemediationType, RemediationContext } from './types';
 import { getModel } from '../ai-models';
 
 const INTENT_LABELS: AdelineIntent[] = [
@@ -14,7 +14,54 @@ const INTENT_LABELS: AdelineIntent[] = [
   'ASSESS',
   'ANALOGY',
   'LESSON',
+  'REMEDIATION',
 ];
+
+/**
+ * Parse remediation context from [REMEDIATION:TYPE] prefixed messages.
+ * Returns null if the message is not a remediation request.
+ */
+function parseRemediationMessage(prompt: string): RemediationContext | null {
+  const match = prompt.match(/^\[REMEDIATION:(\w+)\]\s*(.*)$/i);
+  if (!match) return null;
+
+  const type = match[1].toUpperCase() as RemediationType;
+  const content = match[2];
+
+  const context: RemediationContext = { type };
+
+  // Extract component type from content
+  const componentMatch = content.match(/this (\w+)/i);
+  if (componentMatch) {
+    context.componentType = componentMatch[1];
+  }
+
+  // Extract failed attempts
+  const attemptsMatch = content.match(/tried (\d+) times/i);
+  if (attemptsMatch) {
+    context.failedAttempts = parseInt(attemptsMatch[1], 10);
+  }
+
+  // Extract hint level
+  const hintMatch = content.match(/hint level (\d+)/i);
+  if (hintMatch) {
+    context.hintLevel = parseInt(hintMatch[1], 10);
+  }
+
+  // Extract concept
+  const conceptMatch = content.match(/concept "([^"]+)"/i);
+  if (conceptMatch) {
+    context.concept = conceptMatch[1];
+  }
+
+  // Extract misconception
+  const misconceptionMatch = content.match(/misconception[^"]*"([^"]+)"/i);
+  if (misconceptionMatch) {
+    context.misconception = misconceptionMatch[1];
+  }
+
+  return context;
+}
 
 async function llmClassifyIntent(prompt: string, modelId: string): Promise<AdelineIntent | null> {
   try {
@@ -121,6 +168,22 @@ function selectModel(intent: AdelineIntent, prompt: string, config: ReturnType<t
 export async function router(state: AdelineGraphState): Promise<AdelineGraphState> {
   const config = loadConfig();
   const baseModel = config.models.default;
+
+  // PRIORITY 0: Check for remediation messages from GenUI components
+  // These are bidirectional requests triggered by component interactions
+  const remediationContext = parseRemediationMessage(state.prompt);
+  if (remediationContext) {
+    console.log('[Router] REMEDIATION detected:', remediationContext.type, remediationContext);
+    return {
+      ...state,
+      intent: 'REMEDIATION',
+      selectedModel: baseModel,
+      metadata: {
+        ...state.metadata,
+        remediationContext,
+      },
+    };
+  }
 
   // If cognitive load is high or critical, prioritize analogy generation
   if (state.cognitiveLoad?.level === 'HIGH' || state.cognitiveLoad?.level === 'CRITICAL') {

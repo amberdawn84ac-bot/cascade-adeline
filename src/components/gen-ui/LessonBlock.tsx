@@ -16,10 +16,11 @@ import GameBlock from '@/components/lessons/blocks/GameBlock';
 import WorksheetBlock from '@/components/lessons/blocks/WorksheetBlock';
 import ChoiceBlock from '@/components/lessons/blocks/ChoiceBlock';
 import PromptBlock from '@/components/lessons/blocks/PromptBlock';
+import VisualArtifactBlock from '@/components/lessons/blocks/VisualArtifactBlock';
 
 // Wide blocks that benefit from the expand overlay in narrow panels
 const WIDE_BLOCK_TYPES = new Set([
-  'infographic', 'investigation', 'primary_source', 'worksheet', 'game',
+  'infographic', 'investigation', 'primary_source', 'worksheet', 'game', 'visual_artifact',
 ]);
 
 const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
@@ -44,6 +45,8 @@ const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   interactive_concept: TextBlock,
   vocab_tooltip: TextBlock,
   source_gap: TextBlock,
+  // Visual artifact modes — dispatches to the right card via renderMode
+  visual_artifact: VisualArtifactBlock,
 };
 
 interface LessonBlockProps {

@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Award, BookOpen, Calculator, FlaskConical, Feather, MapPin, Users, Gamepad2, ChefHat } from 'lucide-react';
+import { Clock, Award, BookOpen, Calculator, FlaskConical, Feather, MapPin, Users, Gamepad2, ChefHat, TrendingUp } from 'lucide-react';
 
 interface ActivityEntry {
   id: string;
@@ -36,9 +36,10 @@ const SUBJECT_COLORS: Record<string, { bg: string; border: string; text: string;
   'Social Studies': { bg: 'bg-amber-50', border: 'border-amber-300', text: 'text-amber-900', icon: MapPin },
   Bible: { bg: 'bg-indigo-50', border: 'border-indigo-300', text: 'text-indigo-900', icon: BookOpen },
   Homesteading: { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-900', icon: ChefHat },
-  'Domestic Arts': { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-900', icon: ChefHat },
   Community: { bg: 'bg-pink-50', border: 'border-pink-300', text: 'text-pink-900', icon: Users },
   Arcade: { bg: 'bg-cyan-50', border: 'border-cyan-300', text: 'text-cyan-900', icon: Gamepad2 },
+  'Applied Math': { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-900', icon: Calculator },
+  'Creative Economics': { bg: 'bg-emerald-50', border: 'border-emerald-300', text: 'text-emerald-900', icon: TrendingUp },
 };
 
 const getSubjectStyle = (subject: string) => {
@@ -72,7 +73,7 @@ export function JournalTimeline({ groupedActivities }: JournalTimelineProps) {
           <div key={dateLabel} className="relative">
             {/* Date Header */}
             <div className="sticky top-0 z-10 bg-[#FFFEF7]/95 backdrop-blur-sm py-3 mb-4 border-b-2 border-[#E7DAC3]">
-              <h2 className="text-2xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
+              <h2 className="text-2xl font-bold text-[#2F4731] font-emilys-candy">
                 {dateLabel}
               </h2>
             </div>

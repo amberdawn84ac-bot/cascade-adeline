@@ -1,5 +1,6 @@
 import prisma from './db';
-import { TIER_LIMITS, TierName } from './stripe';
+import { TIER_LIMITS } from './tiers';
+import type { TierName } from './tiers';
 
 export async function getUserSubscription(userId: string) {
   const subscription = await prisma.subscription.findUnique({

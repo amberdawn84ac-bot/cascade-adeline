@@ -107,3 +107,43 @@ export function resetUser() {
   posthog.reset();
 }
 
+// LearnLM active learning telemetry
+export function trackConceptMapCompleted(properties: {
+  conceptId?: string;
+  score: number;
+  timeMs: number;
+  topic?: string;
+}) {
+  posthog.capture('concept_map_completed', properties);
+}
+
+export function trackTimelineSorted(properties: {
+  topic?: string;
+  correct: boolean;
+  attempts: number;
+  timeMs: number;
+}) {
+  posthog.capture('timeline_sorted', properties);
+}
+
+export function trackCalibrationScore(properties: {
+  questionId?: string;
+  isCorrect: boolean;
+  confidence: 'guessing' | 'somewhat' | 'sure';
+  topic?: string;
+}) {
+  posthog.capture('calibration_score', {
+    ...properties,
+    calibrationMismatch: properties.isCorrect && properties.confidence === 'guessing'
+      || !properties.isCorrect && properties.confidence === 'sure',
+  });
+}
+
+export function trackMnemonicViewed(properties: { concept?: string; mnemonicType?: string }) {
+  posthog.capture('mnemonic_viewed', properties);
+}
+
+export function trackSlideNarrated(properties: { slideTitle?: string; slideIndex?: number }) {
+  posthog.capture('slide_narrated', properties);
+}
+

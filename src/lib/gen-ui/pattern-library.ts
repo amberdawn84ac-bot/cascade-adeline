@@ -1,5 +1,28 @@
 import { z } from 'zod';
 
+/**
+ * Base pedagogical state schema that ALL interactive components should extend.
+ * These fields enable the LLM to instantiate components with appropriate scaffolding
+ * based on the student's prior context and detected learning gaps.
+ */
+export const PedagogicalStateSchema = z.object({
+  /** Difficulty level for adaptive learning */
+  difficultyLevel: z.enum(['intro', 'standard', 'challenge']).default('standard'),
+  /** Whether to show scaffolded hints/guidance */
+  isScaffolded: z.boolean().default(false),
+  /** Known misconceptions from previous interactions */
+  previousMisconceptions: z.array(z.string()).optional(),
+  /** Progressive hint level (0 = no hints, 3 = maximum scaffolding) */
+  hintLevel: z.number().min(0).max(3).default(0),
+  /** Maximum attempts before triggering remediation */
+  maxAttempts: z.number().optional(),
+  /** Unique identifier for telemetry tracking */
+  componentId: z.string().optional(),
+});
+
+/** Type for pedagogical state props */
+export type PedagogicalState = z.infer<typeof PedagogicalStateSchema>;
+
 export interface UIPattern {
   id: string;
   name: string;
@@ -8,6 +31,8 @@ export interface UIPattern {
   tags: string[];
   propsSchema: z.ZodSchema;
   example: Record<string, unknown>;
+  /** Whether this is an interactive component that supports pedagogical state */
+  isInteractive?: boolean;
 }
 
 export const UI_PATTERNS: UIPattern[] = [
@@ -314,6 +339,325 @@ export const UI_PATTERNS: UIPattern[] = [
       current: 15,
       total: 20,
       unit: 'standards',
+    },
+  },
+  // Visual artifact patterns
+  {
+    id: 'infographic-poster',
+    name: 'Infographic Poster',
+    component: 'InfographicPosterCard',
+    description: 'Visual poster with structured sections, bold headers, and minimal text — designed for one-glance learning',
+    tags: ['visual', 'infographic', 'poster', 'design', 'overview', 'summary'],
+    propsSchema: z.object({
+      title: z.string(),
+      subtitle: z.string().optional(),
+      sections: z.array(z.object({
+        header: z.string(),
+        content: z.array(z.string()),
+        icon: z.string().optional(),
+        visual: z.string().optional(),
+      })).min(2).max(8),
+      colorPalette: z.array(z.string()).optional(),
+      layout: z.enum(['vertical', 'grid']),
+      callToAction: z.string().optional(),
+    }),
+    example: {
+      title: 'The Water Cycle',
+      subtitle: 'How water moves through our world',
+      sections: [
+        { header: 'Evaporation', content: ['Sun heats surface water', 'Water becomes vapor'], icon: '☀️', visual: 'arrow rising from water' },
+        { header: 'Condensation', content: ['Vapor cools in atmosphere', 'Forms clouds and fog'], icon: '☁️' },
+        { header: 'Precipitation', content: ['Water falls as rain or snow', 'Returns to earth'], icon: '🌧️' },
+      ],
+      layout: 'vertical',
+      callToAction: 'Collect rainwater today and measure it!',
+    },
+  },
+  {
+    id: 'animal-infographic',
+    name: 'Animal Infographic',
+    component: 'AnimalInfographicCard',
+    description: 'Visual animal profile with stats, habitat, adaptations, and fun facts — styled for education',
+    tags: ['animal', 'nature', 'biology', 'wildlife', 'science', 'creature'],
+    propsSchema: z.object({
+      animal: z.string(),
+      heroFact: z.string(),
+      stats: z.record(z.string()),
+      sections: z.array(z.object({
+        header: z.string(),
+        content: z.array(z.string()),
+        icon: z.string().optional(),
+        visual: z.string().optional(),
+      })).min(2).max(6),
+      funFacts: z.array(z.string()).optional(),
+      illustrationStyle: z.string().optional(),
+    }),
+    example: {
+      animal: 'Red Fox',
+      heroFact: 'Fast, adaptable predator found on every continent except Antarctica',
+      stats: { Speed: '30 mph', Diet: 'omnivore', Lifespan: '3–5 years', Weight: '8–15 lbs' },
+      sections: [
+        { header: 'Habitat', content: ['Forests and woodlands', 'Grasslands and farmland', 'Suburban areas'], visual: 'map silhouette' },
+        { header: 'Adaptations', content: ['Sharp hearing detects prey underground', 'Night vision for hunting at dusk'], visual: 'labeled body diagram' },
+      ],
+      funFacts: ['Uses Earth\'s magnetic field to hunt', 'Can make 40 different sounds'],
+    },
+  },
+  {
+    id: 'illustrated-recipe',
+    name: 'Illustrated Recipe',
+    component: 'IllustratedRecipeCard',
+    description: 'Step-by-step recipe card with ingredients, illustrated steps, and tips — farmhouse style',
+    tags: ['recipe', 'cooking', 'life-skills', 'food', 'baking', 'how-to', 'steps'],
+    propsSchema: z.object({
+      title: z.string(),
+      steps: z.array(z.object({
+        step: z.number(),
+        title: z.string(),
+        instruction: z.string(),
+        visual: z.string().optional(),
+        tip: z.string().optional(),
+      })).min(3).max(12),
+      ingredients: z.array(z.object({
+        name: z.string(),
+        amount: z.string(),
+        icon: z.string().optional(),
+      })).min(1).max(20),
+      layout: z.string().optional(),
+      style: z.string().optional(),
+    }),
+    example: {
+      title: 'Sourdough Bread',
+      ingredients: [
+        { name: 'Bread flour', amount: '3 cups', icon: '🌾' },
+        { name: 'Sourdough starter', amount: '½ cup', icon: '🫙' },
+        { name: 'Salt', amount: '1½ tsp', icon: '🧂' },
+        { name: 'Water', amount: '1¼ cups', icon: '💧' },
+      ],
+      steps: [
+        { step: 1, title: 'Mix', instruction: 'Combine flour, water, and starter until shaggy', visual: 'bowl with mixing arrows', tip: 'Use filtered water for best results' },
+        { step: 2, title: 'Autolyse', instruction: 'Cover and rest 30 minutes', visual: 'covered bowl with timer' },
+        { step: 3, title: 'Add salt', instruction: 'Add salt and fold into dough' },
+        { step: 4, title: 'Bulk ferment', instruction: 'Fold every 30 minutes for 4 hours', tip: 'Dough should be jiggly and doubled' },
+        { step: 5, title: 'Shape & Bake', instruction: 'Shape loaf, refrigerate overnight, bake at 500°F in Dutch oven' },
+      ],
+      style: 'hand-drawn farmhouse',
+    },
+  },
+  {
+    id: 'visual-deep-dive',
+    name: 'Visual Deep Dive',
+    component: 'VisualDeepDiveCard',
+    description: 'Hybrid infographic-lesson — looks like a poster, teaches like a full lesson. Each section has a visual summary, deep explanation, real-world connection, and optional activity.',
+    tags: ['lesson', 'deep', 'explain', 'teach', 'visual', 'learn', 'study', 'explore'],
+    propsSchema: z.object({
+      title: z.string(),
+      subtitle: z.string().optional(),
+      sections: z.array(z.object({
+        header: z.string(),
+        visual_summary: z.array(z.string()),
+        deep_explanation: z.string(),
+        why_it_matters: z.string(),
+        visual: z.string().optional(),
+        activity: z.string().optional(),
+      })).min(3).max(7),
+    }),
+    example: {
+      title: 'How Photosynthesis Works',
+      subtitle: 'Plants turning light into food — and why it feeds the whole earth',
+      sections: [
+        {
+          header: 'Capturing Light',
+          visual_summary: ['Leaves absorb sunlight', 'Chlorophyll = the green molecule that does it'],
+          deep_explanation: 'Chlorophyll molecules inside leaf cells absorb red and blue light from the sun, reflecting green light back to our eyes. This absorbed energy powers the first stage of photosynthesis, splitting water molecules into hydrogen and oxygen.',
+          why_it_matters: 'Every breath you take depends on this — the oxygen in the air is the "waste product" plants release while capturing light.',
+          visual: 'cross-section of leaf cell showing chloroplasts absorbing light rays',
+          activity: 'Hold a leaf up to bright sunlight. What colour does it transmit? Sketch what you see.',
+        },
+      ],
+    },
+  },
+  // LearnLM active learning patterns
+  {
+    id: 'interactive-concept-map',
+    name: 'Interactive Concept Map',
+    component: 'InteractiveConceptMap',
+    description: 'Active schema-building: student drags concepts from a word bank into blank nodes to complete a concept map',
+    tags: ['concept', 'schema', 'map', 'interactive', 'gaps', 'knowledge', 'active'],
+    propsSchema: z.object({
+      title: z.string(),
+      description: z.string().optional(),
+      nodes: z.array(z.object({
+        id: z.string(),
+        label: z.string(),
+        isBlank: z.boolean(),
+        correctLabel: z.string().optional(),
+        hint: z.string().optional(),
+      })),
+      wordBank: z.array(z.string()),
+    }),
+    example: {
+      title: 'Photosynthesis Concept Map',
+      description: 'Complete the map by placing the missing concepts.',
+      nodes: [
+        { id: '1', label: 'Sunlight', isBlank: false },
+        { id: '2', label: '', isBlank: true, correctLabel: 'Chlorophyll', hint: 'The green pigment in leaves' },
+        { id: '3', label: 'Glucose', isBlank: false },
+        { id: '4', label: '', isBlank: true, correctLabel: 'Oxygen', hint: 'Released as a byproduct' },
+      ],
+      wordBank: ['Chlorophyll', 'Oxygen', 'Water', 'Carbon Dioxide'],
+    },
+  },
+  {
+    id: 'drag-timeline',
+    name: 'Drag-and-Sort Timeline',
+    component: 'DragTimelineCard',
+    description: 'Active sequencing: student drags events into chronological order before the timeline is revealed',
+    tags: ['timeline', 'sequence', 'drag', 'sort', 'history', 'order', 'active'],
+    isInteractive: true,
+    propsSchema: z.object({
+      title: z.string(),
+      events: z.array(z.object({
+        id: z.string(),
+        date: z.string(),
+        title: z.string(),
+        description: z.string(),
+        connection: z.string().optional(),
+      })),
+    }).merge(PedagogicalStateSchema),
+    example: {
+      title: 'Order the events of the American Revolution',
+      events: [
+        { id: 'a', date: '1773', title: 'Boston Tea Party', description: 'Colonists dumped British tea into Boston Harbor', connection: 'Led to the Intolerable Acts' },
+        { id: 'b', date: '1775', title: 'Lexington & Concord', description: 'First military battles of the revolution' },
+        { id: 'c', date: '1776', title: 'Declaration of Independence', description: 'Colonies formally declared independence from Britain' },
+      ],
+      difficultyLevel: 'standard',
+      isScaffolded: false,
+    },
+  },
+  {
+    id: 'calibrated-quiz',
+    name: 'Calibrated Glow/Grow Quiz',
+    component: 'CalibratedQuiz',
+    description: 'Metacognitive quiz: student answers, rates confidence, then receives Glow (strength) and Grow (improvement) feedback',
+    tags: ['quiz', 'assessment', 'metacognition', 'feedback', 'calibration', 'glow', 'grow'],
+    isInteractive: true,
+    propsSchema: z.object({
+      question: z.string(),
+      options: z.array(z.string()).min(2).max(5),
+      correctIndex: z.number().min(0),
+      glow: z.string(),
+      grow: z.string(),
+    }).merge(PedagogicalStateSchema),
+    example: {
+      question: 'What is the primary purpose of the Bill of Rights?',
+      options: [
+        'To create the three branches of government',
+        'To protect individual freedoms from government overreach',
+        'To establish the tax system',
+        'To define the powers of the President',
+      ],
+      correctIndex: 1,
+      glow: 'You understand that the Constitution creates the government structure — that\'s the right framework.',
+      grow: 'The Bill of Rights specifically limits what the government can do to individuals — it\'s a list of protections, not powers.',
+      difficultyLevel: 'standard',
+      isScaffolded: false,
+    },
+  },
+  {
+    id: 'mnemonic-card',
+    name: 'Mnemonic Memory Card',
+    component: 'MnemonicCard',
+    description: 'AI-generated bespoke mnemonic (acronym, phrase, or story) to help students memorize complex lists or concepts',
+    tags: ['memory', 'mnemonic', 'memorize', 'remember', 'list', 'acronym', 'study'],
+    propsSchema: z.object({
+      concept: z.string(),
+      items: z.array(z.string()),
+      mnemonic: z.string(),
+      mnemonicType: z.enum(['acronym', 'phrase', 'story', 'visual']),
+      breakdown: z.array(z.object({ letter: z.string(), item: z.string() })).optional(),
+      tip: z.string().optional(),
+    }),
+    example: {
+      concept: 'The Planets in Order from the Sun',
+      items: ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'],
+      mnemonic: 'MY VERY EAGER MOTHER JUST SERVED US NACHOS',
+      mnemonicType: 'phrase',
+      breakdown: [
+        { letter: 'M', item: 'Mercury' },
+        { letter: 'V', item: 'Venus' },
+        { letter: 'E', item: 'Earth' },
+        { letter: 'M', item: 'Mars' },
+        { letter: 'J', item: 'Jupiter' },
+        { letter: 'S', item: 'Saturn' },
+        { letter: 'U', item: 'Uranus' },
+        { letter: 'N', item: 'Neptune' },
+      ],
+      tip: 'Visualize your mother actually serving nachos in space!',
+    },
+  },
+  {
+    id: 'narrated-slide',
+    name: 'Narrated Slide Card',
+    component: 'NarratedSlideCard',
+    description: 'Dual coding (audio): slides with bullet points and a browser TTS voiceover script for each slide',
+    tags: ['narrate', 'audio', 'slides', 'voiceover', 'listen', 'dual-coding', 'multimodal'],
+    propsSchema: z.object({
+      title: z.string(),
+      slides: z.array(z.object({
+        title: z.string(),
+        bullets: z.array(z.string()),
+        voiceover: z.string(),
+        visual: z.string().optional(),
+      })).min(1),
+      audioUrls: z.array(z.string()).optional(),
+    }),
+    example: {
+      title: 'The Water Cycle',
+      slides: [
+        {
+          title: 'Evaporation',
+          bullets: ['Heat from the sun causes water to turn into vapour', 'Water rises into the atmosphere'],
+          voiceover: 'When the sun heats the surface of oceans, lakes, and rivers, water molecules gain enough energy to escape into the air as invisible water vapour. This is called evaporation — the first step of the water cycle.',
+          visual: 'Sun rays hitting a lake surface with upward arrows showing water vapour rising',
+        },
+        {
+          title: 'Condensation & Precipitation',
+          bullets: ['Water vapour cools and forms clouds', 'When clouds get heavy enough, precipitation falls'],
+          voiceover: 'As water vapour rises higher into the atmosphere, it cools and condenses into tiny water droplets, forming clouds. When enough droplets combine, they fall back to Earth as rain, snow, or hail — completing the cycle.',
+          visual: 'Cloud forming from rising vapour, then rain falling back to earth',
+        },
+      ],
+    },
+  },
+  {
+    id: 'illustrated-text',
+    name: 'Illustrated Text Block',
+    component: 'IllustratedTextBlock',
+    description: 'Dual coding (visual): chunked explanatory text paired with AI-generated DALL-E illustrations for each chunk',
+    tags: ['illustrate', 'image', 'visual', 'text', 'dual-coding', 'picture', 'diagram'],
+    propsSchema: z.object({
+      title: z.string().optional(),
+      subject: z.string().optional(),
+      chunks: z.array(z.object({
+        text: z.string(),
+        illustrationPrompt: z.string().optional(),
+      })).min(1),
+    }),
+    example: {
+      title: 'How DNA Replication Works',
+      subject: 'Biology',
+      chunks: [
+        {
+          text: 'DNA replication begins when an enzyme called helicase unwinds the double helix by breaking the hydrogen bonds between base pairs, creating a replication fork.',
+          illustrationPrompt: 'Helicase enzyme unwinding a DNA double helix at the replication fork',
+        },
+        {
+          text: 'DNA polymerase then reads each template strand and adds complementary nucleotides, building two new identical DNA molecules from the original.',
+          illustrationPrompt: 'DNA polymerase adding nucleotides to a growing DNA strand using a template',
+        },
+      ],
     },
   },
 ];

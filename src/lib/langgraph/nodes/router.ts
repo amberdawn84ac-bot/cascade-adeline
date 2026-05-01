@@ -15,7 +15,7 @@ return { intent: "CHAT" };
 
 // Normal LLM routing for everything else
 const routerSchema = z.object({
-intent: z.enum(["CHAT", "BRAINSTORM", "INVESTIGATE", "LOG_CREDIT"])
+intent: z.enum(["CHAT", "BRAINSTORM", "INVESTIGATE", "LOG_CREDIT", "REFLECT", "GEN_UI", "OPPORTUNITY", "IMAGE_LOG", "VISION"])
 });
 
 const config = loadConfig();

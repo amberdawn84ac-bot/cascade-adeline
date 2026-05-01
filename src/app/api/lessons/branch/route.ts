@@ -5,7 +5,13 @@ import { updateBKT } from '@/lib/learning/bkt';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage } from '@langchain/core/messages';
 
-const branchModel = new ChatGoogleGenerativeAI({ model: 'gemini-2.0-flash', temperature: 0.7 });
+let _branchModel: ChatGoogleGenerativeAI | undefined;
+function getBranchModel() {
+  if (!_branchModel) {
+    _branchModel = new ChatGoogleGenerativeAI({ model: 'gemini-2.0-flash', temperature: 0.7 });
+  }
+  return _branchModel;
+}
 
 export async function POST(req: Request) {
   try {
@@ -50,7 +56,7 @@ Return a JSON array of blocks only (no wrapper object):
   { "block_id": "deep-2", "block_type": "investigation", "order": 100, ... }
 ]`;
 
-        const aiResponse = await branchModel.invoke([new HumanMessage(prompt)]);
+        const aiResponse = await getBranchModel().invoke([new HumanMessage(prompt)]);
         const content = aiResponse.content.toString();
         const jsonMatch = content.match(/\[[\s\S]*\]/);
         const newBlocks = jsonMatch ? JSON.parse(jsonMatch[0]) : [];

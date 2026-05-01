@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     const cached = await getCachedContent('domestic-arts', topicKey, skillLevel);
     if (cached) {
       const creditResult = await awardCreditsForActivity(user.userId, {
-        subject: 'Domestic Arts', activityType: 'homesteading-project',
+        subject: 'Homesteading', activityType: 'homesteading-project',
         activityName: `Homesteading: ${cached.title}`,
         metadata: { category, focus: focusLabel, difficulty: cached.difficulty, yield: cached.yield },
         masteryDemonstrated: true,
@@ -94,9 +94,9 @@ CRITICAL RULES:
         },
       ]);
 
-      // Award credits for domestic arts project
+      // Award credits for homesteading project
       const creditResult = await awardCreditsForActivity(user.userId, {
-        subject: 'Domestic Arts',
+        subject: 'Homesteading',
         activityType: 'homesteading-project',
         activityName: `Homesteading: ${result.title}`,
         metadata: {
@@ -111,7 +111,7 @@ CRITICAL RULES:
       await createTranscriptEntryWithCredits(
         user.userId,
         `Homesteading: ${result.title}`,
-        'Domestic Arts',
+        'Homesteading',
         creditResult,
         `Completed ${result.difficulty} ${category} project: ${result.yield}`,
         { project: result }

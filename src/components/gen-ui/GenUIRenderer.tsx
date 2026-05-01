@@ -28,6 +28,19 @@ import { TrackBloom } from './patterns/TrackBloom';
 import { LessonBlock } from './LessonBlock';
 import InvestigationBlock from '@/components/lessons/blocks/InvestigationBlock';
 import PrimarySourceBlock from '@/components/lessons/blocks/PrimarySourceBlock';
+// Visual artifact components
+import { InfographicPosterCard } from './visual-artifacts/InfographicPosterCard';
+import { AnimalInfographicCard } from './visual-artifacts/AnimalInfographicCard';
+import { IllustratedRecipeCard } from './visual-artifacts/IllustratedRecipeCard';
+import { VisualDeepDiveCard } from './visual-artifacts/VisualDeepDiveCard';
+// LearnLM active learning components
+import { InteractiveConceptMap } from './patterns/InteractiveConceptMap';
+import { DragTimelineCard } from './patterns/DragTimelineCard';
+import { CalibratedQuiz } from './patterns/CalibratedQuiz';
+import { MnemonicCard } from './patterns/MnemonicCard';
+// LearnLM multimodal components
+import { NarratedSlideCard } from './patterns/NarratedSlideCard';
+import { IllustratedTextBlock } from './patterns/IllustratedTextBlock';
 
 type GenUIPayload = {
   component: string;
@@ -63,6 +76,20 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   LessonBlock,
   InvestigationBlock,
   PrimarySourceBlock,
+  // Visual artifact components
+  InfographicPosterCard,
+  AnimalInfographicCard,
+  IllustratedRecipeCard,
+  VisualDeepDiveCard,
+  // LearnLM active learning components
+  ConceptMap: InteractiveConceptMap,
+  InteractiveConceptMap,
+  DragTimelineCard,
+  CalibratedQuiz,
+  MnemonicCard,
+  // LearnLM multimodal components
+  NarratedSlideCard,
+  IllustratedTextBlock,
 };
 
 const INTENT_BORDER_COLORS: Record<string, string> = {
@@ -71,9 +98,21 @@ const INTENT_BORDER_COLORS: Record<string, string> = {
   ProjectImpactCard: '#2F4731',
   MissionBriefing: '#9A3F4A',
   Timeline: '#6366F1',
-  LessonBlock: '#2F4731',         // Palm Frond — lesson content
-  InvestigationBlock: '#3D1419',  // Fuschia — Follow the Money
-  PrimarySourceBlock: '#9A3F4A',  // Paradise — primary sources
+  LessonBlock: '#2F4731',              // Palm Frond — lesson content
+  InvestigationBlock: '#3D1419',       // Fuschia — Follow the Money
+  PrimarySourceBlock: '#9A3F4A',       // Paradise — primary sources
+  InfographicPosterCard: '#2F4731',    // Palm Frond — visual learning
+  AnimalInfographicCard: '#2F4731',    // Palm Frond — nature/science
+  IllustratedRecipeCard: '#9A3F4A',    // Paradise — life skills
+  VisualDeepDiveCard: '#2F4731',       // Palm Frond — hybrid lesson
+  // LearnLM components
+  ConceptMap: '#6A4C93',               // Deep Purple — schema building
+  InteractiveConceptMap: '#6A4C93',
+  DragTimelineCard: '#6366F1',         // Indigo — active sequencing
+  CalibratedQuiz: '#9A3F4A',           // Paradise — metacognition
+  MnemonicCard: '#6A4C93',             // Deep Purple — memory encoding
+  NarratedSlideCard: '#2F4731',         // Palm Frond — audio narration
+  IllustratedTextBlock: '#2F4731',      // Palm Frond — dual coding
 };
 
 function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) {
@@ -142,8 +181,6 @@ export function GenUIRenderer({ payload }: { payload: GenUIPayload | null }) {
     }
   }, [payload?.component]);
 
-  console.log('[GenUIRenderer] 🚀 GenUIRenderer called with payload:', payload);
-  
   if (!payload) {
     console.log('[GenUIRenderer] No payload provided, returning null');
     return null;
