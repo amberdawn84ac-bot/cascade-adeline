@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import type { TelemetryEvent } from '@/hooks/useGenUITelemetry';
 
 /**
@@ -63,7 +64,7 @@ async function processEvent(userId: string, event: TelemetryEvent): Promise<void
         componentId,
         timestamp,
         ...data,
-      },
+      } as Prisma.InputJsonValue,
     },
   });
 
