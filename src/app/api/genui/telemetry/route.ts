@@ -209,10 +209,7 @@ async function findConceptForComponent(
   // For now, try to find a concept with a similar name
   const concept = await prisma.concept.findFirst({
     where: {
-      OR: [
-        { name: { contains: componentType, mode: 'insensitive' } },
-        { tags: { has: componentType.toLowerCase() } },
-      ],
+      name: { contains: componentType, mode: 'insensitive' },
     },
     select: { id: true },
   });
