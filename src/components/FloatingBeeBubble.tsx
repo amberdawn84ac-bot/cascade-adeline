@@ -228,6 +228,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
               type="submit"
               disabled={isLoading || !input.trim()}
               className="bg-[#BD6809] text-white rounded-full p-2 hover:bg-[#2F4731] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              aria-label="Send message"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -286,6 +287,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
             <button
               onClick={() => setIsOpen(false)}
               className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
+              aria-label="Close chat"
             >
               <X className="w-5 h-5" />
             </button>
@@ -374,6 +376,7 @@ export function FloatingBeeBubble({ onLessonStream, onLessonRequest, onLessonMou
                 type="submit"
                 disabled={isLoading || !input.trim()}
                 className="bg-[#BD6809] text-white rounded-full p-2 hover:bg-[#2F4731] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                aria-label="Send message"
               >
                 <Send className="w-5 h-5" />
               </button>
