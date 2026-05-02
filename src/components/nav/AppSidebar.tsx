@@ -53,19 +53,13 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
     const checkUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Get user role from database or metadata
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        
-        setUserRole((profile as any)?.role || 'student');
+        const role = (user.user_metadata?.role as string | undefined)?.toLowerCase() || 'student';
+        setUserRole(role);
       }
     };
-    
+
     checkUserRole();
-  }, [supabase]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter nav items based on user role
   const filteredNavItems = NAV_ITEMS.filter(item => {
