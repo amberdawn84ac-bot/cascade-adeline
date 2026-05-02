@@ -47,6 +47,8 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
   const [activeCourses, setActiveCourses] = useState<Course[]>([]);
   const [upNextCourses, setUpNextCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
+  const [planCachedAt, setPlanCachedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [lessonCourse, setLessonCourse] = useState<Course | null>(null);
@@ -76,7 +78,11 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
   useEffect(() => { loadPlan(); }, []);
 
   const loadPlan = async (forceRefresh = false) => {
-    setLoading(true);
+    if (forceRefresh) {
+      setRegenerating(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
       const url = forceRefresh ? '/api/journey/plan?refresh=true' : '/api/journey/plan';
@@ -87,6 +93,7 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
         return;
       }
       const plan = await res.json();
+      setPlanCachedAt(plan.cachedAt ?? null);
       setActiveCourses(
         (plan.activeExpeditions ?? [])
           .filter((c: any) => matchesSubject(c.subject, keywords) || matchesSubject(c.title, keywords))
@@ -101,6 +108,7 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
       setError(e instanceof Error ? e.message : 'Network error');
     } finally {
       setLoading(false);
+      setRegenerating(false);
     }
   };
 
@@ -139,11 +147,15 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
 
   const noCoursesFound = !loading && !error && activeCourses.length === 0 && upNextCourses.length === 0;
 
-  if (loading) {
+  if (loading || regenerating) {
     return (
       <div className="flex items-center justify-center py-12 gap-3">
         <Loader2 className="w-6 h-6 animate-spin" style={{ color: accentColor }} />
-        <p className="text-[#2F4731]/60 italic text-sm">Loading your {subject.toLowerCase()} lessons…</p>
+        <p className="text-[#2F4731]/60 italic text-sm">
+          {regenerating
+            ? 'Adeline is recalculating your path based on your latest work…'
+            : `Loading your ${subject.toLowerCase()} lessons…`}
+        </p>
       </div>
     );
   }
@@ -194,7 +206,16 @@ export function SubjectLessonsPanel({ subject, keywords, accentColor = '#BD6809'
               <h2 className="text-xl font-bold text-[#2F4731]" style={{ fontFamily: 'var(--font-emilys-candy), cursive' }}>
                 In Progress
               </h2>
-              <button onClick={() => loadPlan(true)} className="ml-auto text-[#2F4731]/30 hover:text-[#2F4731]/60 transition-colors" title="Refresh">
+              {planCachedAt && (
+                <span className="flex items-center gap-1 text-[10px] text-[#2F4731]/30 border border-[#E7DAC3] px-1.5 py-0.5 rounded-full">
+                  <Clock className="w-2.5 h-2.5" />
+                  {(() => {
+                    const mins = Math.round((Date.now() - new Date(planCachedAt).getTime()) / 60000);
+                    return mins < 60 ? `${mins}m ago` : `${Math.round(mins / 60)}h ago`;
+                  })()}
+                </span>
+              )}
+              <button onClick={() => loadPlan(true)} className="ml-auto text-[#2F4731]/30 hover:text-[#2F4731]/60 transition-colors" title="Regenerate plan">
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>

@@ -113,15 +113,22 @@ export async function GET(req: NextRequest) {
     // Pull the student's state from their learning plan (set during onboarding)
     const studentState = student.learningPlans?.state ?? null;
     const stateLabel = studentState ? `${studentState} state` : 'their state';
-    // --- Cache check: serve stored snapshot if < 24 hours old ---
+    // --- Cache check: serve stored snapshot if fresh and not stale ---
     const forceRefresh = req.nextUrl.searchParams.get('refresh') === 'true';
     const meta = (student.metadata ?? {}) as Record<string, unknown>;
     const cachedAt = meta.journeyPlanCachedAt as string | undefined;
     const cachedPlan = meta.journeyPlanSnapshot as Record<string, unknown> | undefined;
-    if (!forceRefresh && cachedPlan && cachedAt && Date.now() - new Date(cachedAt).getTime() < CACHE_TTL_MS) {
+
+    const cacheTime = cachedAt ? new Date(cachedAt).getTime() : 0;
+    // If a transcript entry was logged AFTER the plan was cached, the plan is stale
+    const lastTranscriptTime = lastActivity ? new Date(lastActivity.dateCompleted).getTime() : 0;
+    const planIsStale = lastTranscriptTime > cacheTime;
+
+    if (!forceRefresh && cachedPlan && cachedAt && !planIsStale && Date.now() - cacheTime < CACHE_TTL_MS) {
       return NextResponse.json({
         ...cachedPlan,
         creditsEarned: totalCreditsEarned, // always live
+        cachedAt, // expose so UI can show cache age
         lastActivity: lastActivity ? {
           activityName: lastActivity.activityName,
           date: lastActivity.dateCompleted.toISOString(),
