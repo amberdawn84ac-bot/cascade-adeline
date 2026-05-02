@@ -50,7 +50,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Redirect old subject-specific rooms to unified journey page
-  const oldSubjectRooms = ['/dashboard/science', '/dashboard/math', '/dashboard/ela', '/dashboard/history'];
+  const oldSubjectRooms = ['/dashboard/science', '/dashboard/math', '/dashboard/ela'];
   if (oldSubjectRooms.some(room => pathname.startsWith(room))) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard/journey';

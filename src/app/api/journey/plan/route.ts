@@ -8,7 +8,7 @@ import { loadConfig } from '@/lib/config';
 
 export const maxDuration = 60; // Vercel: allow up to 60s for LLM call
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 function parseActiveGrade(raw: string): number {
   const s = raw.trim().toLowerCase();

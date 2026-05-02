@@ -5,10 +5,10 @@ import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, Loader2, Sparkles, Calendar, ExternalLink, RefreshCw } from 'lucide-react';
 
-interface Opportunity {
+interface DisplayOpportunity {
   id: string;
   title: string;
-  type: 'CONTEST' | 'GRANT' | 'APPRENTICESHIP' | 'SERVICE_PROJECT' | 'SCHOLARSHIP' | 'SPELLING_BEE' | 'COMPETITION' | 'EVENT';
+  type: string;
   description: string;
   url?: string;
   deadline?: string;
@@ -23,65 +23,88 @@ interface StudentProfile {
   interests?: string[];
 }
 
+function competitionToDisplay(c: Record<string, any>): DisplayOpportunity {
+  return {
+    id: c.id,
+    title: c.name ?? c.title,
+    type: c.type ?? 'COMPETITION',
+    description: c.description,
+    url: c.url,
+    deadline: c.deadline,
+    ageRange: c.ageRange ?? c.age_range,
+    matchedInterests: c.themes ?? c.matchedInterests ?? [],
+    createdAt: c.createdAt ?? c.created_at,
+  };
+}
+
 export default function CommunityBoardPage() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [opportunities, setOpportunities] = useState<DisplayOpportunity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [studentProfile, setStudentProfile] = useState<StudentProfile>({});
 
-  const fetchOpportunities = async () => {
-    try {
-      const res = await fetch('/api/opportunities');
-      if (res.ok) {
-        const data = await res.json();
-        setOpportunities(data.opportunities || []);
-      }
-    } catch (error) {
-      console.error('Failed to load opportunities:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchCompetitions = async (): Promise<DisplayOpportunity[]> => {
+    // Competitions table (AI-discovered via /api/competitions/discover)
+    const [compRes, oppRes] = await Promise.allSettled([
+      fetch('/api/competitions/discover'),
+      fetch('/api/opportunities'),
+    ]);
+    const competitions: DisplayOpportunity[] = compRes.status === 'fulfilled' && compRes.value.ok
+      ? ((await compRes.value.json()).competitions ?? []).map(competitionToDisplay)
+      : [];
+    const adminOpps: DisplayOpportunity[] = oppRes.status === 'fulfilled' && oppRes.value.ok
+      ? ((await oppRes.value.json()).opportunities ?? []).map(competitionToDisplay)
+      : [];
+    // Deduplicate by id, competitions first
+    const seen = new Set<string>();
+    return [...competitions, ...adminOpps].filter(o => seen.has(o.id) ? false : seen.add(o.id) && true);
   };
 
-  useEffect(() => {
-    fetchOpportunities();
-    // Fetch student profile for the discover button
-    fetch('/api/student/profile')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) {
-          setStudentProfile({
-            age: data.age,
-            gradeLevel: data.gradeLevel,
-            interests: data.interests || [],
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleDiscover = async () => {
+  const triggerDiscover = async (profile: StudentProfile) => {
     setIsDiscovering(true);
     try {
-      const res = await fetch('/api/competitions/discover', {
+      await fetch('/api/competitions/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          studentAge: studentProfile.age,
-          studentGrade: studentProfile.gradeLevel,
-          interests: studentProfile.interests,
+          studentAge: profile.age,
+          studentGrade: profile.gradeLevel,
+          interests: profile.interests,
         }),
       });
-      if (res.ok) {
-        // Refresh the opportunity list to show newly discovered items
-        await fetchOpportunities();
-      }
+      setOpportunities(await fetchCompetitions());
     } catch (error) {
       console.error('Failed to discover opportunities:', error);
     } finally {
       setIsDiscovering(false);
     }
   };
+
+  useEffect(() => {
+    let profile: StudentProfile = {};
+    const init = async () => {
+      try {
+        const r = await fetch('/api/student/profile');
+        if (r.ok) {
+          const d = await r.json();
+          profile = { age: d.age, gradeLevel: d.gradeLevel, interests: d.interests || [] };
+          setStudentProfile(profile);
+        }
+      } catch { /* non-fatal */ }
+
+      const results = await fetchCompetitions();
+      if (results.length === 0) {
+        // Nothing in DB yet — auto-trigger discovery on first visit
+        await triggerDiscover(profile);
+      } else {
+        setOpportunities(results);
+      }
+      setIsLoading(false);
+    };
+    init();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDiscover = () => triggerDiscover(studentProfile);
 
   return (
     <div className="min-h-screen bg-[#FFFEF7]">
@@ -131,36 +154,27 @@ export default function CommunityBoardPage() {
             <Card key={opportunity.id} className="border-2 border-[#E7DAC3] overflow-hidden hover:border-[#BD6809] transition-colors">
               {/* Opportunity Header */}
               <div className="p-4 flex items-center gap-3 border-b border-[#E7DAC3] bg-white">
-                <div className="w-10 h-10 rounded-full bg-[#BD6809] text-white flex items-center justify-center font-bold">
-                  {opportunity.title.includes('Reading') || opportunity.title.includes('BOOK IT') || opportunity.title.includes('Book Buddy') ? '📚' :
-                   opportunity.type === 'SPELLING_BEE' ? '📝' :
-                   opportunity.type === 'CONTEST' && opportunity.title.includes('Pizza') ? '🍕' :
-                   opportunity.type === 'CONTEST' && opportunity.title.includes('Ice Cream') ? '🍦' :
-                   opportunity.type === 'CONTEST' ? '🏆' :
-                   opportunity.type === 'GRANT' ? '💰' :
+                <div className="w-10 h-10 rounded-full bg-[#BD6809] text-white flex items-center justify-center text-lg">
+                  {opportunity.type === 'SPELLING_BEE' ? '📝' :
+                   opportunity.type === 'MATH' ? '🔢' :
+                   opportunity.type === 'WRITING' ? '✍️' :
+                   opportunity.type === 'ROBOTICS' ? '🤖' :
                    opportunity.type === 'SCHOLARSHIP' ? '🎓' :
+                   opportunity.type === 'GRANT' ? '💰' :
                    opportunity.type === 'APPRENTICESHIP' ? '🔧' :
                    opportunity.type === 'SERVICE_PROJECT' ? '🤝' :
-                   opportunity.type === 'COMPETITION' ? '⚡' :
-                   opportunity.type === 'EVENT' ? '📅' : '📚'}
+                   opportunity.type === 'EVENT' ? '📅' : '🏆'}
                 </div>
                 <div>
                   <p className="font-bold text-[#2F4731]">{opportunity.title}</p>
                   <p className="text-xs text-[#2F4731]/60">
-                    {opportunity.type.replace('_', ' ').toLowerCase()} • 
-                    {new Date(opportunity.createdAt).toLocaleDateString()}
+                    {opportunity.type.replace(/_/g, ' ').toLowerCase()} •{' '}
+                    {opportunity.createdAt ? new Date(opportunity.createdAt).toLocaleDateString() : ''}
                   </p>
                 </div>
                 <div className="ml-auto">
-                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    opportunity.title.includes('Reading') || opportunity.title.includes('BOOK IT') || opportunity.title.includes('Book Buddy')
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {opportunity.title.includes('Reading') || opportunity.title.includes('BOOK IT') || opportunity.title.includes('Book Buddy')
-                      ? 'Reading Program'
-                      : opportunity.type.replace('_', ' ')
-                    }
+                  <div className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                    {opportunity.type.replace(/_/g, ' ')}
                   </div>
                 </div>
               </div>
