@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { getAllCodesForSubject } from '@/lib/standards/subjectStandardsMap';
 import { getOrCreateStandard, recordStandardProgress } from '@/lib/services/standardsService';
 import { calculateLessonCredits, getTotalCreditHours } from '@/lib/standards/creditCalculator';
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
                 const m = ((u?.metadata ?? {}) as Record<string, unknown>);
                 delete m.journeyPlanCachedAt;
                 delete m.journeyPlanSnapshot;
-                return prisma.user.update({ where: { id: user.userId }, data: { metadata: m } });
+                return prisma.user.update({ where: { id: user.userId }, data: { metadata: m as Prisma.InputJsonValue } });
               })
               .catch(err => console.error('[lesson-progress] Journey cache invalidation failed:', err));
           }
