@@ -117,6 +117,18 @@ export async function POST(req: NextRequest) {
           }
 
           creditsAwarded = creditAwards;
+
+          // Invalidate journey plan cache so next load reflects new credits
+          if (transcriptEntries.length > 0) {
+            void prisma.user.findUnique({ where: { id: user.userId }, select: { metadata: true } })
+              .then(u => {
+                const m = ((u?.metadata ?? {}) as Record<string, unknown>);
+                delete m.journeyPlanCachedAt;
+                delete m.journeyPlanSnapshot;
+                return prisma.user.update({ where: { id: user.userId }, data: { metadata: m } });
+              })
+              .catch(err => console.error('[lesson-progress] Journey cache invalidation failed:', err));
+          }
         }
       } catch (creditErr) {
         console.error('[lesson-progress] Credit awarding failed:', creditErr);
