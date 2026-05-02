@@ -71,46 +71,51 @@ export default async function JournalPage() {
   const user = await getSessionUser();
   if (!user) redirect('/login');
 
-  // Fetch all completed activities from TranscriptEntry
-  const transcriptEntries = await prisma.transcriptEntry.findMany({
-    where: { userId: user.userId },
-    orderBy: { dateCompleted: 'desc' },
-    take: 100, // Last 100 activities
-    select: {
-      id: true,
-      activityName: true,
-      mappedSubject: true,
-      dateCompleted: true,
-      creditsEarned: true,
-      notes: true,
-      metadata: true,
-    },
-  });
+  let activities: ActivityEntry[] = [];
+  let reflections: DailyReflection[] = [];
 
-  const activities: ActivityEntry[] = transcriptEntries.map(entry => ({
-    id: entry.id,
-    activityName: entry.activityName,
-    mappedSubject: entry.mappedSubject,
-    dateCompleted: entry.dateCompleted,
-    creditsEarned: entry.creditsEarned.toNumber(),
-    notes: entry.notes || undefined,
-    metadata: entry.metadata,
-  }));
+  try {
+    const transcriptEntries = await prisma.transcriptEntry.findMany({
+      where: { userId: user.userId },
+      orderBy: { dateCompleted: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        activityName: true,
+        mappedSubject: true,
+        dateCompleted: true,
+        creditsEarned: true,
+        notes: true,
+        metadata: true,
+      },
+    });
 
-  // Fetch daily reflections
-  const dailyReflections = await prisma.dailyReflection.findMany({
-    where: { studentId: user.userId },
-    orderBy: { date: 'desc' },
-    take: 30, // Last 30 days
-  });
+    activities = transcriptEntries.map(entry => ({
+      id: entry.id,
+      activityName: entry.activityName,
+      mappedSubject: entry.mappedSubject,
+      dateCompleted: entry.dateCompleted,
+      creditsEarned: entry.creditsEarned.toNumber(),
+      notes: entry.notes || undefined,
+      metadata: entry.metadata,
+    }));
 
-  const reflections: DailyReflection[] = dailyReflections.map(r => ({
-    id: r.id,
-    prompt: r.prompt,
-    content: r.content,
-    date: r.date,
-    createdAt: r.createdAt,
-  }));
+    const dailyReflections = await prisma.dailyReflection.findMany({
+      where: { studentId: user.userId },
+      orderBy: { date: 'desc' },
+      take: 30,
+    });
+
+    reflections = dailyReflections.map(r => ({
+      id: r.id,
+      prompt: r.prompt,
+      content: r.content,
+      date: r.date,
+      createdAt: r.createdAt,
+    }));
+  } catch (e) {
+    console.error('[JournalPage] DB error:', e);
+  }
 
   // Check if today's reflection exists
   const today = new Date();

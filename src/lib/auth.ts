@@ -26,14 +26,14 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const supaUser = data.user;
   if (!supaUser) return null;
 
-  let user = await prisma.user.findUnique({
-    where: { id: supaUser.id },
-    select: { role: true, email: true, id: true, accountLockedAt: true, dataDeletionRequestedAt: true },
-  });
-  
-  // Auto-heal missing Prisma user (The Ghost User fix)
-  if (!user) {
-    try {
+  try {
+    let user = await prisma.user.findUnique({
+      where: { id: supaUser.id },
+      select: { role: true, email: true, id: true, accountLockedAt: true, dataDeletionRequestedAt: true },
+    });
+
+    // Auto-heal missing Prisma user (The Ghost User fix)
+    if (!user) {
       const meta = supaUser.user_metadata ?? {};
       const rawRole = (meta.role as string | undefined)?.toUpperCase();
       const validRoles = ['STUDENT', 'PARENT', 'TEACHER', 'ADMIN'];
@@ -47,17 +47,17 @@ export async function getSessionUser(): Promise<SessionUser | null> {
           name: resolvedName,
         }
       }) as any;
-    } catch (e) {
-      console.error("Failed to auto-heal missing Prisma user:", e);
-      return null;
     }
+
+    // Hard-lock: reject if account is locked or deletion requested
+    if (!user) return null;
+    if (user.accountLockedAt) return null;
+    if (user.dataDeletionRequestedAt) return null;
+
+    return { userId: user.id, role: user.role, email: user.email };
+  } catch (e) {
+    console.error('[getSessionUser] DB error:', e);
+    return null;
   }
-
-  // Hard-lock: reject if account is locked or deletion requested
-  if (!user) return null;
-  if (user.accountLockedAt) return null;
-  if (user.dataDeletionRequestedAt) return null;
-
-  return { userId: user.id, role: user.role, email: user.email };
 }
 
