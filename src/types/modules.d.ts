@@ -12,26 +12,30 @@ declare module '@react-pdf/renderer' {
 }
 
 declare module '@supabase/ssr' {
-  import type { SupabaseClientOptions, SupabaseClient } from '@supabase/supabase-js';
+  import type { SupabaseClient } from '@supabase/supabase-js';
+
+  interface SSRCookieMethods {
+    get?(name: string): string | undefined;
+    set?(name: string, value: string, options?: Record<string, unknown>): void;
+    remove?(name: string, options?: Record<string, unknown>): void;
+    getAll?(): { name: string; value: string }[];
+    setAll?(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]): void;
+  }
+
   export function createServerClient(
     supabaseUrl: string,
     supabaseKey: string,
-    options?: SupabaseClientOptions<'public'> & {
-      cookies?: {
-        get?(name: string): string | undefined;
-        set?(...args: any[]): void;
-        remove?(...args: any[]): void;
-        getAll?(): { name: string; value: string }[];
-        setAll?(cookies: { name: string; value: string; options?: any }[]): void;
-      };
-      headers?: any;
+    options: {
+      cookies: SSRCookieMethods;
+      [key: string]: unknown;
     },
-  ): SupabaseClient<'public'>;
+  ): SupabaseClient;
+
   export function createBrowserClient(
     supabaseUrl: string,
     supabaseKey: string,
-    options?: SupabaseClientOptions<'public'>,
-  ): SupabaseClient<'public'>;
+    options?: { [key: string]: unknown },
+  ): SupabaseClient;
 }
 
 declare module 'ai/server' {
