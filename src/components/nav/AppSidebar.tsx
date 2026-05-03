@@ -25,9 +25,7 @@ import {
 } from 'lucide-react';
 import { DailyBreadWidget } from '@/components/daily-bread/DailyBreadWidget';
 import { cn } from '@/lib/utils';
-import { createServerClient } from '@supabase/ssr';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
+import { createBrowserClient } from '@supabase/ssr';
 
 const NAV_ITEMS = [
   { label: 'My Learning Plan', href: '/dashboard/journey', icon: BookOpen },

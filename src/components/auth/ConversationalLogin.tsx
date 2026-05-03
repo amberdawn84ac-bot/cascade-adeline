@@ -3,13 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, GraduationCap, Users, User, Loader2, Mail } from 'lucide-react';
-import { createServerClient } from '@supabase/ssr';
+import { createBrowserClient } from '@supabase/ssr';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-// createBrowserClient is exported at runtime but tsc ^5.4 misses it due to a peer-dep
-// version-keying bug. Load it via require and cast to the equivalent server client type.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
 
 type Role = 'student' | 'parent' | 'teacher';
 type Mode = 'login' | 'signup';

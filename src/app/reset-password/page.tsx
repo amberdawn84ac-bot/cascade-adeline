@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Lock } from 'lucide-react';
-import { createServerClient } from '@supabase/ssr';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const createBrowserClient = (require('@supabase/ssr') as { createBrowserClient: typeof createServerClient }).createBrowserClient;
+import { createBrowserClient } from '@supabase/ssr';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
