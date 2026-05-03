@@ -5,7 +5,13 @@ import prisma from '@/lib/db';
 
 export default async function SettingsPage() {
   const sessionUser = await getSessionUser();
-  if (!sessionUser) redirect('/login');
+  if (!sessionUser) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-[#2F4731]/60">Please log in to access settings.</p>
+      </div>
+    );
+  }
 
   // Fetch full user data from Prisma
   const user = await prisma.user.findUnique({
@@ -37,7 +43,13 @@ export default async function SettingsPage() {
     },
   });
 
-  if (!user) redirect('/login');
+  if (!user) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-[#2F4731]/60">User profile not found. Please contact support.</p>
+      </div>
+    );
+  }
 
   // Transform user to match SettingsForm props
   const userProps = {
