@@ -17,9 +17,20 @@ declare module '@supabase/ssr' {
     supabaseUrl: string,
     supabaseKey: string,
     options?: SupabaseClientOptions<'public'> & {
-      cookies?: { get(name: string): string | undefined; set?(...args: any[]): void; remove?(...args: any[]): void };
+      cookies?: {
+        get?(name: string): string | undefined;
+        set?(...args: any[]): void;
+        remove?(...args: any[]): void;
+        getAll?(): { name: string; value: string }[];
+        setAll?(cookies: { name: string; value: string; options?: any }[]): void;
+      };
       headers?: any;
     },
+  ): SupabaseClient<'public'>;
+  export function createBrowserClient(
+    supabaseUrl: string,
+    supabaseKey: string,
+    options?: SupabaseClientOptions<'public'>,
   ): SupabaseClient<'public'>;
 }
 
