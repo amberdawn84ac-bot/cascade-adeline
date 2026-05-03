@@ -10,6 +10,58 @@ export const maxDuration = 60; // Vercel: allow up to 60s for LLM call
 
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
+const SUBJECT_REQUIREMENTS: Record<'high' | 'middle' | 'elementary', Record<string, number>> = {
+  high: {
+    'English Language Arts': 4,
+    'Math': 3,
+    'Science': 3,
+    'History': 3,
+    'Bible': 4,
+    'Homesteading': 2,
+    'Elective': 3,
+    'Trade/Business': 1,
+    'Character/Service': 1,
+  },
+  middle: {
+    'English Language Arts': 1,
+    'Math': 1,
+    'Science': 1,
+    'History': 1,
+    'Bible': 1,
+    'Homesteading': 1,
+    'Elective': 1,
+  },
+  elementary: {
+    'Reading & Language Arts': 1,
+    'Math': 1,
+    'Science & Nature': 1,
+    'Social Studies': 1,
+    'Bible': 1,
+    'Homesteading': 1,
+  },
+};
+
+function normalizeSubject(raw: string): string {
+  const s = raw.toLowerCase();
+  if (/english|ela|language arts|reading|writing|literature|composition/.test(s))
+    return 'English Language Arts';
+  if (/math|algebra|geometry|calculus|statistics|arithmetic/.test(s))
+    return 'Math';
+  if (/science|biology|chemistry|physics|earth|botany|ecology|anatomy|zoology/.test(s))
+    return 'Science';
+  if (/history|social studies|government|economics|geography|civics|world cultures/.test(s))
+    return 'History';
+  if (/bible|scripture|theology|christian|devotional/.test(s))
+    return 'Bible';
+  if (/homestead|home ec|cooking|gardening|sewing|life skills|domestic|physical ed|nutrition/.test(s))
+    return 'Homesteading';
+  if (/trade|business|clep|dual enrollment|vocational|entrepreneurship/.test(s))
+    return 'Trade/Business';
+  if (/character|service|community|leadership/.test(s))
+    return 'Character/Service';
+  return 'Elective';
+}
+
 function parseActiveGrade(raw: string): number {
   const s = raw.trim().toLowerCase();
   if (s === 'k') return 0;
@@ -86,29 +138,42 @@ export async function GET(req: NextRequest) {
     // Calculate graduation/target date based on grade level
     const gradeNum = parseActiveGrade(studentCtx.activeGradeLevel);
     const schoolLevel = getSchoolLevel(gradeNum);
-    
+
     let graduationDate = new Date();
-    let TOTAL_CREDITS_NEEDED: number;
-    
+
     if (student?.targetGraduationYear) {
-      // Parent-set target graduation year takes priority
-      graduationDate = new Date(student.targetGraduationYear, 4, 1); // May 1st of target year
-      TOTAL_CREDITS_NEEDED = schoolLevel === 'high' ? 24 : schoolLevel === 'middle' ? 7 : 6;
+      graduationDate = new Date(student.targetGraduationYear, 4, 1);
     } else if (schoolLevel === 'high') {
-      // High school (9-12): Map to actual graduation
       const yearsToGraduation = Math.max(1, 13 - gradeNum);
       graduationDate.setFullYear(graduationDate.getFullYear() + yearsToGraduation);
-      graduationDate.setMonth(4); // May graduation
-      TOTAL_CREDITS_NEEDED = 24;
+      graduationDate.setMonth(4);
     } else {
-      // Elementary (K-5) and Middle (6-8): Map to end of current school year
       const currentMonth = graduationDate.getMonth();
       if (currentMonth >= 5) {
         graduationDate.setFullYear(graduationDate.getFullYear() + 1);
       }
       graduationDate.setMonth(4);
-      TOTAL_CREDITS_NEEDED = schoolLevel === 'middle' ? 7 : 6;
     }
+
+    // Per-subject credit aggregation from real transcript data
+    const creditsBySubject: Record<string, number> = {};
+    for (const entry of transcriptEntries) {
+      const subject = normalizeSubject(entry.mappedSubject);
+      creditsBySubject[subject] = (creditsBySubject[subject] || 0) + Number(entry.creditsEarned);
+    }
+
+    const requirements = SUBJECT_REQUIREMENTS[schoolLevel];
+    const subjectProgress = Object.entries(requirements).map(([subject, required]) => {
+      const earned = Math.min(creditsBySubject[subject] || 0, required);
+      return { subject, required, earned, remaining: required - earned };
+    });
+
+    const TOTAL_CREDITS_NEEDED = subjectProgress.reduce((sum, s) => sum + s.required, 0);
+
+    const incompleteSubjects = subjectProgress
+      .filter(s => s.remaining > 0)
+      .sort((a, b) => b.remaining - a.remaining);
+    const completeSubjects = subjectProgress.filter(s => s.remaining === 0);
 
     // Pull the student's state from their learning plan (set during onboarding)
     const studentState = student.learningPlans?.state ?? null;
@@ -274,10 +339,33 @@ PLAN STRUCTURE
 
 CREDIT RULE — NON-NEGOTIABLE: Each course = EXACTLY 1.0 credit/milestone.
 
-The student has earned ${totalCreditsEarned} credits so far.
+${(() => {
+  const progressLines = subjectProgress
+    .map(({ subject, earned, required, remaining }) => {
+      const pct = Math.round((earned / required) * 100);
+      const tag = remaining === 0 ? '✓ COMPLETE' : `${remaining.toFixed(1)} more needed`;
+      return `  ${subject}: ${earned.toFixed(1)}/${required} credits (${pct}%) — ${tag}`;
+    })
+    .join('\n');
+
+  return `GRADUATION PROGRESS — FROM ACTUAL TRANSCRIPT (DO NOT INVENT OR MODIFY THESE NUMBERS):
+${progressLines}
+Total: ${totalCreditsEarned.toFixed(1)} of ${TOTAL_CREDITS_NEEDED} raw credits logged toward graduation
+
+PRIORITY ORDER FOR trailAhead (highest remaining = most urgent):
+${incompleteSubjects.map((s, i) => `  ${i + 1}. ${s.subject} — ${s.remaining.toFixed(1)} credits remaining`).join('\n')}
+
+COMPLETED SUBJECTS — DO NOT add more courses for these unless filling a bonus elective slot:
+${completeSubjects.length > 0 ? completeSubjects.map(s => `  ✓ ${s.subject}`).join('\n') : '  (none yet)'}`;
+})()}
+
 Last activity: ${lastActivity ? `${lastActivity.activityName} (${daysSinceLastActivity} days ago)` : 'None logged'}
 
-List the next 4-8 individual 1-credit courses as trailAhead. Every creditsNeeded value must be 1.0.`
+RULES FOR trailAhead:
+1. Draw from the PRIORITY ORDER above — fill the most-needed subjects first.
+2. Never suggest a COMPLETED subject unless it is an explicit bonus elective slot.
+3. Every creditsNeeded value must be exactly 1.0.
+4. Titles can reflect the student's interests; the academic subject must target a real gap.`
       },
       {
         role: 'user',

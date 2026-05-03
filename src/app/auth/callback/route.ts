@@ -16,16 +16,12 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) { return cookieStore.get(name)?.value; },
+          getAll() { return cookieStore.getAll(); },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          set(name: string, value: string, options: any) {
-            cookieStore.set(name, value, options);
-            response.cookies.set(name, value, options);
-          },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          remove(name: string, options: any) {
-            cookieStore.set(name, '', options);
-            response.cookies.set(name, '', options);
+          setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
           },
         },
       }
