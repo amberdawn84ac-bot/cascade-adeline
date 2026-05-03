@@ -11,16 +11,12 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
     {
       cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch (error) {
-            console.error('[auth] Failed to set cookies:', error);
-          }
+        get(name: string) {
+          return cookieStore.get(name)?.value;
         },
+        // No-op setters for server-only reads; Supabase requires these functions.
+        set() {},
+        remove() {},
       },
     },
   );
