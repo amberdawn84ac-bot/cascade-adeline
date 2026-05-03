@@ -11,17 +11,6 @@ declare module '@react-pdf/renderer' {
   export const pdf: (doc: React.ReactElement) => { toBuffer(): Promise<Buffer> };
 }
 
-declare module '@supabase/ssr' {
-  import type { SupabaseClientOptions, SupabaseClient } from '@supabase/supabase-js';
-  export function createServerClient(
-    supabaseUrl: string,
-    supabaseKey: string,
-    options?: SupabaseClientOptions<'public'> & {
-      cookies?: { get(name: string): string | undefined; set?(...args: any[]): void; remove?(...args: any[]): void };
-      headers?: any;
-    },
-  ): SupabaseClient<'public'>;
-}
 
 declare module 'ai/server' {
   export class StreamData<T = any> {
