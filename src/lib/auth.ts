@@ -12,7 +12,15 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     {
       cookies: {
         getAll() { return cookieStore.getAll(); },
-        setAll() {},
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch (error) {
+            console.error('[auth] Failed to set cookies:', error);
+          }
+        },
       },
     },
   );
